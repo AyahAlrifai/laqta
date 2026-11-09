@@ -472,11 +472,11 @@ export class LaqtaApp {
   private dispatch(event: FlowEvent): boolean {
     const result = transition(this.state, event);
     if (result === null) {
-      log('session.rejected', { from: this.state, event: event.type });
+      log('session.rejected', { from: this.state, trigger: event.type });
       return false;
     }
     const data = this.data;
-    log('session.transition', { from: this.state, to: result.state, event: event.type });
+    log('session.transition', { from: this.state, to: result.state, trigger: event.type });
     this.state = result.state;
     if (data) data.session.state = result.state;
     if (result.state === 'idle') this.data = null;

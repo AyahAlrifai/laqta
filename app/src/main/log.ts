@@ -114,5 +114,6 @@ export function setLogSink(next: LogSink): void {
 }
 
 export function log(event: LogEvent, meta: LogMeta = {}): void {
-  sink.write(JSON.stringify({ t: new Date().toISOString(), event, ...scrubMeta(meta) }));
+  // Metadata goes first so it can never overwrite the time or the event name.
+  sink.write(JSON.stringify({ ...scrubMeta(meta), t: new Date().toISOString(), event }));
 }
