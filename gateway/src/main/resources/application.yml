@@ -1,0 +1,39 @@
+# Laqta gateway. Secrets come from the environment only, never from this file.
+server:
+  port: ${PORT:8080}
+  # The gateway sits behind the company TLS terminator.
+  forward-headers-strategy: native
+
+spring:
+  servlet:
+    multipart:
+      # Request size limits (T-070): the AI copy is at most 1568 px on the long edge.
+      max-file-size: 8MB
+      max-request-size: 10MB
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # D-AUTH (spec section 15): the company identity provider issues the JWTs.
+          issuer-uri: ${LAQTA_JWT_ISSUER_URI:}
+
+laqta:
+  auth:
+    # jwt in every real deployment. disabled-dev only works with the dev profile.
+    mode: ${LAQTA_AUTH_MODE:jwt}
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:}
+    base-url: https://api.anthropic.com
+    model: ${LAQTA_AI_MODEL:claude-sonnet-5-5}
+    timeout-seconds: 45
+  limits:
+    requests-per-minute: ${LAQTA_LIMIT_RPM:10}
+    monthly-cost-cap-usd: ${LAQTA_LIMIT_MONTHLY_USD:20}
+  pricing:
+    # USD per million tokens for the configured model; set from the current price list.
+    input-per-million: ${LAQTA_PRICE_INPUT:0}
+    output-per-million: ${LAQTA_PRICE_OUTPUT:0}
+
+logging:
+  level:
+    root: INFO

@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-T-001 (bootstrap) is done: the pnpm workspace, an electron-vite app that shows a tray icon, TypeScript strict, ESLint, Prettier, Vitest, `AGENTS.md` and a `.gitlab-ci.yml` skeleton. Planning material lives in `doc/`:
+The code for every ticket from T-001 to T-073 is written. Lint, typecheck, unit and integration tests, the Playwright E2E suite and the gateway tests all pass. What is **not** done needs people or infrastructure:
+
+- The spikes have not run (T-002 Jira sandbox, T-003 Anthropic key, T-004 Windows/macOS test machines). Their scripts and result templates are in `tools/spike/`, `tools/eval/` and `docs/spike-*.md`. Until they run, section 14 assumptions are unverified, even though the code follows the spec.
+- Signing, notarization and the update feed (T-053) need the certificates, Apple ID and runners (section 14, item 13).
+- The T-062 word error rate needs the 50 recorded clips, and D-STT has to pick a speech service (`/v1/transcribe` answers 501 until then).
+- D-AUTH: the gateway validates JWTs from `LAQTA_JWT_ISSUER_URI`, but the app does not send a token yet (`authHeader` returns null).
+
+Contract additions made during the build are in spec sections 2.1, 3.1, 4.1, 8.1 and 11.1 and section 14 item 14. Planning material lives in `doc/`:
 
 - `doc/Dev Spec (AI-ready).md`: **the binding build spec.** Read it before any work. Section numbers below (§N) refer to it.
 - `doc/Product plan.md`: PM plan with the reasons behind the decisions, the risks and the open questions. It is background reading, not a contract.
@@ -27,29 +34,36 @@ Node 26 LTS (`.nvmrc`), pnpm 12.18.0 (`packageManager` field; if pnpm is not ins
 ```
 pnpm install --frozen-lockfile   # app postinstall runs `install-electron` (checksum-verified binary download)
 pnpm lint            # ESLint (typed, strict) + Prettier check + tools/check-todos.js
-pnpm typecheck       # tsc per package
-pnpm test            # Vitest in every package
-pnpm dev             # electron-vite dev
-pnpm build           # electron-vite build into app/out
-pnpm start           # build preview of the app
+pnpm typecheck       # tsc for main, renderer, gateway-contract and tools
+pnpm test            # Vitest: unit + integration against the mock Jira server (app/test/mock-jira.ts)
+pnpm test:e2e        # builds, then Playwright for Electron; LAQTA_E2E=1 swaps in the fake provider and mock Jira
+pnpm dev             # electron-vite dev (set ANTHROPIC_API_KEY for real drafts; dev builds only)
+pnpm build           # dev build (includes the direct provider)
+pnpm build:release && pnpm check:release   # release build, proves no ANTHROPIC_API_KEY in the bundle
+pnpm dist:win | pnpm dist:mac              # electron-builder (needs signing variables)
+pnpm mock-jira       # standalone mock Jira on :4545 (token e2e-token)
+pnpm eval            # T-033 eval over fixtures/ (needs ANTHROPIC_API_KEY)
+pnpm spike:jira      # T-002 spike against a sandbox (JIRA_URL, JIRA_PAT, JIRA_PROJECT)
+pnpm fixtures        # re-render the 20 synthetic fixture screenshots
+pnpm wer             # T-062 word error rate (WER_CLIPS, GATEWAY_URL)
+pnpm gateway:test    # mvn test for the Spring Boot gateway (JDK 17)
 pnpm audit --prod
 ```
 
-Single test: `pnpm --filter @laqta/app exec vitest run <path> -t "<name>"`.
-Still to come: `pnpm test:e2e` (T-054) and `pnpm dist:win` / `pnpm dist:mac` (T-053).
+Single test: `pnpm --filter @laqta/app exec vitest run <path> -t "<name>"`. E2E screenshots of every step: `LAQTA_SHOTS=<dir> pnpm test:e2e`.
 
-Version notes: TypeScript is pinned to 6.0.x because typescript-eslint supports `<6.1`. pnpm enforces a minimum release age, so pin versions that are at least a few days old instead of adding `minimumReleaseAgeExclude` entries.
+Version notes: TypeScript is pinned to 6.0.x because typescript-eslint supports `<6.1`. pnpm enforces a minimum release age, so pin versions that are at least a few days old instead of adding `minimumReleaseAgeExclude` entries. Only `get-windows` may run an install script (`allowBuilds`).
 
 ## Architecture (big picture)
 
-Planned layout, §2: workspace packages `app` and `gateway-contract`. Phase 3 adds `gateway/` (a Spring Boot service).
+Layout, §2 and §2.1: workspace packages `app` and `gateway-contract`, plus `gateway/` (Spring Boot 4, Maven). `app/src/main/app.ts` is the composition root and effect runner; renderers are `overlay/`, `workbench/` (hosting `editor/` and `review/`), `toast/` and `settings/`.
 
 - **The main process owns all I/O**: capture, network (`net.fetch`, so the system proxy and corporate certificates work), disk and secrets (`safeStorage`). Renderers never touch the network or the disk. Their CSP sets `connect-src 'none'`.
 - **The preload script** exposes only `window.laqta`, a typed wrapper over the IPC channels in `src/shared/ipc-channels.ts`. `main/ipc.ts` checks the sender frame and validates every payload with Zod.
 - **Orchestrator** (`main/orchestrator.ts`): a pure function `(state, event) => { state, effects }` plus an effect runner. States are idle → capturing → editing → drafting → reviewing → submitting → (verifying | partial | done). Every row of the §3 table needs a unit test, and none of those tests may need Electron. Only one session is active at a time.
 - **Windows**: one overlay per display showing a frozen frame, one Workbench window (Annotate & Ask, then Review, in the same window so the draft stays in memory), plus small Toast and Settings windows. All of them come from the hardened factory in `windows.ts` (§10).
 - **AI** (`main/ai/`): the `DraftProvider` interface. `DirectAnthropicProvider` is dev-only (key in `ANTHROPIC_API_KEY`, forced `submit_bug_draft` tool used as a structured-output channel, Zod validation, one retry) and must never ship in release builds. CI fails if the bundle contains `ANTHROPIC_API_KEY`. `GatewayProvider` is the release path. Every model text field goes through `sanitize.ts`, which neutralises Jira wiki markup.
-- **Jira** (`main/jira/`): REST API v2 with a Bearer PAT and wiki markup (not ADF). The app builds the description from the approved fields in `wiki.ts`. It never takes the description from the model as one string. `createBug.ts` makes the create idempotent by adding a `laqta-<requestId>` label, never retries the create automatically, searches for that label in a `verifying` step when the outcome is unknown, and on an attachment-only failure returns `partial` with a retry that only re-uploads the image.
+- **Jira** (`main/jira/`): REST API v2 with a Bearer PAT and wiki markup (not ADF). The create POST goes out on a fresh session partition because Chromium resends POSTs on reset reused sockets (§8.1). The app builds the description from the approved fields in `wiki.ts`. It never takes the description from the model as one string. `createBug.ts` makes the create idempotent by adding a `laqta-<requestId>` label, never retries the create automatically, searches for that label in a `verifying` step when the outcome is unknown, and on an attachment-only failure returns `partial` with a retry that only re-uploads the image.
 - Shared types and Zod schemas live in `src/shared/` (`types.ts`, `schemas.ts`) and are the single source of truth for every external payload.
 
 ## Non-negotiable invariants (each one maps to a test)

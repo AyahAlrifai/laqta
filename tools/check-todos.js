@@ -1,12 +1,12 @@
 // Spec section 0, definition of done: no TODO or FIXME without a ticket id, e.g. `TODO(T-041)`.
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
   encoding: 'utf8',
 })
   .split('\n')
-  .filter((f) => /\.(ts|tsx|js|mjs|cjs|css|html|yml|yaml)$/.test(f));
+  .filter((f) => /\.(ts|tsx|js|mjs|cjs|css|html|yml|yaml|java)$/.test(f) && existsSync(f));
 
 const bad = /\b(TODO|FIXME)\b(?!\(T-\d{3}\))/;
 const hits = [];

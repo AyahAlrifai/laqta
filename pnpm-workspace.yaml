@@ -11,3 +11,11 @@ allowBuilds:
   # installer is unused because Windows builds use NSIS (spec section 11).
   esbuild: false
   electron-winstaller: false
+
+# Security fixes in get-windows' install-time tooling (pnpm audit --prod):
+# - node-gyp is an auto-installed peer used only to build from source; the prebuilt helper is
+#   used instead, so it is removed.
+# - node-pre-gyp unpacks the prebuilt Windows helper with tar; pin a patched tar.
+overrides:
+  node-gyp: '-'
+  '@mapbox/node-pre-gyp>tar': 7.5.22

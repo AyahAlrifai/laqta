@@ -22,7 +22,9 @@
     "eval": "pnpm --filter @laqta/app exec tsx ../tools/eval/run.ts",
     "spike:jira": "pnpm --filter @laqta/app exec tsx ../tools/spike/jira.ts",
     "fixtures": "pnpm --filter @laqta/app exec electron ../tools/fixtures/generate.cjs",
-    "mock-jira": "pnpm --filter @laqta/app mock-jira"
+    "mock-jira": "pnpm --filter @laqta/app mock-jira",
+    "wer": "pnpm --filter @laqta/app exec tsx ../tools/wer/wer.ts",
+    "gateway:test": "mvn -B -f gateway/pom.xml test"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -1,0 +1,4 @@
+# Local development only: no identity provider. SecurityConfig refuses this without the dev profile.
+laqta:
+  auth:
+    mode: disabled-dev

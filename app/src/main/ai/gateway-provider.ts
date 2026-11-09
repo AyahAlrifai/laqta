@@ -1,5 +1,6 @@
+import { DRAFT_PATH, DraftPayloadSchema, GatewayErrorSchema } from '@laqta/gateway-contract';
 import { BugDraftSchema } from '../../shared/schemas';
-import type { BugDraft } from '../../shared/types';
+import type { AppErrorCode, BugDraft } from '../../shared/types';
 import { appError, AppFailure } from '../errors';
 import { DRAFT_TIMEOUT_MS, type DraftInput, type DraftProvider, type FetchLike } from './provider';
 
@@ -15,22 +16,30 @@ export interface GatewayOptions {
   timeoutMs?: number;
 }
 
+const CODE_MAP: Record<string, AppErrorCode> = {
+  RATE_LIMITED: 'RATE_LIMITED',
+  COST_CAP_REACHED: 'RATE_LIMITED',
+  AI_INVALID_OUTPUT: 'AI_INVALID_OUTPUT',
+  INVALID_REQUEST: 'UNKNOWN',
+  REQUEST_TOO_LARGE: 'ATTACHMENT_TOO_LARGE',
+};
+
 export class GatewayProvider implements DraftProvider {
   constructor(private readonly opts: GatewayOptions) {}
 
   async draft(input: DraftInput, signal: AbortSignal): Promise<BugDraft> {
+    const payload = DraftPayloadSchema.parse({
+      prompt: input.prompt,
+      context: input.context,
+      bugLanguage: input.bugLanguage,
+      allowed: input.allowed,
+    });
     const form = new FormData();
     form.append(
       'image',
       new Blob([new Uint8Array(input.imagePng)], { type: 'image/png' }),
       'image.png',
     );
-    const payload = {
-      prompt: input.prompt,
-      context: input.context,
-      bugLanguage: input.bugLanguage,
-      allowed: input.allowed,
-    };
     form.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
 
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -39,7 +48,7 @@ export class GatewayProvider implements DraftProvider {
 
     let response: Response;
     try {
-      response = await this.opts.fetch(new URL('/v1/draft', this.opts.baseUrl).toString(), {
+      response = await this.opts.fetch(new URL(DRAFT_PATH, this.opts.baseUrl).toString(), {
         method: 'POST',
         headers,
         body: form,
@@ -51,15 +60,16 @@ export class GatewayProvider implements DraftProvider {
     } catch {
       throw new AppFailure(appError(signal.aborted ? 'CANCELLED' : 'AI_UNAVAILABLE'));
     }
-    if (response.status === 429) throw new AppFailure(appError('RATE_LIMITED'));
-    if (response.status === 422) throw new AppFailure(appError('AI_INVALID_OUTPUT'));
+    const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new AppFailure(
-        appError('AI_UNAVAILABLE', { detail: `http ${String(response.status)}` }),
-      );
+      const parsed = GatewayErrorSchema.safeParse(body);
+      const code = parsed.success
+        ? (CODE_MAP[parsed.data.code] ?? 'AI_UNAVAILABLE')
+        : 'AI_UNAVAILABLE';
+      throw new AppFailure(appError(code, { detail: `gateway ${String(response.status)}` }));
     }
-    const parsed = BugDraftSchema.safeParse(await response.json().catch(() => null));
-    if (!parsed.success) throw new AppFailure(appError('AI_INVALID_OUTPUT'));
-    return parsed.data;
+    const draft = BugDraftSchema.safeParse(body);
+    if (!draft.success) throw new AppFailure(appError('AI_INVALID_OUTPUT'));
+    return draft.data;
   }
 }

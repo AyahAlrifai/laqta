@@ -36,6 +36,13 @@ test:
     - npm install --global pnpm@12.18.0
     - pnpm install --frozen-lockfile
 
+gateway:
+  stage: test
+  tags: [linux]
+  image: maven:3.9-eclipse-temurin-17
+  script:
+    - mvn -B -f gateway/pom.xml verify
+
 e2e-mac:
   extends: .desktop
   stage: test
