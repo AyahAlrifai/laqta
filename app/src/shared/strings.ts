@@ -270,6 +270,8 @@ const en = {
   'update.requiredBody':
     'This version of Laqta is no longer supported. It will update when you restart it.',
   'dialog.ok': 'OK',
+  'app.crashed':
+    'Something went wrong in this window. Close it and try again, or quit and restart Laqta.',
   'toast.title': 'Laqta',
   'workbench.windowTitle': 'Laqta',
   'settings.windowTitle': 'Laqta settings',
@@ -524,6 +526,7 @@ const ar: Dictionary = {
   'update.requiredTitle': 'التحديث مطلوب',
   'update.requiredBody': 'هذا الإصدار من لقطة لم يعد مدعوماً. سيُحدَّث عند إعادة تشغيله.',
   'dialog.ok': 'حسناً',
+  'app.crashed': 'حدث خطأ في هذه النافذة. أغلقها وحاول مجدداً، أو أنهِ لقطة وأعد تشغيلها.',
   'toast.title': 'لقطة',
   'workbench.windowTitle': 'لقطة',
   'settings.windowTitle': 'إعدادات لقطة',

@@ -1,7 +1,8 @@
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { UiLanguage } from '../../shared/strings';
+import { t, type UiLanguage } from '../../shared/strings';
 import { laqta } from './api';
+import ErrorBoundary from './ErrorBoundary';
 import { I18nProvider } from './i18n';
 
 /** Mounts a page with the UI language applied: `lang` and `dir` on <html> (spec section 9). */
@@ -18,7 +19,9 @@ export async function boot(render: () => ReactNode): Promise<void> {
   if (root === null) return;
   createRoot(root).render(
     <StrictMode>
-      <I18nProvider lang={lang}>{render()}</I18nProvider>
+      <ErrorBoundary message={t(lang, 'app.crashed')}>
+        <I18nProvider lang={lang}>{render()}</I18nProvider>
+      </ErrorBoundary>
     </StrictMode>,
   );
 }
