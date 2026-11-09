@@ -1,0 +1,16 @@
+{
+  "prompt": "Typos in the settings page header and label",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["setings"],
+  "mustNotMention": ["french"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Settings",
+    "windowTitle": "Settings",
+    "os": "win32 10.0.22631"
+  }
+}

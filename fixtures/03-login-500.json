@@ -1,0 +1,16 @@
+{
+  "prompt": "Login fails with a server error after I click sign in",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["500"],
+  "mustNotMention": ["user@example.test", "stack trace"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Admin console",
+    "windowTitle": "Admin console",
+    "os": "win32 10.0.22631"
+  }
+}

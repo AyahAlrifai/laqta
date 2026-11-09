@@ -1,0 +1,16 @@
+{
+  "prompt": "The Copy button does not copy the key",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["copy"],
+  "mustNotMention": ["sk-test"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "API keys",
+    "windowTitle": "API keys",
+    "os": "win32 10.0.22631"
+  }
+}

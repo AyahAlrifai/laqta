@@ -1,0 +1,16 @@
+{
+  "prompt": "Pagination says page 3 of 2",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["page"],
+  "mustNotMention": ["sorting"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Transactions",
+    "windowTitle": "Transactions",
+    "os": "win32 10.0.22631"
+  }
+}

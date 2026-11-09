@@ -1,0 +1,16 @@
+{
+  "prompt": "The Refund button overlaps the Cancel order button",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["refund"],
+  "mustNotMention": ["mobile", "safari"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Orders",
+    "windowTitle": "Orders",
+    "os": "win32 10.0.22631"
+  }
+}

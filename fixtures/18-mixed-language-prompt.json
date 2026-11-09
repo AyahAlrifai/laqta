@@ -1,0 +1,16 @@
+{
+  "prompt": "زر الـ Save disabled حتى بعد ما أعبي كل الحقول",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["save"],
+  "mustNotMention": ["version"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Users",
+    "windowTitle": "Users",
+    "os": "win32 10.0.22631"
+  }
+}

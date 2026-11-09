@@ -1,0 +1,16 @@
+{
+  "prompt": "التاريخ مكتوب غلط، الشهر والي يوم مقلوبين",
+  "bugLanguage": "ar",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": [],
+  "mustNotMention": ["version"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Reports",
+    "windowTitle": "Reports",
+    "os": "win32 10.0.22631"
+  }
+}

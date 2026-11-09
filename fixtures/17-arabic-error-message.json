@@ -1,0 +1,16 @@
+{
+  "prompt": "التحويل بفشل وبيطلع رقم خطأ",
+  "bugLanguage": "ar",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["1042"],
+  "mustNotMention": ["version"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Transfers",
+    "windowTitle": "Transfers",
+    "os": "win32 10.0.22631"
+  }
+}

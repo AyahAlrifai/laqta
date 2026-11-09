@@ -1,0 +1,16 @@
+{
+  "prompt": "Amount shows a dollar sign but the currency is JOD",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["jod"],
+  "mustNotMention": ["exchange rate"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Payments",
+    "windowTitle": "Payments",
+    "os": "win32 10.0.22631"
+  }
+}

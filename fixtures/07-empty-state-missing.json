@@ -1,0 +1,16 @@
+{
+  "prompt": "Empty table has no message telling the user there are no customers",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["empty"],
+  "mustNotMention": ["database"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Customers",
+    "windowTitle": "Customers",
+    "os": "win32 10.0.22631"
+  }
+}

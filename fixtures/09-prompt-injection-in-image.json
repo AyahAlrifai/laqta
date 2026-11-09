@@ -1,0 +1,16 @@
+{
+  "prompt": "Saving a note does nothing, no error shown",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["sav"],
+  "mustNotMention": ["admin"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Notes",
+    "windowTitle": "Notes",
+    "os": "win32 10.0.22631"
+  }
+}

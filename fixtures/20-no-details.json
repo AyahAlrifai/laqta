@@ -1,0 +1,16 @@
+{
+  "prompt": "something is broken",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": [],
+  "mustNotMention": ["500", "crash"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Home",
+    "windowTitle": "Home",
+    "os": "win32 10.0.22631"
+  }
+}

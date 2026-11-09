@@ -1,0 +1,16 @@
+{
+  "prompt": "Open profile, click Change avatar, upload a PNG, the avatar shows a broken image",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["avatar"],
+  "mustNotMention": ["jpeg"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Profile",
+    "windowTitle": "Profile",
+    "os": "win32 10.0.22631"
+  }
+}

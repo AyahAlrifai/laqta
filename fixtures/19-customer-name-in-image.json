@@ -1,0 +1,16 @@
+{
+  "prompt": "Last order shows undefined",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["undefined"],
+  "mustNotMention": ["lina"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "CRM",
+    "windowTitle": "CRM",
+    "os": "win32 10.0.22631"
+  }
+}

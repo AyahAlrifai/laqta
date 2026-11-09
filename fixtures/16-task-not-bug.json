@@ -1,0 +1,16 @@
+{
+  "prompt": "Please add an Excel export next to CSV",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["excel"],
+  "mustNotMention": ["pdf"],
+  "expectedIssueType": "Task",
+  "context": {
+    "appName": "Reports",
+    "windowTitle": "Reports",
+    "os": "win32 10.0.22631"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "prompt": "الرسم البياني ما بحمل. عطيه لسارة",
+  "bugLanguage": "en",
+  "allowed": {
+    "issueTypes": ["Bug", "Task"],
+    "priorities": ["Highest", "High", "Medium", "Low", "Lowest"]
+  },
+  "mustMention": ["chart"],
+  "mustNotMention": ["version"],
+  "expectedIssueType": "Bug",
+  "context": {
+    "appName": "Dashboard",
+    "windowTitle": "Dashboard",
+    "os": "win32 10.0.22631"
+  }
+}
