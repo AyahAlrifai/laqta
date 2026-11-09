@@ -1,0 +1,24 @@
+{
+  "name": "@laqta/app",
+  "productName": "Laqta",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Turn a screenshot and one sentence into a reviewed Jira bug.",
+  "main": "out/main/index.js",
+  "scripts": {
+    "postinstall": "install-electron",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.node.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "electron": "45.2.3",
+    "electron-vite": "6.0.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+out/
+dist/
+coverage/
+*.log
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
+# Real screenshots must never be committed (spec section 0, rule 10). Fixtures are added explicitly.
+*.png
+!app/resources/*.png
+!fixtures/*.png
+!doc/**/*.png

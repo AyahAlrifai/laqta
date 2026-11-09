@@ -1,0 +1,28 @@
+# Skeleton of the pipeline in spec section 11. Jobs for the later stages arrive with their
+# tickets: e2e with T-054; build-win, build-mac, sign and publish with T-053.
+stages: [verify, test, build, sign, publish]
+
+default:
+  image: node:26.13.0
+  before_script:
+    - npm install --global pnpm@12.18.0
+    - pnpm install --frozen-lockfile
+  cache:
+    key:
+      files: [pnpm-lock.yaml]
+    paths: [.pnpm-store]
+
+variables:
+  npm_config_store_dir: .pnpm-store
+
+verify:
+  stage: verify
+  script:
+    - pnpm lint
+    - pnpm typecheck
+    - pnpm audit --prod
+
+test:
+  stage: test
+  script:
+    - pnpm test
