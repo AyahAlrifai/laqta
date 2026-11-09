@@ -1,0 +1,541 @@
+import type { AppErrorCode } from './types';
+
+// Every UI string lives here under a stable key (spec sections 0 and 9). Sentences with
+// variable parts use named placeholders filled by `format`, never concatenation, so that
+// translators can reorder words.
+
+const en = {
+  // tray (board 4, card 4)
+  'tray.tooltip': 'Laqta',
+  'tray.connected': 'Connected to Jira',
+  'tray.offline': 'Offline',
+  'tray.notConfigured': 'Not connected to Jira',
+  'tray.captureArea': 'Capture area',
+  'tray.captureWindow': 'Capture window',
+  'tray.captureScreen': 'Capture full screen',
+  'tray.recent': 'Recent',
+  'tray.recentItem': '{key} · {summary}',
+  'tray.savedDraft': 'Resume saved draft: {summary}',
+  'tray.settings': 'Settings',
+  'tray.quit': 'Quit Laqta',
+  'tray.aiDisabled': 'AI drafting is turned off: {message}',
+
+  // capture overlay (board 1)
+  'capture.status': 'Capture mode. Drag to adjust, or use arrow keys to nudge and Shift to resize.',
+  'capture.modeArea': 'Area',
+  'capture.modeWindow': 'Window',
+  'capture.modeScreen': 'Full screen',
+  'capture.escToCancel': 'Esc to cancel',
+  'capture.continue': 'Continue',
+  'capture.size': '{width} × {height}',
+  'capture.modes': 'Capture mode',
+  'capture.selection': 'Selection {width} by {height} pixels',
+  'capture.noSelection':
+    'Drag to select an area, or press an arrow key to start with a centred selection.',
+  'capture.overlayLabel': 'Frozen screen image',
+
+  // workbench, step 1 (board 2)
+  'editor.title': 'New bug from screenshot',
+  'editor.close': 'Close',
+  'editor.tools': 'Annotation tools',
+  'editor.toolSelect': 'Select',
+  'editor.toolBox': 'Box',
+  'editor.toolArrow': 'Arrow',
+  'editor.toolText': 'Text',
+  'editor.toolBlur': 'Blur ({count})',
+  'editor.toolBlurPlain': 'Blur',
+  'editor.undo': 'Undo',
+  'editor.redo': 'Redo',
+  'editor.delete': 'Delete',
+  'editor.blurMode': 'Blur style',
+  'editor.blurFill': 'Solid',
+  'editor.blurPixelate': 'Pixelate',
+  'editor.shortcuts':
+    'Shortcuts: V select, B box, A arrow, T text, R blur, Delete removes, arrow keys move, Ctrl+Z undo, Ctrl+Shift+Z redo, Enter adds the current tool at the centre.',
+  'editor.textPrompt': 'Label text',
+  'editor.textPlaceholder': 'Type a label, then click the image',
+  'editor.canvasLabel':
+    'Screenshot, {width} by {height} pixels. {boxes} boxes, {arrows} arrows, {texts} text labels, {blurs} blurred areas.',
+  'editor.captured':
+    'Captured {width} × {height} · {app} · {os}. Blur anything sensitive before you continue.',
+  'editor.capturedNoApp':
+    'Captured {width} × {height} · {os}. Blur anything sensitive before you continue.',
+  'editor.whatIsWrong': 'What is wrong?',
+  'editor.promptPlaceholder':
+    'Describe the problem in Arabic or English. Name the assignee if you know them.',
+  'editor.speak': 'Speak',
+  'editor.stop': 'Stop',
+  'editor.voiceLanguage': 'Speech language',
+  'editor.voiceHint': 'Press Space to start or stop. The text stays editable.',
+  'editor.recording': 'Recording',
+  'editor.stopped': 'Stopped',
+  'editor.transcribing': 'Turning speech into text…',
+  'editor.micDenied': 'Microphone access is off. You can type your request instead.',
+  'editor.quickStart': 'Quick start (inserts starter text)',
+  'editor.chipUi': 'UI bug',
+  'editor.chipBackend': 'Backend error',
+  'editor.chipData': 'Wrong data',
+  'editor.chipUiText': 'On this screen, the layout is wrong: ',
+  'editor.chipBackendText': 'This action fails with an error: ',
+  'editor.chipDataText': 'This screen shows wrong data: ',
+  'editor.project': 'Project',
+  'editor.projectPlaceholder': 'Choose a project',
+  'editor.bugLanguage': 'Language of the bug',
+  'editor.privacy':
+    'This image and your request are sent to the AI service to draft the bug. Nothing is created in Jira until you approve it.',
+  'editor.footerWarning':
+    'Blur sensitive data first. Blurred areas are permanently removed from the sent image.',
+  'editor.cancel': 'Cancel',
+  'editor.generate': 'Generate draft',
+  'editor.drafting': 'Writing the draft…',
+  'editor.cancelDraft': 'Cancel',
+  'editor.tryAgain': 'Try again',
+  'editor.promptRequired': 'Describe the problem first.',
+  'editor.projectRequired': 'Choose a project first.',
+  'editor.aiOff': 'AI drafting is turned off: {message}',
+
+  // language names
+  'lang.en': 'English',
+  'lang.ar': 'Arabic',
+  'lang.arJO': 'Arabic (Jordan)',
+  'lang.auto': 'Auto',
+
+  // confirm dialogs (board 5, card 4)
+  'confirm.noBlurTitle': 'Send without blurring anything?',
+  'confirm.noBlurBody':
+    'The whole image and your request are sent to the AI service. Check for customer data, names, emails and tokens first.',
+  'confirm.noBlurBack': 'Go back and blur',
+  'confirm.noBlurSend': 'Send as is',
+  'confirm.discardTitle': 'Discard this bug?',
+  'confirm.discardBody': 'Your screenshot and draft will be deleted.',
+  'confirm.discard': 'Discard',
+  'confirm.keepEditing': 'Keep editing',
+
+  // workbench, step 2 (board 3)
+  'review.title': 'Review the draft',
+  'review.draftedByAi': 'Drafted by AI',
+  'review.aiBanner':
+    'AI-written draft. Check every field, especially Steps to reproduce, before you create.',
+  'review.attachment': 'Attachment',
+  'review.attachmentNote':
+    'Uploaded to the bug after it is created. Temporary copy is deleted afterwards.',
+  'review.editImage': 'Edit image',
+  'review.yourRequest': 'Your request',
+  'review.duplicateLead': 'Warning:',
+  'review.duplicate': 'possible duplicate: {key} “{summary}”, {status}.',
+  'review.openIt': 'Open it',
+  'review.summary': 'Summary',
+  'review.description': 'Description',
+  'review.environment': 'Environment',
+  'review.steps': 'Steps to reproduce',
+  'review.stepsPlaceholder': 'Not provided: add steps or leave blank',
+  'review.stepsHelp': 'One step per line.',
+  'review.actual': 'Actual result',
+  'review.expected': 'Expected result',
+  'review.screenshotAttached': 'Screenshot attached.',
+  'review.needsInput': 'Needs input',
+  'review.missingInfo': 'The AI could not tell:',
+  'review.project': 'Project',
+  'review.type': 'Type',
+  'review.priority': 'Priority',
+  'review.aiSuggested': 'AI suggested',
+  'review.priorityNone': 'None',
+  'review.assignee': 'Assignee',
+  'review.unassigned': 'Unassigned',
+  'review.matchedFrom': 'Matched from “{query}”, can be assigned in this project',
+  'review.change': 'Change',
+  'review.searchAssignee': 'Search people',
+  'review.searchAssigneeButton': 'Search',
+  'review.noAssigneeMatch': 'No one matched “{query}”. Search for a person or leave it unassigned.',
+  'review.labels': 'Labels',
+  'review.requiredField': '{name} (required)',
+  'review.chooseValue': 'Choose a value',
+  'review.back': 'Back to request',
+  'review.writeNotice': 'Nothing is written to Jira until you click Create bug.',
+  'review.cancel': 'Cancel',
+  'review.create': 'Create bug in {project}',
+  'review.creating': 'Creating…',
+  'review.verifying': 'Checking whether the bug was created…',
+  'review.fieldErrorsLead': 'Jira rejected some fields:',
+  'review.loadingMeta': 'Loading project fields…',
+
+  // assignee picker (board 4, card 2)
+  'picker.title': 'Which {name} did you mean?',
+  'picker.titleGeneric': 'Which person did you mean?',
+  'picker.pickOne': 'Pick one to continue.',
+  'picker.leaveUnassigned': 'Leave unassigned',
+  'picker.useSelected': 'Use selected',
+
+  // result (board 4, cards 1 and 3)
+  'result.created': 'Bug {key} created',
+  'result.assignedAttached': 'Assigned to {name}. Screenshot attached.',
+  'result.unassignedAttached': 'Unassigned. Screenshot attached.',
+  'result.openInJira': 'Open in Jira',
+  'result.copyLink': 'Copy link',
+  'result.copied': 'Link copied',
+  'result.partialTitle': 'Bug created, screenshot not uploaded',
+  'result.partialBody':
+    '{key} exists, but the image upload failed. Check your VPN, then retry. Retrying only uploads the image.',
+  'result.retryUpload': 'Retry upload',
+  'result.openBug': 'Open bug',
+  'result.close': 'Close',
+
+  // offline (board 5, card 3)
+  'offline.title': 'Can’t reach Jira',
+  'offline.body':
+    'Check that you are connected to the company VPN. Your draft is kept on this computer, encrypted, so nothing is lost.',
+  'offline.tryAgain': 'Try again',
+  'offline.keep': 'Keep draft for later',
+  'offline.kept': 'Draft saved. Resume it from the Laqta tray menu.',
+  'offline.cannotKeep': 'This computer cannot encrypt the draft, so it was not saved.',
+
+  // settings and sign-in (board 5, card 1)
+  'settings.title': 'Settings',
+  'settings.connect': 'Connect to Jira',
+  'settings.jiraAddress': 'Jira address',
+  'settings.jiraAddressPlaceholder': 'https://jira.example.com',
+  'settings.token': 'Personal access token',
+  'settings.tokenStored': 'A token is stored. Leave this empty to keep it.',
+  'settings.tokenHelp':
+    'Create the token in your Jira profile. It is stored in your system keychain and never shown in logs. Tokens expire, so we remind you before it does.',
+  'settings.testConnection': 'Test connection',
+  'settings.testing': 'Testing…',
+  'settings.saveContinue': 'Save and continue',
+  'settings.save': 'Save',
+  'settings.saved': 'Settings saved.',
+  'settings.connectedAs': 'Connected as {name}.',
+  'settings.testFirst': 'Test the connection before saving.',
+  'settings.defaultProject': 'Default project',
+  'settings.bugLanguage': 'Default language of the bug',
+  'settings.uiLanguage': 'App language',
+  'settings.hotkeyArea': 'Capture area shortcut',
+  'settings.hotkeyWindow': 'Capture window shortcut',
+  'settings.hotkeyHelp': 'Electron accelerator, for example CommandOrControl+Shift+J.',
+  'settings.voiceEnabled': 'Allow speaking the request (Phase 2)',
+  'settings.voiceLanguage': 'Speech language',
+  'settings.telemetry': 'Send anonymous usage counts and timings (never content)',
+  'settings.version': 'Version {version}',
+  'settings.noEncryption':
+    'This computer cannot encrypt secrets, so Laqta will not store your token. Ask IT for help.',
+  'settings.httpsOnly': 'The Jira address must start with https://',
+  'settings.permissions': 'Screen and microphone permissions',
+  'settings.hotkeyConflict':
+    'The shortcut {accelerator} is used by another app. Choose a different one.',
+
+  // permission guide (board 5, card 2)
+  'perm.title': 'Allow screen capture and microphone',
+  'perm.body':
+    'Laqta can only capture what you select, and only when you press the hotkey. macOS needs your permission first.',
+  'perm.screen': 'Screen Recording',
+  'perm.microphone': 'Microphone',
+  'perm.allowed': 'Allowed',
+  'perm.openSettings': 'Open System Settings',
+  'perm.note':
+    'Microphone is optional. You can always type your request. After you allow Screen Recording, macOS may ask you to restart the app.',
+
+  // generic errors (spec section 8, error mapping)
+  'error.lead': 'Error:',
+  'error.AUTH_INVALID': 'Jira did not accept your token. Update it in Settings.',
+  'error.AUTH_EXPIRED': 'Your Jira token has expired. Create a new one and update it in Settings.',
+  'error.FORBIDDEN': 'Your Jira account does not have permission to do this in this project.',
+  'error.NOT_FOUND': 'Jira could not find that project or issue. Check the project in Settings.',
+  'error.FIELD_ERROR': 'Jira rejected some fields. Fix the highlighted fields and try again.',
+  'error.NETWORK_UNREACHABLE': 'Can’t reach Jira. Check that you are connected to the company VPN.',
+  'error.TLS_ERROR':
+    'The secure connection to Jira failed. The company certificate may be missing on this computer.',
+  'error.RATE_LIMITED': 'Jira asked us to slow down. Wait a moment, then try again.',
+  'error.SERVER_ERROR': 'Jira had a problem. Try again in a moment.',
+  'error.ATTACHMENT_TOO_LARGE': 'The screenshot is larger than Jira allows.',
+  'error.AI_UNAVAILABLE': 'The AI service is not available right now. Try again.',
+  'error.AI_INVALID_OUTPUT':
+    'The AI could not write a usable draft. Try again or rephrase your request.',
+  'error.PERMISSION_DENIED': 'Laqta does not have permission to capture the screen.',
+  'error.CANCELLED': 'Cancelled.',
+  'error.UNKNOWN': 'Something went wrong. Try again.',
+  'error.CREATE_UNKNOWN':
+    'We could not confirm the bug was created. No bug was found, so you can create it again.',
+  'error.noSession': 'This bug was already closed.',
+  'error.hotkeyConflict':
+    'The shortcut {accelerator} is already used by another app. Change it in Settings.',
+  'error.appDisabled': 'Laqta is turned off by your company: {message}',
+  'update.requiredTitle': 'Update required',
+  'update.requiredBody':
+    'This version of Laqta is no longer supported. It will update when you restart it.',
+  'dialog.ok': 'OK',
+  'toast.title': 'Laqta',
+  'workbench.windowTitle': 'Laqta',
+  'settings.windowTitle': 'Laqta settings',
+  'overlay.windowTitle': 'Laqta capture',
+} as const;
+
+export type StringKey = keyof typeof en;
+type Dictionary = Record<StringKey, string>;
+
+const ar: Dictionary = {
+  'tray.tooltip': 'لقطة',
+  'tray.connected': 'متصل بـ Jira',
+  'tray.offline': 'غير متصل',
+  'tray.notConfigured': 'غير متصل بـ Jira',
+  'tray.captureArea': 'التقاط منطقة',
+  'tray.captureWindow': 'التقاط نافذة',
+  'tray.captureScreen': 'التقاط الشاشة كاملة',
+  'tray.recent': 'الأخيرة',
+  'tray.recentItem': '{key} · {summary}',
+  'tray.savedDraft': 'متابعة المسودة المحفوظة: {summary}',
+  'tray.settings': 'الإعدادات',
+  'tray.quit': 'إنهاء لقطة',
+  'tray.aiDisabled': 'كتابة المسودات بالذكاء الاصطناعي متوقفة: {message}',
+
+  'capture.status': 'وضع الالتقاط. اسحب للتعديل، أو استخدم الأسهم للتحريك و Shift لتغيير الحجم.',
+  'capture.modeArea': 'منطقة',
+  'capture.modeWindow': 'نافذة',
+  'capture.modeScreen': 'الشاشة كاملة',
+  'capture.escToCancel': 'Esc للإلغاء',
+  'capture.continue': 'متابعة',
+  'capture.size': '{width} × {height}',
+  'capture.modes': 'وضع الالتقاط',
+  'capture.selection': 'التحديد {width} في {height} بكسل',
+  'capture.noSelection': 'اسحب لتحديد منطقة، أو اضغط أحد الأسهم لبدء تحديد في الوسط.',
+  'capture.overlayLabel': 'صورة ثابتة للشاشة',
+
+  'editor.title': 'خطأ جديد من لقطة شاشة',
+  'editor.close': 'إغلاق',
+  'editor.tools': 'أدوات التعليق',
+  'editor.toolSelect': 'تحديد',
+  'editor.toolBox': 'مربع',
+  'editor.toolArrow': 'سهم',
+  'editor.toolText': 'نص',
+  'editor.toolBlur': 'إخفاء ({count})',
+  'editor.toolBlurPlain': 'إخفاء',
+  'editor.undo': 'تراجع',
+  'editor.redo': 'إعادة',
+  'editor.delete': 'حذف',
+  'editor.blurMode': 'نمط الإخفاء',
+  'editor.blurFill': 'تعبئة',
+  'editor.blurPixelate': 'تمويه',
+  'editor.shortcuts':
+    'الاختصارات: V تحديد، B مربع، A سهم، T نص، R إخفاء، Delete للحذف، الأسهم للتحريك، Ctrl+Z تراجع، Ctrl+Shift+Z إعادة، Enter يضيف الأداة الحالية في الوسط.',
+  'editor.textPrompt': 'نص التسمية',
+  'editor.textPlaceholder': 'اكتب تسمية ثم انقر على الصورة',
+  'editor.canvasLabel':
+    'لقطة شاشة {width} في {height} بكسل. {boxes} مربعات، {arrows} أسهم، {texts} تسميات، {blurs} مناطق مخفية.',
+  'editor.captured':
+    'تم التقاط {width} × {height} · {app} · {os}. أخفِ أي بيانات حساسة قبل المتابعة.',
+  'editor.capturedNoApp': 'تم التقاط {width} × {height} · {os}. أخفِ أي بيانات حساسة قبل المتابعة.',
+  'editor.whatIsWrong': 'ما المشكلة؟',
+  'editor.promptPlaceholder': 'صف المشكلة بالعربية أو الإنجليزية. اذكر اسم المسؤول إن كنت تعرفه.',
+  'editor.speak': 'تحدث',
+  'editor.stop': 'إيقاف',
+  'editor.voiceLanguage': 'لغة الكلام',
+  'editor.voiceHint': 'اضغط المسافة للبدء أو الإيقاف. يبقى النص قابلاً للتعديل.',
+  'editor.recording': 'جارٍ التسجيل',
+  'editor.stopped': 'توقف التسجيل',
+  'editor.transcribing': 'جارٍ تحويل الكلام إلى نص…',
+  'editor.micDenied': 'الوصول إلى الميكروفون متوقف. يمكنك كتابة طلبك بدلاً من ذلك.',
+  'editor.quickStart': 'بداية سريعة (تضيف نصاً أولياً)',
+  'editor.chipUi': 'خطأ في الواجهة',
+  'editor.chipBackend': 'خطأ في الخادم',
+  'editor.chipData': 'بيانات خاطئة',
+  'editor.chipUiText': 'في هذه الشاشة، التصميم غير صحيح: ',
+  'editor.chipBackendText': 'هذا الإجراء يفشل بخطأ: ',
+  'editor.chipDataText': 'هذه الشاشة تعرض بيانات خاطئة: ',
+  'editor.project': 'المشروع',
+  'editor.projectPlaceholder': 'اختر مشروعاً',
+  'editor.bugLanguage': 'لغة الخطأ',
+  'editor.privacy':
+    'تُرسل هذه الصورة وطلبك إلى خدمة الذكاء الاصطناعي لكتابة مسودة الخطأ. لا يُنشأ شيء في Jira حتى توافق.',
+  'editor.footerWarning':
+    'أخفِ البيانات الحساسة أولاً. تُحذف المناطق المخفية نهائياً من الصورة المرسلة.',
+  'editor.cancel': 'إلغاء',
+  'editor.generate': 'اكتب المسودة',
+  'editor.drafting': 'جارٍ كتابة المسودة…',
+  'editor.cancelDraft': 'إلغاء',
+  'editor.tryAgain': 'حاول مجدداً',
+  'editor.promptRequired': 'صف المشكلة أولاً.',
+  'editor.projectRequired': 'اختر مشروعاً أولاً.',
+  'editor.aiOff': 'كتابة المسودات بالذكاء الاصطناعي متوقفة: {message}',
+
+  'lang.en': 'الإنجليزية',
+  'lang.ar': 'العربية',
+  'lang.arJO': 'العربية (الأردن)',
+  'lang.auto': 'تلقائي',
+
+  'confirm.noBlurTitle': 'الإرسال دون إخفاء أي شيء؟',
+  'confirm.noBlurBody':
+    'تُرسل الصورة كاملة وطلبك إلى خدمة الذكاء الاصطناعي. تحقق أولاً من بيانات العملاء والأسماء والبريد الإلكتروني والرموز.',
+  'confirm.noBlurBack': 'رجوع للإخفاء',
+  'confirm.noBlurSend': 'أرسل كما هي',
+  'confirm.discardTitle': 'تجاهل هذا الخطأ؟',
+  'confirm.discardBody': 'ستُحذف لقطة الشاشة والمسودة.',
+  'confirm.discard': 'تجاهل',
+  'confirm.keepEditing': 'متابعة التعديل',
+
+  'review.title': 'راجع المسودة',
+  'review.draftedByAi': 'كتبها الذكاء الاصطناعي',
+  'review.aiBanner':
+    'مسودة كتبها الذكاء الاصطناعي. راجع كل حقل، خاصة خطوات إعادة الإنتاج، قبل الإنشاء.',
+  'review.attachment': 'المرفق',
+  'review.attachmentNote': 'يُرفع إلى الخطأ بعد إنشائه. تُحذف النسخة المؤقتة بعد ذلك.',
+  'review.editImage': 'تعديل الصورة',
+  'review.yourRequest': 'طلبك',
+  'review.duplicateLead': 'تحذير:',
+  'review.duplicate': 'قد يكون مكرراً: {key} “{summary}”، {status}.',
+  'review.openIt': 'افتحه',
+  'review.summary': 'الملخص',
+  'review.description': 'الوصف',
+  'review.environment': 'البيئة',
+  'review.steps': 'خطوات إعادة الإنتاج',
+  'review.stepsPlaceholder': 'غير متوفرة: أضف الخطوات أو اتركها فارغة',
+  'review.stepsHelp': 'خطوة واحدة في كل سطر.',
+  'review.actual': 'النتيجة الفعلية',
+  'review.expected': 'النتيجة المتوقعة',
+  'review.screenshotAttached': 'لقطة الشاشة مرفقة.',
+  'review.needsInput': 'بحاجة إلى إدخال',
+  'review.missingInfo': 'لم يتمكن الذكاء الاصطناعي من معرفة:',
+  'review.project': 'المشروع',
+  'review.type': 'النوع',
+  'review.priority': 'الأولوية',
+  'review.aiSuggested': 'اقتراح الذكاء الاصطناعي',
+  'review.priorityNone': 'بدون',
+  'review.assignee': 'المسؤول',
+  'review.unassigned': 'غير مسند',
+  'review.matchedFrom': 'تمت المطابقة من “{query}”، ويمكن إسناده في هذا المشروع',
+  'review.change': 'تغيير',
+  'review.searchAssignee': 'ابحث عن شخص',
+  'review.searchAssigneeButton': 'بحث',
+  'review.noAssigneeMatch': 'لم يطابق أحد “{query}”. ابحث عن شخص أو اتركه غير مسند.',
+  'review.labels': 'التسميات',
+  'review.requiredField': '{name} (مطلوب)',
+  'review.chooseValue': 'اختر قيمة',
+  'review.back': 'رجوع إلى الطلب',
+  'review.writeNotice': 'لا يُكتب شيء في Jira حتى تنقر إنشاء الخطأ.',
+  'review.cancel': 'إلغاء',
+  'review.create': 'إنشاء الخطأ في {project}',
+  'review.creating': 'جارٍ الإنشاء…',
+  'review.verifying': 'جارٍ التحقق مما إذا كان الخطأ قد أُنشئ…',
+  'review.fieldErrorsLead': 'رفض Jira بعض الحقول:',
+  'review.loadingMeta': 'جارٍ تحميل حقول المشروع…',
+
+  'picker.title': 'أي {name} تقصد؟',
+  'picker.titleGeneric': 'أي شخص تقصد؟',
+  'picker.pickOne': 'اختر واحداً للمتابعة.',
+  'picker.leaveUnassigned': 'اتركه غير مسند',
+  'picker.useSelected': 'استخدم المحدد',
+
+  'result.created': 'تم إنشاء الخطأ {key}',
+  'result.assignedAttached': 'أُسند إلى {name}. لقطة الشاشة مرفقة.',
+  'result.unassignedAttached': 'غير مسند. لقطة الشاشة مرفقة.',
+  'result.openInJira': 'افتح في Jira',
+  'result.copyLink': 'انسخ الرابط',
+  'result.copied': 'تم نسخ الرابط',
+  'result.partialTitle': 'أُنشئ الخطأ، ولم تُرفع لقطة الشاشة',
+  'result.partialBody':
+    '{key} موجود، لكن رفع الصورة فشل. تحقق من VPN ثم أعد المحاولة. إعادة المحاولة ترفع الصورة فقط.',
+  'result.retryUpload': 'أعد الرفع',
+  'result.openBug': 'افتح الخطأ',
+  'result.close': 'إغلاق',
+
+  'offline.title': 'تعذر الوصول إلى Jira',
+  'offline.body':
+    'تحقق من اتصالك بشبكة VPN الخاصة بالشركة. مسودتك محفوظة على هذا الجهاز ومشفرة، فلن يضيع شيء.',
+  'offline.tryAgain': 'حاول مجدداً',
+  'offline.keep': 'احتفظ بالمسودة لاحقاً',
+  'offline.kept': 'حُفظت المسودة. تابعها من قائمة لقطة في شريط النظام.',
+  'offline.cannotKeep': 'لا يستطيع هذا الجهاز تشفير المسودة، لذلك لم تُحفظ.',
+
+  'settings.title': 'الإعدادات',
+  'settings.connect': 'الاتصال بـ Jira',
+  'settings.jiraAddress': 'عنوان Jira',
+  'settings.jiraAddressPlaceholder': 'https://jira.example.com',
+  'settings.token': 'رمز الوصول الشخصي',
+  'settings.tokenStored': 'يوجد رمز محفوظ. اترك الحقل فارغاً للإبقاء عليه.',
+  'settings.tokenHelp':
+    'أنشئ الرمز من ملفك الشخصي في Jira. يُحفظ في سلسلة مفاتيح النظام ولا يظهر في السجلات أبداً. تنتهي صلاحية الرموز، لذا سنذكرك قبل ذلك.',
+  'settings.testConnection': 'اختبر الاتصال',
+  'settings.testing': 'جارٍ الاختبار…',
+  'settings.saveContinue': 'احفظ وتابع',
+  'settings.save': 'حفظ',
+  'settings.saved': 'حُفظت الإعدادات.',
+  'settings.connectedAs': 'متصل باسم {name}.',
+  'settings.testFirst': 'اختبر الاتصال قبل الحفظ.',
+  'settings.defaultProject': 'المشروع الافتراضي',
+  'settings.bugLanguage': 'لغة الخطأ الافتراضية',
+  'settings.uiLanguage': 'لغة التطبيق',
+  'settings.hotkeyArea': 'اختصار التقاط منطقة',
+  'settings.hotkeyWindow': 'اختصار التقاط نافذة',
+  'settings.hotkeyHelp': 'اختصار Electron، مثل CommandOrControl+Shift+J.',
+  'settings.voiceEnabled': 'السماح بنطق الطلب (المرحلة الثانية)',
+  'settings.voiceLanguage': 'لغة الكلام',
+  'settings.telemetry': 'أرسل أعداد وأوقات استخدام مجهولة (دون أي محتوى)',
+  'settings.version': 'الإصدار {version}',
+  'settings.noEncryption':
+    'لا يستطيع هذا الجهاز تشفير البيانات السرية، لذلك لن تحفظ لقطة رمزك. اطلب المساعدة من قسم تقنية المعلومات.',
+  'settings.httpsOnly': 'يجب أن يبدأ عنوان Jira بـ https://',
+  'settings.permissions': 'أذونات الشاشة والميكروفون',
+  'settings.hotkeyConflict': 'الاختصار {accelerator} يستخدمه تطبيق آخر. اختر اختصاراً مختلفاً.',
+
+  'perm.title': 'اسمح بالتقاط الشاشة والميكروفون',
+  'perm.body': 'تلتقط لقطة ما تحدده فقط، وفقط عند ضغط الاختصار. يحتاج macOS إلى إذنك أولاً.',
+  'perm.screen': 'تسجيل الشاشة',
+  'perm.microphone': 'الميكروفون',
+  'perm.allowed': 'مسموح',
+  'perm.openSettings': 'افتح إعدادات النظام',
+  'perm.note':
+    'الميكروفون اختياري. يمكنك دائماً كتابة طلبك. بعد السماح بتسجيل الشاشة، قد يطلب macOS إعادة تشغيل التطبيق.',
+
+  'error.lead': 'خطأ:',
+  'error.AUTH_INVALID': 'لم يقبل Jira رمزك. حدّثه في الإعدادات.',
+  'error.AUTH_EXPIRED': 'انتهت صلاحية رمز Jira. أنشئ رمزاً جديداً وحدّثه في الإعدادات.',
+  'error.FORBIDDEN': 'حسابك في Jira لا يملك صلاحية القيام بهذا في هذا المشروع.',
+  'error.NOT_FOUND': 'لم يجد Jira هذا المشروع أو الخطأ. تحقق من المشروع في الإعدادات.',
+  'error.FIELD_ERROR': 'رفض Jira بعض الحقول. صحح الحقول المميزة وحاول مجدداً.',
+  'error.NETWORK_UNREACHABLE': 'تعذر الوصول إلى Jira. تحقق من اتصالك بشبكة VPN الخاصة بالشركة.',
+  'error.TLS_ERROR': 'فشل الاتصال الآمن بـ Jira. قد تكون شهادة الشركة غير مثبتة على هذا الجهاز.',
+  'error.RATE_LIMITED': 'طلب Jira التمهل. انتظر قليلاً ثم حاول مجدداً.',
+  'error.SERVER_ERROR': 'واجه Jira مشكلة. حاول مجدداً بعد قليل.',
+  'error.ATTACHMENT_TOO_LARGE': 'لقطة الشاشة أكبر مما يسمح به Jira.',
+  'error.AI_UNAVAILABLE': 'خدمة الذكاء الاصطناعي غير متاحة الآن. حاول مجدداً.',
+  'error.AI_INVALID_OUTPUT':
+    'لم يتمكن الذكاء الاصطناعي من كتابة مسودة صالحة. حاول مجدداً أو أعد صياغة طلبك.',
+  'error.PERMISSION_DENIED': 'لا تملك لقطة إذناً بالتقاط الشاشة.',
+  'error.CANCELLED': 'أُلغي.',
+  'error.UNKNOWN': 'حدث خطأ ما. حاول مجدداً.',
+  'error.CREATE_UNKNOWN':
+    'لم نتمكن من تأكيد إنشاء الخطأ. لم يُعثر على خطأ، لذا يمكنك إنشاؤه مجدداً.',
+  'error.noSession': 'هذا الخطأ أُغلق بالفعل.',
+  'error.hotkeyConflict': 'الاختصار {accelerator} يستخدمه تطبيق آخر. غيّره في الإعدادات.',
+  'error.appDisabled': 'أوقفت شركتك لقطة: {message}',
+  'update.requiredTitle': 'التحديث مطلوب',
+  'update.requiredBody': 'هذا الإصدار من لقطة لم يعد مدعوماً. سيُحدَّث عند إعادة تشغيله.',
+  'dialog.ok': 'حسناً',
+  'toast.title': 'لقطة',
+  'workbench.windowTitle': 'لقطة',
+  'settings.windowTitle': 'إعدادات لقطة',
+  'overlay.windowTitle': 'التقاط لقطة',
+};
+
+export type UiLanguage = 'en' | 'ar';
+const dictionaries: Record<UiLanguage, Dictionary> = { en, ar };
+
+export function t(lang: UiLanguage, key: StringKey): string {
+  return dictionaries[lang][key];
+}
+
+/** Fills `{name}` placeholders. Unknown placeholders stay visible so tests catch them. */
+export function format(
+  lang: UiLanguage,
+  key: StringKey,
+  vars: Record<string, string | number>,
+): string {
+  return t(lang, key).replace(/\{(\w+)\}/g, (match, name: string) => {
+    const value = vars[name];
+    return value === undefined ? match : String(value);
+  });
+}
+
+export function errorMessage(lang: UiLanguage, code: AppErrorCode): string {
+  return t(lang, `error.${code}`);
+}
+
+/** Exposed for tests that check both dictionaries have the same keys and placeholders. */
+export const DICTIONARIES = dictionaries;

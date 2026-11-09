@@ -1,0 +1,107 @@
+.root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+  outline: none;
+}
+
+.frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.shade {
+  position: absolute;
+  background: rgba(20, 23, 31, 0.45);
+  pointer-events: none;
+}
+
+.selection {
+  position: absolute;
+  border: 2px solid var(--accent);
+  cursor: move;
+}
+
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid var(--accent);
+  cursor: pointer;
+}
+
+.sizePill {
+  position: absolute;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.statusPill {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 10px 22px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 48px);
+  pointer-events: none;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--annotation);
+  flex: none;
+}
+
+.modeBar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: var(--shadow);
+  cursor: default;
+}
+
+.modes {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.modeActive {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.divider {
+  width: 1px;
+  height: 32px;
+  background: var(--hairline);
+  margin: 0 var(--space-1);
+}
+
+.muted {
+  color: var(--muted);
+}

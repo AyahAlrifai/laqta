@@ -1,3 +1,13 @@
 packages:
   - app
   - gateway-contract
+
+# Spec section 10: no install scripts from unknown packages. get-windows (window mode, spec
+# section 5 step 6) downloads its prebuilt native helper in its install script; nothing else
+# may run one.
+allowBuilds:
+  get-windows: true
+  # esbuild (via tsx) works from its platform package without its check script; the Squirrel
+  # installer is unused because Windows builds use NSIS (spec section 11).
+  esbuild: false
+  electron-winstaller: false

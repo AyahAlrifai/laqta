@@ -6,3 +6,5 @@ pnpm-lock.yaml
 doc/
 AGENTS.md
 CLAUDE.md
+test-results/
+playwright-report/

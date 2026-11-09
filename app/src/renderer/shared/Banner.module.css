@@ -1,0 +1,27 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+}
+
+.text {
+  margin: 0;
+  flex: 1;
+}
+
+.warning {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.error {
+  background: var(--danger-soft);
+  color: #7a1d16;
+}
+
+.info {
+  background: var(--surface-muted);
+  color: var(--ink);
+}

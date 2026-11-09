@@ -5,9 +5,13 @@
   },
   "include": [
     "electron.vite.config.ts",
-    "vitest.config.ts",
+    "vitest.config.mts",
+    "playwright.config.ts",
     "src/main/**/*.ts",
     "src/preload/**/*.ts",
-    "src/shared/**/*.ts"
+    "src/shared/**/*.ts",
+    "src/renderer/**/*.test.ts",
+    "test/**/*.ts",
+    "e2e/**/*.ts"
   ]
 }

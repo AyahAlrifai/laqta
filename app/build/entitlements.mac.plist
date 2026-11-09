@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Required by Electron under the hardened runtime (V8 JIT). Confirm against Electron's
+         code-signing documentation when T-053 runs (spec section 11). -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Microphone for Phase 2 voice input (spec section 11). -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+  </dict>
+</plist>

@@ -1,31 +1,46 @@
 import { join } from 'node:path';
-import { app, Menu, nativeImage, Tray } from 'electron';
-import { resourcesDir, trayIconFileName } from './tray-icon';
+import { app } from 'electron';
+import { LaqtaApp } from './app';
+import type { DraftProvider } from './ai/provider';
+import { fileSink, log, setLogSink } from './log';
+import { installSessionPolicy } from './windows';
 
-// Held at module level: a Tray that is garbage collected disappears from the menu bar.
-let tray: Tray | null = null;
+// App lifecycle (spec section 2): single-instance lock, tray, start-up and quit.
 
-function createTray(): Tray {
-  const dir = resourcesDir(app.isPackaged, app.getAppPath(), process.resourcesPath);
-  const icon = nativeImage.createFromPath(join(dir, trayIconFileName(process.platform)));
-  if (process.platform === 'darwin') icon.setTemplateImage(true);
-
-  const created = new Tray(icon);
-  created.setToolTip(app.getName());
-  // role 'quit' gives an OS-localised label; the full tray menu arrives in T-010.
-  created.setContextMenu(Menu.buildFromTemplate([{ role: 'quit' }]));
-  return created;
+if (process.env.LAQTA_E2E === '1' && !app.isPackaged && process.env.LAQTA_E2E_USER_DATA) {
+  app.setPath('userData', process.env.LAQTA_E2E_USER_DATA);
 }
 
-// Laqta lives in the tray, so closing its windows must not quit the app.
-app.on('window-all-closed', () => undefined);
+declare const __LAQTA_DEV_PROVIDER__: boolean;
 
-void app.whenReady().then(() => {
-  if (process.platform === 'darwin') app.dock?.hide();
-  tray = createTray();
-});
+/**
+ * The direct Anthropic provider exists only in development builds. The flag is replaced at
+ * build time, so release bundles drop this import and never contain the key name.
+ */
+async function loadDevProvider(): Promise<(() => DraftProvider | null) | null> {
+  if (!__LAQTA_DEV_PROVIDER__) return null;
+  const mod = await import('./ai/dev-provider');
+  return mod.createDevProvider;
+}
 
-app.on('before-quit', () => {
-  tray?.destroy();
-  tray = null;
-});
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  let laqta: LaqtaApp | null = null;
+  app.on('second-instance', () => laqta?.focusOrSettings());
+  // Laqta lives in the tray, so closing its windows must not quit the app.
+  app.on('window-all-closed', () => undefined);
+  app.on('before-quit', () => {
+    log('app.quit', {});
+    laqta?.shutdown();
+  });
+
+  void app.whenReady().then(async () => {
+    setLogSink(fileSink(join(app.getPath('userData'), 'logs')));
+    log('app.start', { version: app.getVersion(), platform: process.platform });
+    if (process.platform === 'darwin') app.dock?.hide();
+    installSessionPolicy();
+    laqta = new LaqtaApp(await loadDevProvider());
+    await laqta.start();
+  });
+}

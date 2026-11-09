@@ -1,0 +1,55 @@
+# Spec section 11, packaging. Signing material comes only from protected CI variables:
+#   Windows: CSC_LINK / CSC_KEY_PASSWORD (company code-signing certificate)
+#   macOS:   CSC_LINK / CSC_KEY_PASSWORD (Developer ID Application),
+#            APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for notarization (notarytool)
+appId: com.laqta.app
+productName: Laqta
+copyright: Copyright © Laqta
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: resources
+    to: .
+    filter: ['*.png']
+asarUnpack:
+  # get-windows ships native helpers that must run from disk.
+  - node_modules/get-windows/**
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+publish:
+  provider: generic
+  # The internal https update feed (spec section 11); set by the release job.
+  url: ${env.LAQTA_UPDATE_FEED_URL}
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  # An unsigned build must never be published: the publish job checks the signature.
+  signtoolOptions:
+    signingHashAlgorithms: [sha256]
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  deleteAppDataOnUninstall: false
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: [universal]
+    - target: zip
+      arch: [universal]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
+  extendInfo:
+    LSUIElement: true
+    NSMicrophoneUsageDescription: Laqta records your spoken bug report only while you hold the Speak button. Audio is never stored.
+    NSScreenCaptureUsageDescription: Laqta captures only the area you select, and only when you press the hotkey.

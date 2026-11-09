@@ -1,8 +1,11 @@
-# Skeleton of the pipeline in spec section 11. Jobs for the later stages arrive with their
-# tickets: e2e with T-054; build-win, build-mac, sign and publish with T-053.
+# Spec section 11, CI pipeline. Runner tags (`linux`, `windows`, `macos`) and the protected
+# signing variables are provided by DevOps (spec section 14, item 13).
 stages: [verify, test, build, sign, publish]
 
-default:
+variables:
+  npm_config_store_dir: .pnpm-store
+
+.node:
   image: node:26.13.0
   before_script:
     - npm install --global pnpm@12.18.0
@@ -12,17 +15,96 @@ default:
       files: [pnpm-lock.yaml]
     paths: [.pnpm-store]
 
-variables:
-  npm_config_store_dir: .pnpm-store
-
 verify:
+  extends: .node
   stage: verify
+  tags: [linux]
   script:
     - pnpm lint
     - pnpm typecheck
     - pnpm audit --prod
 
 test:
+  extends: .node
   stage: test
+  tags: [linux]
   script:
     - pnpm test
+
+.desktop:
+  before_script:
+    - npm install --global pnpm@12.18.0
+    - pnpm install --frozen-lockfile
+
+e2e-mac:
+  extends: .desktop
+  stage: test
+  tags: [macos]
+  script:
+    - pnpm test:e2e
+  artifacts:
+    when: on_failure
+    paths: [app/test-results/]
+
+e2e-win:
+  extends: .desktop
+  stage: test
+  tags: [windows]
+  script:
+    - pnpm test:e2e
+  artifacts:
+    when: on_failure
+    paths: [app/test-results/]
+
+# Release builds compile the direct provider out (LAQTA_RELEASE=1) and are checked for it.
+build-win:
+  extends: .desktop
+  stage: build
+  tags: [windows]
+  rules: [{ if: '$CI_COMMIT_TAG' }]
+  script:
+    - pnpm build:release
+    - pnpm check:release
+    - pnpm dist:win
+  artifacts:
+    paths: [app/dist/]
+
+build-mac:
+  extends: .desktop
+  stage: build
+  tags: [macos]
+  rules: [{ if: '$CI_COMMIT_TAG' }]
+  script:
+    - pnpm build:release
+    - pnpm check:release
+    - pnpm dist:mac
+  artifacts:
+    paths: [app/dist/]
+
+# Signing happens inside electron-builder when CSC_LINK is set; this stage refuses to go on
+# with anything unsigned or not notarized.
+verify-signatures-win:
+  stage: sign
+  tags: [windows]
+  rules: [{ if: '$CI_COMMIT_TAG' }]
+  needs: [build-win]
+  script:
+    - powershell -Command "Get-ChildItem app/dist/*.exe | ForEach-Object { $s = Get-AuthenticodeSignature $_; if ($s.Status -ne 'Valid') { throw \"unsigned: $_\" } }"
+
+verify-signatures-mac:
+  stage: sign
+  tags: [macos]
+  rules: [{ if: '$CI_COMMIT_TAG' }]
+  needs: [build-mac]
+  script:
+    - for f in app/dist/*.dmg; do spctl -a -t open --context context:primary-signature -v "$f"; xcrun stapler validate "$f"; done
+
+publish:
+  stage: publish
+  tags: [linux]
+  rules: [{ if: '$CI_COMMIT_TAG' }]
+  needs: [verify-signatures-win, verify-signatures-mac, build-win, build-mac]
+  script:
+    # Uploads installers and latest*.yml to the internal feed; keeps the previous two releases.
+    - test -n "$LAQTA_UPDATE_FEED_UPLOAD" || (echo "LAQTA_UPDATE_FEED_UPLOAD is not set" && exit 1)
+    - sh -c "$LAQTA_UPDATE_FEED_UPLOAD app/dist"

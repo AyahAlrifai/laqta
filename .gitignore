@@ -13,3 +13,5 @@ coverage/
 !app/resources/*.png
 !fixtures/*.png
 !doc/**/*.png
+test-results/
+playwright-report/

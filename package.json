@@ -9,19 +9,31 @@
   "scripts": {
     "lint": "eslint . && prettier --check . && node tools/check-todos.js",
     "format": "prettier --write .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && tsc -p tools/tsconfig.json --noEmit",
     "test": "pnpm -r test",
     "dev": "pnpm --filter @laqta/app dev",
     "build": "pnpm --filter @laqta/app build",
-    "start": "pnpm --filter @laqta/app start"
+    "start": "pnpm --filter @laqta/app start",
+    "test:e2e": "pnpm --filter @laqta/app test:e2e",
+    "build:release": "pnpm --filter @laqta/app build:release",
+    "check:release": "node tools/check-release-bundle.js app/out",
+    "dist:win": "pnpm --filter @laqta/app dist:win",
+    "dist:mac": "pnpm --filter @laqta/app dist:mac",
+    "eval": "pnpm --filter @laqta/app exec tsx ../tools/eval/run.ts",
+    "spike:jira": "pnpm --filter @laqta/app exec tsx ../tools/spike/jira.ts",
+    "fixtures": "pnpm --filter @laqta/app exec electron ../tools/fixtures/generate.cjs",
+    "mock-jira": "pnpm --filter @laqta/app mock-jira"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
     "eslint": "10.14.0",
     "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.14.0",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.72.1"
+    "typescript-eslint": "8.72.1",
+    "zod": "4.6.7"
   }
 }

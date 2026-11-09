@@ -92,6 +92,13 @@ laqta/
 
 The gateway is built last. Until then the app talks to the model through a `DraftProvider` interface with a direct provider that reads a developer key from an environment variable. That direct provider must not ship in release builds.
 
+### 2.1 Implementation notes (added during the build)
+
+- The `active-win` package was renamed by its author to `get-windows` (same API, `activeWindow()`); the app uses `get-windows` 9.3.0. It is the only native dependency: it ships a prebuilt helper (Swift binary on macOS, N-API addon on Windows), it is the only package allowed to run an install script (`allowBuilds` in `pnpm-workspace.yaml`), and it is unpacked from the asar.
+- Pinned at repo creation: Node 26 LTS (`.nvmrc`), pnpm 12.18.0, Electron 45.2.3, electron-vite 6, Vite 8.3.5, React 19.3.1, Zod 4.6.7, Zustand 5.0.16, TypeScript 6.0.3 (typescript-eslint supports `<6.1`).
+- The renderer folders are `overlay/`, `workbench/` (the window that hosts `editor/` and `review/`), `toast/`, `settings/` and `shared/`. `strings.ts`, `wiki.ts` and `fields.ts` live in `src/shared/` because main and renderers both use them; `main/jira/wiki.ts` re-exports the builder.
+- The direct provider is compiled in only when `LAQTA_RELEASE` is not `1` (build-time constant `__LAQTA_DEV_PROVIDER__`); `pnpm build:release` plus `pnpm check:release` prove the bundle has no `ANTHROPIC_API_KEY`.
+
 ## 3. Architecture, IPC and the flow state machine
 
 **Processes and windows**
@@ -145,6 +152,29 @@ The gateway is built last. Until then the app talks to the model through a `Draf
 | any | `session:discard`, window closed | `idle` | Confirm if there are unsaved edits, then delete the image |
 
 The orchestrator is a pure function `(state, event) => { state, effects }` plus an effect runner, so every transition can be unit tested without Electron.
+
+### 3.1 Additions to the IPC table and state machine (added during the build)
+
+Every handler answers `{ ok: true, value } | { ok: false, error: AppError }`; the preload returns this envelope and `renderer/shared/api.ts` unwraps it, because errors thrown across `contextBridge` lose their fields.
+
+| Channel | Direction | Payload | Returns |
+| --- | --- | --- | --- |
+| `overlay:getFrame` | overlay to main | none (main knows the sender's display) | `OverlayFrame` |
+| `session:getImage` | workbench to main | none | `SessionImage` (the redacted image once exported) |
+| `session:back` | workbench to main | none | none (the `back` event) |
+| `session:getReview` | workbench to main | none | `ReviewState \| null` (a restored offline draft) |
+| `session:changed` | main to workbench and toast | `Session \| null` | push event |
+| `jira:resolveAssignee` | workbench to main | `{ projectKey, query, transliteration }` | `AssigneeResolution` |
+| `jira:listProjects` | workbench, settings to main | none | `JiraProject[]` |
+| `draft:keepForLater` | workbench to main | `ReviewState` | `{ saved }` |
+| `toast:get` / `toast:close` | toast to main | none | `ToastData \| null` / none |
+| `app:openLink` | any to main | `{ url }` (Jira host only) | none |
+| `app:copyText`, `app:openSettings`, `window:close` | any to main | `{ text }` / none | none |
+| `permissions:get`, `permissions:openSystemSettings`, `permissions:requestMicrophone` | settings, workbench to main | none / `{ kind }` | `PermissionStatus` / none / `boolean` |
+
+`settings:get` returns `SettingsView` and `settings:set` takes `SettingsSetRequest` (the token is write-only) and returns `SettingsSetResult` (with hotkey conflicts). `settings:testConnection` takes an optional token; empty means the stored one. `jira:loadCreateMeta` takes an optional `issueTypeName` so the review form can reload required fields when the type changes.
+
+Extra state transitions: `capturing` + `capture:failed` -> `idle` (permission denied, no frames); `partial` + `jira:retryAttachment` -> `submitting` (upload only); `idle` + `draft:restore` -> `reviewing` (resume an offline draft). Transitions not in the table are rejected and logged.
 
 ## 4. Types and schemas
 
@@ -234,6 +264,10 @@ export interface AppError { code: AppErrorCode; userMessage: string; detail?: st
 ```
 
 `detail` is for the redacting logger only and must never contain tokens, image data or description text. `userMessage` comes from `strings.ts`.
+
+### 4.1 Additional types (added during the build)
+
+`DraftResult = { kind: 'ok'; draft: BugDraft } | { kind: 'failed'; error: AppError }` (used by `draft:request` but not defined above), plus `SettingsView`, `SettingsSetRequest`, `SettingsSetResult`, `TestConnectionResult`, `JiraProject`, `OverlayFrame`, `Rect`, `SessionImage`, `ToastData`, `PermissionStatus`, `SavedDraftInfo`, `ReviewState` and `AssigneeResolution`. They live after the section 4 block in `src/shared/types.ts`. `ApprovedBug.extraFields` keys may be any Jira field id except the fields the app fills itself (project, issuetype, summary, description, reporter, priority, assignee, labels, attachment), because required system fields such as `components` exist.
 
 ## 5. Capture, annotate and redact
 
@@ -406,6 +440,14 @@ _Created with Laqta from <appName>. Draft written by AI, reviewed and approved b
 | DNS, refused, timeout | `NETWORK_UNREACHABLE` | Offer Try again and Keep draft for later (design board 5, card 3) |
 | Certificate failure | `TLS_ERROR` | Explain that the company certificate may be missing |
 
+### 8.1 Clarifications made during the build
+
+- **Create outcome.** 400, 401, 403 and 404 are clear errors (no verify). 429 on create is `failed` with `retryable: true` (Jira rejected it before processing). Any 5xx, a timeout, a reset after sending or a 2xx with an unreadable body is an unknown outcome and goes to `verifying`. DNS failure, connection refused and certificate errors mean the request never left, so `failed` with `retryable: true` and no verify.
+- **Fresh connection for create.** Chromium (and therefore `net.fetch`) silently resends a request, POST included, when a reused keep-alive socket is reset; this was reproduced against the mock server (two issues from one click). The create call therefore runs on a new in-memory session partition, which has an empty socket pool, so it is never resent. It still uses the system proxy and certificate store. See section 14, item 14.
+- **Attachment.** Any 2xx is success (a retry would attach a second copy). 413 downscales once by one 0.85 step and retries; 400, 401, 403 and 404 stop at once.
+- **Assignee preselection.** Exactly one candidate whose display name matches the query exactly or as a prefix (board 3 shows "Sara" matching "Sara H.") is preselected; one candidate matched only on username or email opens the picker. Two or more always open the picker with nothing selected.
+- **Sanitizer and the description.** The sanitizer escapes markup in model text. The review form shows that text unescaped so the reporter can read and edit it; `escapeUserWiki` escapes every field again when the description is built, so the final wiki is always neutralised. Image embeds are removed before links so `!http://host/x.png!` disappears completely. The summary is plain text in Jira, so it gets control-character, newline, link and embed removal and the length cap, but no backslash escapes.
+
 ## 9. UI implementation map
 
 The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/artifact/3QSPxbpnD3FJJz3JXshHHo), five boards at 1280 by 800. Match layout, copy and states; replace the sample content with real data.
@@ -477,6 +519,10 @@ webPreferences: {
 **Auto-update:** `electron-updater` with a generic provider pointing to an internal https feed. Check on start and every four hours, download in the background, install on quit. Support a staged rollout percentage in the feed (confirm the exact option in the electron-updater documentation) and a `minimumVersion` field in the central config that forces an update prompt. Keep the previous two releases on the feed for rollback.
 
 **Kill switch:** the app fetches a small signed JSON at start (`status.json`) that can disable AI drafting or the whole app with a message. If the fetch fails, the app keeps its last known state.
+
+### 11.1 Kill switch format (proposal, to confirm with DevOps and Security)
+
+`status.json` is `{ "payload": base64(JSON), "signature": base64(Ed25519 signature over the payload bytes) }`. The payload is `{ aiDisabled?, appDisabled?, message?, minimumVersion? }`. The public key (SPKI DER, base64) and the URL are build-time settings `MAIN_VITE_STATUS_PUBLIC_KEY` and `MAIN_VITE_STATUS_URL`. Until the central config exists (Phase 3), `minimumVersion` is read from this file. Other build-time settings: `MAIN_VITE_GATEWAY_URL`, `MAIN_VITE_UPDATE_URL`, `MAIN_VITE_TELEMETRY_URL`, `MAIN_VITE_MAX_ATTACHMENT_BYTES`, `MAIN_VITE_OFFLINE_DRAFT_HOURS`.
 
 **CI pipeline** (GitLab CI, stages in order)
 
@@ -621,6 +667,7 @@ Nothing below may be treated as fact until the spike tickets (T-002 to T-004) co
 | 11 | `safeStorage` is available on every supported machine | Run on Windows and macOS test machines | Define a supported fallback with Security |
 | 12 | The corporate proxy and root certificate work through `net.fetch` | Test on the company network and VPN | Add certificate or proxy settings |
 | 13 | We have the Windows signing certificate and Apple Developer ID and a macOS CI runner | Ask DevOps | Delay M5 or buy or provision them |
+| 14 | Creates are never resent by the network stack (the app sends them on a fresh connection, see 8.1) | Create bugs through the corporate proxy and VPN while resetting connections | Add a post-create label search that reports more than one issue |
 
 ## 15. Decisions that must be made by people
 

@@ -1,0 +1,37 @@
+.card {
+  position: relative;
+  height: 100%;
+  padding: var(--space-5) var(--space-6);
+  border-top: 4px solid var(--success);
+}
+
+.failure {
+  border-top-color: var(--danger);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 19px;
+  margin: 0 var(--space-8) var(--space-3) 0;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+.close {
+  position: absolute;
+  top: var(--space-2);
+  inset-inline-end: var(--space-2);
+  min-width: 44px;
+  padding: 0;
+}
+
+.copied {
+  color: var(--success);
+}
