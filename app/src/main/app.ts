@@ -245,7 +245,14 @@ export class LaqtaApp {
     const url = process.env.LAQTA_E2E_JIRA_URL;
     if (url === undefined) return;
     this.tokens.set('e2e-token');
-    this.settings.set({ ...this.settings.get(), jiraBaseUrl: '', defaultProjectKey: 'PROJ' });
+    const cloud = process.env.LAQTA_E2E_JIRA_DEPLOYMENT === 'cloud';
+    this.settings.set({
+      ...this.settings.get(),
+      jiraBaseUrl: '',
+      jiraDeployment: cloud ? 'cloud' : 'datacenter',
+      jiraEmail: cloud ? 'tester@example.test' : '',
+      defaultProjectKey: 'PROJ',
+    });
   }
 
   private lang(): UiLanguage {
@@ -330,9 +337,12 @@ export class LaqtaApp {
   private jira(): JiraClient {
     const token = this.tokens.get();
     if (token === null || this.jiraBaseUrl() === '') throw new AppFailure(appError('AUTH_INVALID'));
+    const settings = this.settings.get();
     return new JiraClient({
       baseUrl: this.jiraBaseUrl(),
       token,
+      deployment: settings.jiraDeployment,
+      email: settings.jiraEmail,
       fetch: fetchViaNet,
       freshFetch: fetchOnFreshConnection,
       allowHttpForTests: this.e2e,
@@ -1056,16 +1066,20 @@ export class LaqtaApp {
     };
   }
 
-  private async testConnection(
-    baseUrl: string,
-    token: string | undefined,
-  ): Promise<TestConnectionResult> {
-    const useToken = token !== undefined && token !== '' ? token : this.tokens.get();
+  private async testConnection(p: {
+    baseUrl: string;
+    token?: string | undefined;
+    deployment: 'datacenter' | 'cloud';
+    email?: string | undefined;
+  }): Promise<TestConnectionResult> {
+    const useToken = p.token !== undefined && p.token !== '' ? p.token : this.tokens.get();
     if (useToken === null) return { ok: false, error: appError('AUTH_INVALID') };
     try {
       const client = new JiraClient({
-        baseUrl,
+        baseUrl: p.baseUrl,
         token: useToken,
+        deployment: p.deployment,
+        email: p.email,
         fetch: fetchViaNet,
         allowHttpForTests: this.e2e,
       });
@@ -1090,7 +1104,12 @@ export class LaqtaApp {
     const saved = this.settings.set(next);
     setErrorLanguage(saved.uiLanguage);
     setVoicePermission(saved.voiceEnabled);
-    if (before.jiraBaseUrl !== saved.jiraBaseUrl) this.createMetaCache.clear();
+    if (
+      before.jiraBaseUrl !== saved.jiraBaseUrl ||
+      before.jiraDeployment !== saved.jiraDeployment
+    ) {
+      this.createMetaCache.clear();
+    }
     const conflicts = this.applyHotkeys(false);
     if (saved.uiLanguage !== before.uiLanguage)
       this.tray?.setToolTip(t(saved.uiLanguage, 'tray.tooltip'));
@@ -1307,7 +1326,7 @@ export class LaqtaApp {
     });
     handle(IPC.settingsTestConnection, TestConnectionSchema, (p, sender) => {
       onlyKind(sender, ['settings']);
-      return this.testConnection(p.baseUrl, p.token);
+      return this.testConnection(p);
     });
     handle(IPC.toastGet, null, (_p, sender) => {
       onlyKind(sender, ['toast']);

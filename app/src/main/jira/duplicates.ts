@@ -33,7 +33,7 @@ export async function checkDuplicates(
 ): Promise<DuplicateHit[]> {
   const jql = duplicateJql(projectKey, summary);
   if (jql === null) return [];
-  const res = await client.request('POST', JIRA.search(), JiraSearchSchema, {
+  const res = await client.request('POST', JIRA.search(client.deployment), JiraSearchSchema, {
     jql,
     fields: ['summary', 'status'],
     maxResults: 5,

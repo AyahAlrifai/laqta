@@ -6,12 +6,19 @@ import { log } from '../log';
 import type { FetchLike } from '../ai/provider';
 import { classifyNetworkError, mapStatus, networkError, type NetworkClass } from './error-map';
 
-// Jira Data Center REST API v2 client base (spec section 8). Bearer PAT, JSON, every
-// response validated with Zod. The token lives only in this object, in the main process.
+// Jira REST API v2 client base (spec sections 8 and 8.2). Data Center uses a Bearer PAT,
+// Cloud uses Basic email:apiToken. Every response is validated with Zod. The token lives only
+// in this object, in the main process.
+
+export type JiraDeployment = 'datacenter' | 'cloud';
 
 export interface JiraClientOptions {
   baseUrl: string;
   token: string;
+  /** Default 'datacenter'. */
+  deployment?: JiraDeployment;
+  /** Atlassian account email; required for 'cloud'. */
+  email?: string;
   fetch: FetchLike;
   /**
    * Sends on a connection that has never been used. Chromium silently resends a request
@@ -47,8 +54,19 @@ export class JiraClient {
   readonly baseUrl: string;
   readonly host: string;
   readonly sleep: (ms: number) => Promise<void>;
+  readonly deployment: JiraDeployment;
+  private readonly authorization: string;
 
   constructor(private readonly opts: JiraClientOptions) {
+    this.deployment = opts.deployment ?? 'datacenter';
+    if (this.deployment === 'cloud') {
+      const email = (opts.email ?? '').trim();
+      if (email === '')
+        throw new AppFailure(appError('AUTH_INVALID', { detail: 'cloud needs an email' }));
+      this.authorization = `Basic ${Buffer.from(`${email}:${opts.token}`, 'utf8').toString('base64')}`;
+    } else {
+      this.authorization = `Bearer ${opts.token}`;
+    }
     const isLocalHttp =
       opts.allowHttpForTests === true && /^http:\/\/127\.0\.0\.1(:\d+)?/.test(opts.baseUrl);
     if (!isHttpsUrl(opts.baseUrl) && !isLocalHttp) {
@@ -72,7 +90,7 @@ export class JiraClient {
     fresh = false,
   ): Promise<RawOutcome> {
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.opts.token}`,
+      Authorization: this.authorization,
       Accept: 'application/json',
     };
     let payload: string | FormData | undefined;

@@ -6,7 +6,7 @@ import {
 import type { AppError, ApprovedBug, CreateResult } from '../../shared/types';
 import { appError } from '../errors';
 import { log } from '../log';
-import type { JiraClient } from './client';
+import type { JiraClient, JiraDeployment } from './client';
 import { mapStatus } from './error-map';
 import { JIRA } from './endpoints';
 
@@ -18,7 +18,10 @@ export function requestLabel(requestId: string): string {
   return `laqta-${requestId}`;
 }
 
-export function buildCreateBody(bug: ApprovedBug): { fields: Record<string, unknown> } {
+export function buildCreateBody(
+  bug: ApprovedBug,
+  deployment: JiraDeployment = 'datacenter',
+): { fields: Record<string, unknown> } {
   const fields: Record<string, unknown> = {
     ...bug.extraFields,
     project: { key: bug.projectKey },
@@ -28,7 +31,11 @@ export function buildCreateBody(bug: ApprovedBug): { fields: Record<string, unkn
     labels: bug.labels,
   };
   if (bug.priority !== null) fields.priority = { name: bug.priority };
-  if (bug.assigneeUsername !== null) fields.assignee = { name: bug.assigneeUsername };
+  if (bug.assigneeUsername !== null) {
+    // Data Center assigns by user name, Cloud by accountId (spec section 8.2).
+    fields.assignee =
+      deployment === 'cloud' ? { id: bug.assigneeUsername } : { name: bug.assigneeUsername };
+  }
   return { fields };
 }
 
@@ -45,7 +52,7 @@ export async function createIssue(
   const outcome = await client.raw(
     'POST',
     JIRA.createIssue(),
-    { json: buildCreateBody(bug) },
+    { json: buildCreateBody(bug, client.deployment) },
     30_000,
     true,
   );
@@ -82,7 +89,7 @@ export async function findByRequestLabel(
 ): Promise<string | null> {
   for (const wait of VERIFY_WAITS_MS) {
     await client.sleep(wait);
-    const outcome = await client.raw('POST', JIRA.search(), {
+    const outcome = await client.raw('POST', JIRA.search(client.deployment), {
       json: {
         jql: `labels = "${requestLabel(requestId)}"`,
         fields: ['summary'],

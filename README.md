@@ -32,7 +32,12 @@ Press `Ctrl+Shift+J` (`⌘⇧J` on macOS) or use the tray menu. In this mode dra
 ANTHROPIC_API_KEY=... pnpm dev
 ```
 
-Open Settings from the tray, enter the https Jira address and a personal access token, then click **Test connection** and **Save**. The direct Anthropic provider exists only in development builds. Release builds (`pnpm build:release`) use the gateway (`MAIN_VITE_GATEWAY_URL`).
+Open Settings from the tray and enter the https Jira address. Then:
+
+- **Jira Cloud** (`*.atlassian.net`, picked automatically): your Atlassian email and an API token from id.atlassian.com, under Security, API tokens.
+- **Jira Data Center/Server**: a personal access token from your Jira profile.
+
+Click **Test connection**, then **Save**. The direct Anthropic provider exists only in development builds. Release builds (`pnpm build:release`) use the gateway (`MAIN_VITE_GATEWAY_URL`).
 
 ## Gateway
 

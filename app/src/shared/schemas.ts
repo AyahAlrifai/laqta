@@ -70,6 +70,8 @@ export const BugDraftSchema: z.ZodType<BugDraft> = z.object({
 
 export const DEFAULT_SETTINGS: Settings = {
   jiraBaseUrl: '',
+  jiraDeployment: 'datacenter',
+  jiraEmail: '',
   defaultProjectKey: '',
   bugLanguage: 'en',
   uiLanguage: 'en',
@@ -102,6 +104,8 @@ const accelerator = z
 
 export const SettingsSchema: z.ZodType<Settings> = z.object({
   jiraBaseUrl: JiraBaseUrlSchema,
+  jiraDeployment: z.enum(['datacenter', 'cloud']),
+  jiraEmail: z.union([z.literal(''), z.email().max(254)]),
   defaultProjectKey: z.union([z.literal(''), ProjectKeySchema]),
   bugLanguage: BugLanguageSchema,
   uiLanguage: z.enum(['en', 'ar']),
@@ -173,7 +177,18 @@ export const TestConnectionSchema = z.object({
   baseUrl: JiraBaseUrlSchema.refine((v) => v !== ''),
   /** Empty or omitted means use the stored token. */
   token: z.string().max(500).optional(),
+  deployment: z.enum(['datacenter', 'cloud']).default('datacenter'),
+  email: z.string().max(254).optional(),
 });
+
+/** Jira Cloud sites live on atlassian.net (spec section 8.2). */
+export function looksLikeJiraCloud(url: string): boolean {
+  try {
+    return new URL(url).hostname.toLowerCase().endsWith('.atlassian.net');
+  } catch {
+    return false;
+  }
+}
 export const OpenLinkSchema = z.object({ url: z.string().max(2000) });
 export const CopyTextSchema = z.object({ text: z.string().max(2000) });
 export const OverlayGetFrameSchema = z.object({ displayId: z.string().max(64) });
@@ -198,49 +213,69 @@ export const ReviewStateSchema: z.ZodType<ReviewState> = z.object({
 // ---- Jira Data Center REST API v2 responses (spec section 8, confirmed in T-002) ----
 
 export const JiraMyselfSchema = z.object({
-  name: z.string(),
+  // Data Center has `name`; Cloud has `accountId` (spec section 8.2).
+  name: z.string().optional(),
+  accountId: z.string().optional(),
   displayName: z.string(),
 });
 
 export const JiraProjectListSchema = z.array(z.object({ key: z.string(), name: z.string() }));
 
-const page = <T extends z.ZodType>(item: T) =>
-  z.object({
-    values: z.array(item),
-    startAt: z.number().optional(),
-    maxResults: z.number().optional(),
-    total: z.number().optional(),
-    isLast: z.boolean().optional(),
-  });
+const pageMeta = {
+  startAt: z.number().optional(),
+  maxResults: z.number().optional(),
+  total: z.number().optional(),
+  isLast: z.boolean().optional(),
+};
 
-export const JiraIssueTypePageSchema = page(z.object({ id: z.string(), name: z.string() }));
+const IssueTypeItem = z.object({
+  id: z.string(),
+  name: z.string(),
+  subtask: z.boolean().optional(),
+});
 
-export const JiraFieldPageSchema = page(
-  z.object({
-    fieldId: z.string(),
-    name: z.string(),
-    required: z.boolean(),
-    hasDefaultValue: z.boolean().optional(),
-    schema: z.object({ type: z.string(), items: z.string().optional() }).loose(),
-    allowedValues: z
-      .array(
-        z
-          .object({
-            id: z.string(),
-            name: z.string().optional(),
-            value: z.string().optional(),
-          })
-          .loose(),
-      )
-      .optional(),
-  }),
-);
+/** Data Center lists under `values`, Cloud under `issueTypes` (spec section 8.2). */
+export const JiraIssueTypePageSchema = z.object({
+  ...pageMeta,
+  values: z.array(IssueTypeItem).optional(),
+  issueTypes: z.array(IssueTypeItem).optional(),
+});
+
+const FieldItem = z.object({
+  fieldId: z.string(),
+  name: z.string(),
+  required: z.boolean(),
+  hasDefaultValue: z.boolean().optional(),
+  schema: z.object({ type: z.string(), items: z.string().optional() }).loose(),
+  allowedValues: z
+    .array(
+      z
+        .object({
+          id: z.string(),
+          name: z.string().optional(),
+          value: z.string().optional(),
+        })
+        .loose(),
+    )
+    .optional(),
+});
+
+/** Data Center lists under `values`, Cloud under `fields` (spec section 8.2). */
+export const JiraFieldPageSchema = z.object({
+  ...pageMeta,
+  values: z.array(FieldItem).optional(),
+  fields: z.array(FieldItem).optional(),
+});
+export type JiraField = z.infer<typeof FieldItem>;
 
 export const JiraPriorityListSchema = z.array(z.object({ id: z.string(), name: z.string() }));
 
 export const JiraUserListSchema = z.array(
   z.object({
-    name: z.string(),
+    // Data Center identifies users by `name`, Cloud by `accountId` (spec section 8.2).
+    name: z.string().optional(),
+    accountId: z.string().optional(),
+    accountType: z.string().optional(),
     displayName: z.string(),
     emailAddress: z.string().optional(),
     active: z.boolean().optional(),

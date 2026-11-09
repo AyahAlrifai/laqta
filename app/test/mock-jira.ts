@@ -18,6 +18,10 @@ export type CreateFailure =
   | 503;
 
 export interface MockConfig {
+  /** 'cloud' behaves like Jira Cloud (spec section 8.2); Data Center calls are then rejected. */
+  deployment: 'datacenter' | 'cloud';
+  /** Cloud only: the Atlassian account email in the Basic credentials. */
+  email: string;
   token: string;
   createFailure: CreateFailure;
   /** Number of attachment uploads to fail before succeeding; -1 fails forever. */
@@ -46,6 +50,8 @@ export const DEFAULT_USERS = [
 
 export function defaultConfig(): MockConfig {
   return {
+    deployment: 'datacenter',
+    email: 'tester@example.test',
     token: 'test-token',
     createFailure: null,
     attachFailures: 0,
@@ -120,7 +126,11 @@ export class MockJira {
     }
 
     this.calls.push({ method, path });
-    if (req.headers.authorization !== `Bearer ${this.config.token}`) {
+    const cloud = this.config.deployment === 'cloud';
+    const expectedAuth = cloud
+      ? `Basic ${Buffer.from(`${this.config.email}:${this.config.token}`).toString('base64')}`
+      : `Bearer ${this.config.token}`;
+    if (req.headers.authorization !== expectedAuth) {
       json(res, 401, { errorMessages: ['unauthorized'] });
       return;
     }
@@ -158,9 +168,10 @@ export class MockJira {
         maxResults: 50,
         total: 2,
         isLast: true,
-        values: [
-          { id: '1', name: 'Bug' },
-          { id: '2', name: 'Task' },
+        [cloud ? 'issueTypes' : 'values']: [
+          { id: '1', name: 'Bug', subtask: false },
+          { id: '2', name: 'Task', subtask: false },
+          { id: '3', name: 'Subtask', subtask: true },
         ],
       });
       return;
@@ -203,7 +214,7 @@ export class MockJira {
         maxResults: 100,
         total: values.length,
         isLast: true,
-        values,
+        [cloud ? 'fields' : 'values']: values,
       });
       return;
     }
@@ -219,7 +230,12 @@ export class MockJira {
       return;
     }
     if (method === 'GET' && path === '/rest/api/2/user/assignable/search') {
-      const q = (url.searchParams.get('username') ?? '').toLowerCase();
+      // Cloud takes `query`, Data Center `username`; the wrong one finds nobody.
+      const q = (url.searchParams.get(cloud ? 'query' : 'username') ?? '').toLowerCase();
+      if (q === '') {
+        json(res, 200, []);
+        return;
+      }
       const hits = this.config.users.filter(
         (u) =>
           u.name.toLowerCase().startsWith(q) ||
@@ -232,15 +248,26 @@ export class MockJira {
       json(
         res,
         200,
-        hits.map((u) => ({
-          ...u,
-          active: true,
-          avatarUrls: { '48x48': 'https://jira.example.test/avatar.png' },
-        })),
+        hits.map((u) =>
+          cloud
+            ? {
+                accountId: `acc-${u.name}`,
+                accountType: 'atlassian',
+                displayName: u.displayName,
+                active: true,
+                avatarUrls: { '48x48': 'https://jira.example.test/avatar.png' },
+              }
+            : {
+                ...u,
+                active: true,
+                avatarUrls: { '48x48': 'https://jira.example.test/avatar.png' },
+              },
+        ),
       );
       return;
     }
-    if (method === 'POST' && path === '/rest/api/2/search') {
+    const searchPath = cloud ? '/rest/api/3/search/jql' : '/rest/api/2/search';
+    if (method === 'POST' && path === searchPath) {
       const { jql } = JSON.parse(body.toString('utf8')) as { jql: string };
       const label = /labels = "([^"]+)"/.exec(jql)?.[1];
       if (label !== undefined) {
@@ -298,6 +325,18 @@ export class MockJira {
     ) {
       json(res, 400, { errors: { customfield_10010: 'Team is required.' } });
       return;
+    }
+    const assignee = fields.assignee as { id?: string; name?: string } | undefined;
+    if (assignee !== undefined) {
+      // Cloud assigns by accountId, Data Center by user name (spec section 8.2).
+      const ok =
+        this.config.deployment === 'cloud'
+          ? typeof assignee.id === 'string'
+          : typeof assignee.name === 'string';
+      if (!ok) {
+        json(res, 400, { errors: { assignee: 'Specify a valid user.' } });
+        return;
+      }
     }
     this.counter += 1;
     const issue: MockIssue = { key: `${project}-${String(this.counter)}`, fields, attachments: [] };

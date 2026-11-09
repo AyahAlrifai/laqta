@@ -64,7 +64,7 @@ export type CreateResult =
   | { kind: 'failed'; error: AppError; retryable: boolean };
 
 export interface AssigneeCandidate {
-  username: string;
+  username: string; // Data Center user name, or Cloud accountId (section 8.2)
   displayName: string;
   email: string | null;
   avatarUrl: string | null;
@@ -88,6 +88,8 @@ export interface CreateMeta {
 
 export interface Settings {
   jiraBaseUrl: string; // https only
+  jiraDeployment: 'datacenter' | 'cloud'; // section 8.2, default 'datacenter'
+  jiraEmail: string; // Atlassian account email, used only with 'cloud'
   defaultProjectKey: string;
   bugLanguage: BugLanguage; // default 'en'
   uiLanguage: 'en' | 'ar';

@@ -194,6 +194,14 @@ const en = {
   'settings.connect': 'Connect to Jira',
   'settings.jiraAddress': 'Jira address',
   'settings.jiraAddressPlaceholder': 'https://jira.example.com',
+  'settings.deployment': 'Jira type',
+  'settings.deploymentDc': 'Jira Data Center or Server (self-hosted)',
+  'settings.deploymentCloud': 'Jira Cloud (atlassian.net)',
+  'settings.email': 'Atlassian account email',
+  'settings.emailRequired': 'Enter the email of your Atlassian account.',
+  'settings.tokenCloud': 'API token',
+  'settings.tokenHelpCloud':
+    'Create the API token at id.atlassian.com, under Security, API tokens. It is stored in your system keychain and never shown in logs.',
   'settings.token': 'Personal access token',
   'settings.tokenStored': 'A token is stored. Leave this empty to keep it.',
   'settings.tokenHelp':
@@ -447,6 +455,14 @@ const ar: Dictionary = {
   'settings.connect': 'الاتصال بـ Jira',
   'settings.jiraAddress': 'عنوان Jira',
   'settings.jiraAddressPlaceholder': 'https://jira.example.com',
+  'settings.deployment': 'نوع Jira',
+  'settings.deploymentDc': 'Jira Data Center أو Server (مستضاف داخلياً)',
+  'settings.deploymentCloud': 'Jira Cloud (atlassian.net)',
+  'settings.email': 'البريد الإلكتروني لحساب Atlassian',
+  'settings.emailRequired': 'أدخل البريد الإلكتروني لحساب Atlassian.',
+  'settings.tokenCloud': 'رمز API',
+  'settings.tokenHelpCloud':
+    'أنشئ رمز API من id.atlassian.com ضمن الأمان ثم رموز API. يُحفظ في سلسلة مفاتيح النظام ولا يظهر في السجلات أبداً.',
   'settings.token': 'رمز الوصول الشخصي',
   'settings.tokenStored': 'يوجد رمز محفوظ. اترك الحقل فارغاً للإبقاء عليه.',
   'settings.tokenHelp':

@@ -12,15 +12,26 @@ export async function searchAssignable(
   projectKey: string,
   text: string,
 ): Promise<AssigneeCandidate[]> {
-  const users = await client.request('GET', JIRA.assignable(projectKey, text), JiraUserListSchema);
-  return users
-    .filter((u) => u.active !== false)
-    .map((u) => ({
-      username: u.name,
+  const users = await client.request(
+    'GET',
+    JIRA.assignable(client.deployment, projectKey, text),
+    JiraUserListSchema,
+  );
+  const out: AssigneeCandidate[] = [];
+  for (const u of users) {
+    if (u.active === false) continue;
+    // Cloud: skip apps and other non-human accounts (spec section 8.2).
+    if (u.accountType !== undefined && u.accountType !== 'atlassian') continue;
+    const username = client.deployment === 'cloud' ? u.accountId : u.name;
+    if (username === undefined || username === '') continue;
+    out.push({
+      username,
       displayName: u.displayName,
       email: u.emailAddress ?? null,
       avatarUrl: u.avatarUrls?.['48x48'] ?? null,
-    }));
+    });
+  }
+  return out;
 }
 
 const norm = (s: string) => s.normalize('NFKC').toLocaleLowerCase().trim();

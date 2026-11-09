@@ -65,7 +65,12 @@ export interface LaqtaApi {
   jiraRetryAttachment(p: { issueKey: string; requestId: string }): Promise<CreateResult>;
   settingsGet(): Promise<SettingsView>;
   settingsSet(req: SettingsSetRequest): Promise<SettingsSetResult>;
-  settingsTestConnection(p: { baseUrl: string; token?: string }): Promise<TestConnectionResult>;
+  settingsTestConnection(p: {
+    baseUrl: string;
+    token?: string;
+    deployment: 'datacenter' | 'cloud';
+    email?: string;
+  }): Promise<TestConnectionResult>;
   toastGet(): Promise<ToastData | null>;
   toastClose(): Promise<void>;
   appOpenLink(p: { url: string }): Promise<void>;

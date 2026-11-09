@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isHttpsUrl } from '../../shared/schemas';
+import { isHttpsUrl, looksLikeJiraCloud } from '../../shared/schemas';
 import type { JiraProject, PermissionStatus, Settings, SettingsView } from '../../shared/types';
 import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
@@ -42,17 +42,31 @@ export default function SettingsPage() {
   if (view === null || form === null) return null;
 
   const set = (patch: Partial<Settings>) => setForm({ ...form, ...patch });
-  const connectionKey = `${form.jiraBaseUrl}\u0000${token}`;
-  const connectionChanged = form.jiraBaseUrl !== view.settings.jiraBaseUrl || token !== '';
+  const cloud = form.jiraDeployment === 'cloud';
+  const emailMissing = cloud && form.jiraEmail.trim() === '';
+  const connectionKey = [form.jiraBaseUrl, form.jiraDeployment, form.jiraEmail, token].join(
+    '\u0000',
+  );
+  const connectionChanged =
+    form.jiraBaseUrl !== view.settings.jiraBaseUrl ||
+    form.jiraDeployment !== view.settings.jiraDeployment ||
+    form.jiraEmail !== view.settings.jiraEmail ||
+    token !== '';
   const urlValid = form.jiraBaseUrl === '' || isHttpsUrl(form.jiraBaseUrl);
   const needsTest = connectionChanged && testedKey !== connectionKey;
 
   async function runTest() {
     if (form === null || !isHttpsUrl(form.jiraBaseUrl)) return;
+    if (form.jiraDeployment === 'cloud' && form.jiraEmail.trim() === '') {
+      setTest({ kind: 'error', message: t('settings.emailRequired') });
+      return;
+    }
     setTest({ kind: 'testing' });
     const result = await laqta.settingsTestConnection({
       baseUrl: form.jiraBaseUrl,
       token: token === '' ? undefined : token,
+      deployment: form.jiraDeployment,
+      email: form.jiraEmail.trim(),
     });
     if (result.ok) {
       setTest({ kind: 'ok', name: result.userDisplayName ?? '' });
@@ -146,7 +160,14 @@ export default function SettingsPage() {
           spellCheck={false}
           placeholder={t('settings.jiraAddressPlaceholder')}
           value={form.jiraBaseUrl}
-          onChange={(e) => set({ jiraBaseUrl: e.target.value.trim() })}
+          onChange={(e) => {
+            const url = e.target.value.trim();
+            set(
+              looksLikeJiraCloud(url)
+                ? { jiraBaseUrl: url, jiraDeployment: 'cloud' }
+                : { jiraBaseUrl: url },
+            );
+          }}
           aria-invalid={!urlValid}
           aria-describedby={urlValid ? undefined : 'url-error'}
         />
@@ -155,8 +176,39 @@ export default function SettingsPage() {
             {t('settings.httpsOnly')}
           </p>
         )}
+        <label className="label" htmlFor="jira-deployment">
+          {t('settings.deployment')}
+        </label>
+        <select
+          id="jira-deployment"
+          className="select"
+          value={form.jiraDeployment}
+          onChange={(e) =>
+            set({ jiraDeployment: e.target.value === 'cloud' ? 'cloud' : 'datacenter' })
+          }
+        >
+          <option value="datacenter">{t('settings.deploymentDc')}</option>
+          <option value="cloud">{t('settings.deploymentCloud')}</option>
+        </select>
+        {cloud && (
+          <>
+            <label className="label" htmlFor="jira-email">
+              {t('settings.email')}
+            </label>
+            <input
+              id="jira-email"
+              className="input"
+              type="email"
+              autoComplete="email"
+              spellCheck={false}
+              value={form.jiraEmail}
+              onChange={(e) => set({ jiraEmail: e.target.value.trim() })}
+              aria-invalid={emailMissing}
+            />
+          </>
+        )}
         <label className="label" htmlFor="jira-token">
-          {t('settings.token')}
+          {cloud ? t('settings.tokenCloud') : t('settings.token')}
         </label>
         <input
           id="jira-token"
@@ -172,7 +224,7 @@ export default function SettingsPage() {
         />
         <p id="token-help" className={styles.muted}>
           {view.hasToken ? `${t('settings.tokenStored')} ` : ''}
-          {t('settings.tokenHelp')}
+          {cloud ? t('settings.tokenHelpCloud') : t('settings.tokenHelp')}
         </p>
         <div className={styles.actions} aria-live="polite">
           {test.kind === 'ok' && (
@@ -187,7 +239,7 @@ export default function SettingsPage() {
             type="button"
             className="btn"
             onClick={() => void runTest()}
-            disabled={!isHttpsUrl(form.jiraBaseUrl) || test.kind === 'testing'}
+            disabled={!isHttpsUrl(form.jiraBaseUrl) || emailMissing || test.kind === 'testing'}
           >
             {test.kind === 'testing' ? t('settings.testing') : t('settings.testConnection')}
           </button>

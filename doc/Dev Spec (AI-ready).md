@@ -29,7 +29,7 @@ The MVP turns a screenshot and a sentence into a reviewed Jira Data Center bug w
 | Global hotkey, area, window and full-screen capture | Browser extension, page URL and console capture |
 | Annotate (box, arrow, text) and redact (opaque fill or pixelation) | Automatic detection of secrets in the image |
 | Typed prompt in Arabic or English | Voice input (Phase 2, behind a feature flag) |
-| AI draft (summary, description, type, priority, assignee query, labels) | Multiple Jira instances, Jira Cloud |
+| AI draft (summary, description, type, priority, assignee query, labels) | Multiple Jira instances at once |
 | Preview, edit, duplicate warning, assignee resolution | Editing or commenting on existing bugs |
 | Create bug and attach screenshot through Jira REST API v2 | Epics, sprints, links between issues |
 | Settings: Jira URL, token, default project, bug language, hotkey | Team-wide central config server (Phase 3) |
@@ -234,7 +234,7 @@ export type CreateResult =
   | { kind: 'partial'; issueKey: string; browseUrl: string; attachmentError: AppError }
   | { kind: 'failed'; error: AppError; retryable: boolean };
 
-export interface AssigneeCandidate { username: string; displayName: string; email: string | null; avatarUrl: string | null }
+export interface AssigneeCandidate { username: string; /* Data Center user name, or Cloud accountId (8.2) */ displayName: string; email: string | null; avatarUrl: string | null }
 export interface DuplicateHit { key: string; summary: string; status: string; browseUrl: string }
 export interface CreateMeta {
   issueTypes: { id: string; name: string }[];
@@ -244,6 +244,8 @@ export interface CreateMeta {
 
 export interface Settings {
   jiraBaseUrl: string;         // https only
+  jiraDeployment: 'datacenter' | 'cloud'; // section 8.2, default 'datacenter'
+  jiraEmail: string;           // Atlassian account email, used only with 'cloud'
   defaultProjectKey: string;
   bugLanguage: BugLanguage;    // default 'en'
   uiLanguage: 'en' | 'ar';
@@ -439,6 +441,22 @@ _Created with Laqta from <appName>. Draft written by AI, reviewed and approved b
 | 5xx | `SERVER_ERROR` | Backoff for idempotent calls only |
 | DNS, refused, timeout | `NETWORK_UNREACHABLE` | Offer Try again and Keep draft for later (design board 5, card 3) |
 | Certificate failure | `TLS_ERROR` | Explain that the company certificate may be missing |
+
+### 8.2 Jira Cloud (added at the product owner's request)
+
+The same flow also works against Jira Cloud (`*.atlassian.net`), chosen by `Settings.jiraDeployment`. The Settings form picks Cloud automatically when the address ends in `.atlassian.net`, and the user can change it. Verified against a real Cloud site on 2026-11-09 (project list, scoped createmeta shapes and the user-search parameter); everything else is still covered by the mock server only.
+
+| Concern | Data Center | Cloud |
+| --- | --- | --- |
+| Authentication | `Authorization: Bearer <PAT>` | `Authorization: Basic base64(email:apiToken)`; the email is a setting, the API token is stored like the PAT |
+| Scoped createmeta | list under `values` | list under `issueTypes` (issue types) and `fields` (fields); subtask types are skipped in both |
+| Assignee search | `.../user/assignable/search?project=K&username=text` | `...&query=text`; users are identified by `accountId`; non-human accounts (`accountType` other than `atlassian`) are skipped |
+| Assignee in the create body | `{ "name": "<username>" }` | `{ "id": "<accountId>" }` |
+| Search (duplicates and verify) | `POST /rest/api/2/search` | `POST /rest/api/3/search/jql`, same `jql`, `fields`, `maxResults` and `issues[]` answer |
+| Myself | `name`, `displayName` | `accountId`, `displayName` |
+| Create, attach, priorities, projects, description | unchanged: REST v2 with wiki markup, `X-Atlassian-Token: no-check`, field `file` | same |
+
+`AssigneeCandidate.username` and `ApprovedBug.assigneeUsername` hold the Cloud `accountId` when the deployment is Cloud.
 
 ### 8.1 Clarifications made during the build
 

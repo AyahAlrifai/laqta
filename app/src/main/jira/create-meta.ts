@@ -4,6 +4,7 @@ import {
   JiraPriorityListSchema,
   JiraProjectListSchema,
   PRIORITIES,
+  type JiraField,
 } from '../../shared/schemas';
 import { HANDLED_FIELDS } from '../../shared/fields';
 import type { CreateMeta, JiraProject, Priority } from '../../shared/types';
@@ -29,11 +30,13 @@ async function loadIssueTypes(client: JiraClient, projectKey: string) {
       JIRA.issueTypes(projectKey, startAt),
       JiraIssueTypePageSchema,
     );
-    all.push(...res.values.map((v) => ({ id: v.id, name: v.name })));
-    startAt += res.values.length;
+    const items = res.values ?? res.issueTypes ?? [];
+    // Subtask types need a parent issue, which Laqta never sets.
+    all.push(...items.filter((v) => v.subtask !== true).map((v) => ({ id: v.id, name: v.name })));
+    startAt += items.length;
     if (
       res.isLast === true ||
-      res.values.length === 0 ||
+      items.length === 0 ||
       (res.total !== undefined && startAt >= res.total)
     )
       break;
@@ -42,18 +45,19 @@ async function loadIssueTypes(client: JiraClient, projectKey: string) {
 }
 
 async function loadFields(client: JiraClient, projectKey: string, issueTypeId: string) {
-  const all: ReturnType<typeof JiraFieldPageSchema.parse>['values'] = [];
+  const all: JiraField[] = [];
   for (let page = 0, startAt = 0; page < MAX_PAGES; page++) {
     const res = await client.request(
       'GET',
       JIRA.fields(projectKey, issueTypeId, startAt),
       JiraFieldPageSchema,
     );
-    all.push(...res.values);
-    startAt += res.values.length;
+    const items = res.values ?? res.fields ?? [];
+    all.push(...items);
+    startAt += items.length;
     if (
       res.isLast === true ||
-      res.values.length === 0 ||
+      items.length === 0 ||
       (res.total !== undefined && startAt >= res.total)
     )
       break;

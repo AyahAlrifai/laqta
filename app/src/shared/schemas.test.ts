@@ -4,6 +4,7 @@ import {
   BugDraftSchema,
   DraftRequestSchema,
   isHttpsUrl,
+  looksLikeJiraCloud,
   SetRedactedImageSchema,
   SettingsSchema,
   DEFAULT_SETTINGS,
@@ -83,6 +84,26 @@ describe('schemas', () => {
         extraFields: {},
         attachmentFileName: 'x.png',
       }).success,
+    ).toBe(false);
+  });
+
+  it('detects Jira Cloud addresses', () => {
+    expect(looksLikeJiraCloud('https://digitinary.atlassian.net')).toBe(true);
+    expect(looksLikeJiraCloud('https://jira.example.com')).toBe(false);
+    expect(looksLikeJiraCloud('https://atlassian.net.evil.test')).toBe(false);
+  });
+
+  it('settings: Cloud needs a valid email format when one is given', () => {
+    expect(
+      SettingsSchema.safeParse({
+        ...DEFAULT_SETTINGS,
+        jiraDeployment: 'cloud',
+        jiraEmail: 'a@b.co',
+      }).success,
+    ).toBe(true);
+    expect(
+      SettingsSchema.safeParse({ ...DEFAULT_SETTINGS, jiraDeployment: 'cloud', jiraEmail: 'nope' })
+        .success,
     ).toBe(false);
   });
 });
