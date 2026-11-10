@@ -696,8 +696,7 @@ export class LaqtaApp {
 
   private openWorkbench(): void {
     if (this.workbench && !this.workbench.isDestroyed()) {
-      this.workbench.show();
-      this.workbench.focus();
+      this.bringToFront(this.workbench);
       return;
     }
     const win = createAppWindow({
@@ -707,8 +706,7 @@ export class LaqtaApp {
       height: 800,
     });
     win.once('ready-to-show', () => {
-      win.show();
-      win.focus();
+      this.bringToFront(win);
     });
     win.on('close', (event) => {
       if (this.closingProgrammatically.has(win)) return;
@@ -744,8 +742,7 @@ export class LaqtaApp {
 
   private focusSession(): void {
     if (this.workbench && !this.workbench.isDestroyed()) {
-      this.workbench.show();
-      this.workbench.focus();
+      this.bringToFront(this.workbench);
       return;
     }
     const overlay = this.overlays.values().next();
@@ -759,10 +756,20 @@ export class LaqtaApp {
     win.close();
   }
 
+  /**
+   * Laqta has no Dock icon, so macOS does not activate it when a window opens and the window
+   * lands behind the app in front. Activate the app explicitly, then raise the window.
+   */
+  private bringToFront(win: BrowserWindow): void {
+    if (process.platform === 'darwin') app.focus({ steal: true });
+    win.show();
+    win.moveTop();
+    win.focus();
+  }
+
   openSettings(): void {
     if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
-      this.settingsWindow.show();
-      this.settingsWindow.focus();
+      this.bringToFront(this.settingsWindow);
       return;
     }
     const win = createAppWindow({
@@ -771,7 +778,7 @@ export class LaqtaApp {
       width: 760,
       height: 760,
     });
-    win.once('ready-to-show', () => win.show());
+    win.once('ready-to-show', () => this.bringToFront(win));
     win.on('closed', () => {
       if (this.settingsWindow === win) this.settingsWindow = null;
     });
