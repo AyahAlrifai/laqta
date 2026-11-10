@@ -27,6 +27,9 @@ export interface MockConfig {
   /** Number of attachment uploads to fail before succeeding; -1 fails forever. */
   attachFailures: number;
   attachStatus: number;
+  /** Number of GET /project (project list) calls to fail before succeeding; -1 fails forever. */
+  projectFailures: number;
+  projectStatus: number;
   /** Status for the next idempotent GET calls (consumed one per call). */
   getFailures: number[];
   retryAfterSeconds: number | null;
@@ -56,6 +59,8 @@ export function defaultConfig(): MockConfig {
     createFailure: null,
     attachFailures: 0,
     attachStatus: 500,
+    projectFailures: 0,
+    projectStatus: 403,
     getFailures: [],
     retryAfterSeconds: null,
     delayMs: 0,
@@ -151,6 +156,11 @@ export class MockJira {
       return;
     }
     if (method === 'GET' && path === '/rest/api/2/project') {
+      if (this.config.projectFailures !== 0) {
+        if (this.config.projectFailures > 0) this.config.projectFailures -= 1;
+        json(res, this.config.projectStatus, { errorMessages: ['injected'] });
+        return;
+      }
       json(res, 200, [
         { key: 'PROJ', name: 'Project' },
         { key: 'REQ', name: 'Required fields' },

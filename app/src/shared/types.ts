@@ -158,6 +158,8 @@ export interface SettingsSetRequest {
 export interface TestConnectionResult {
   ok: boolean;
   userDisplayName?: string;
+  /** Projects visible with the tested details, so Settings can offer them before saving. */
+  projects?: JiraProject[];
   error?: AppError;
 }
 

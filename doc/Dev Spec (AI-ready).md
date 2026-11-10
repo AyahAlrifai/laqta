@@ -127,7 +127,7 @@ The gateway is built last. Until then the app talks to the model through a `Draf
 | `jira:createBug` | workbench to main | `ApprovedBug` | `CreateResult` |
 | `jira:retryAttachment` | workbench to main | `{ issueKey, requestId }` | `CreateResult` |
 | `settings:get` / `settings:set` | settings to main | `Settings` (token never returned) | `Settings` |
-| `settings:testConnection` | settings to main | `{ baseUrl, token }` | `{ ok, userDisplayName?, error? }` |
+| `settings:testConnection` | settings to main | `{ baseUrl, token }` | `{ ok, userDisplayName?, projects?, error? }` |
 | `session:discard` | any to main | none | none (deletes the temporary image) |
 
 **Orchestrator state machine** (one active session at a time; a second hotkey press while a session is active focuses the existing window)
@@ -172,7 +172,7 @@ Every handler answers `{ ok: true, value } | { ok: false, error: AppError }`; th
 | `app:copyText`, `app:openSettings`, `window:close` | any to main | `{ text }` / none | none |
 | `permissions:get`, `permissions:openSystemSettings`, `permissions:requestMicrophone` | settings, workbench to main | none / `{ kind }` | `PermissionStatus` / none / `boolean` |
 
-`settings:get` returns `SettingsView` and `settings:set` takes `SettingsSetRequest` (the token is write-only) and returns `SettingsSetResult` (with hotkey conflicts). `settings:testConnection` takes an optional token; empty means the stored one. `jira:loadCreateMeta` takes an optional `issueTypeName` so the review form can reload required fields when the type changes.
+`settings:get` returns `SettingsView` and `settings:set` takes `SettingsSetRequest` (the token is write-only) and returns `SettingsSetResult` (with hotkey conflicts). `settings:testConnection` takes an optional token; empty means the stored one. On success it also returns the projects visible with those details (omitted if that call fails), so Settings can offer the Default project dropdown before the details are saved. The Default project is only chosen from that list: while there is no working connection the field is disabled and says to connect first. If the list cannot be loaded while connected, the user may type the key instead. Jira URLs must be https; the only exception is E2E runs of unpackaged builds (`LAQTA_E2E=1`), where `settings:testConnection`, `settings:set` and the settings store also accept `http://127.0.0.1` so the Settings flow can be tested against the mock Jira. `jira:loadCreateMeta` takes an optional `issueTypeName` so the review form can reload required fields when the type changes.
 
 Extra state transitions: `capturing` + `capture:failed` -> `idle` (permission denied, no frames); `partial` + `jira:retryAttachment` -> `submitting` (upload only); `idle` + `draft:restore` -> `reviewing` (resume an offline draft). Transitions not in the table are rejected and logged.
 

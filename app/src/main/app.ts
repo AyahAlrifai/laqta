@@ -40,8 +40,12 @@ import {
   ReviewStateSchema,
   SearchAssigneesSchema,
   SetRedactedImageSchema,
+  SettingsSchema,
+  SettingsSchemaForE2e,
   SettingsSetRequestSchema,
+  SettingsSetRequestSchemaForE2e,
   TestConnectionSchema,
+  TestConnectionSchemaForE2e,
   VoiceTranscribeSchema,
 } from '../shared/schemas';
 import { format, t, type UiLanguage } from '../shared/strings';
@@ -96,6 +100,7 @@ import { resolveAssignee, searchAssignable } from './jira/assignee';
 import { failureOf, JiraClient } from './jira/client';
 import { createIssue, findByRequestLabel, attachAndFinish, requestLabel } from './jira/create-bug';
 import { listProjects, loadCreateMeta } from './jira/create-meta';
+import { testJiraConnection } from './jira/test-connection';
 import { checkDuplicates } from './jira/duplicates';
 import { JIRA } from './jira/endpoints';
 import { isBelowVersion, KillSwitch } from './kill-switch';
@@ -206,7 +211,9 @@ export class LaqtaApp {
     this.e2e = config.e2e && !app.isPackaged;
     const userData = app.getPath('userData');
     const crypter: Crypter = this.e2e ? e2eCrypter : safeStorage;
-    this.settings = new SettingsStore(userData);
+    // E2E runs (never packaged) also accept the mock Jira's http://127.0.0.1 URL, so the
+    // Settings page can be driven end to end; every other build keeps https only.
+    this.settings = new SettingsStore(userData, this.e2e ? SettingsSchemaForE2e : SettingsSchema);
     this.tokens = new TokenStore(userData, crypter);
     this.offline = new OfflineDraftStore(userData, crypter, config.offlineDraftHours);
     this.temp = new TempImages(app.getPath('temp'));
@@ -1109,8 +1116,7 @@ export class LaqtaApp {
         fetch: fetchViaNet,
         allowHttpForTests: this.e2e,
       });
-      const me = await client.request('GET', JIRA.myself(), JiraMyselfSchema);
-      return { ok: true, userDisplayName: me.displayName };
+      return await testJiraConnection(client);
     } catch (error) {
       return { ok: false, error: failureOf(error) };
     }
@@ -1346,11 +1352,13 @@ export class LaqtaApp {
       return pending.promise;
     });
     handle(IPC.settingsGet, null, () => this.settingsView());
-    handle(IPC.settingsSet, SettingsSetRequestSchema, (req, sender) => {
+    const settingsSetSchema = this.e2e ? SettingsSetRequestSchemaForE2e : SettingsSetRequestSchema;
+    const testConnectionSchema = this.e2e ? TestConnectionSchemaForE2e : TestConnectionSchema;
+    handle(IPC.settingsSet, settingsSetSchema, (req, sender) => {
       onlyKind(sender, ['settings', 'workbench']);
       return this.saveSettings(req.settings, req.token);
     });
-    handle(IPC.settingsTestConnection, TestConnectionSchema, (p, sender) => {
+    handle(IPC.settingsTestConnection, testConnectionSchema, (p, sender) => {
       onlyKind(sender, ['settings']);
       return this.testConnection(p);
     });

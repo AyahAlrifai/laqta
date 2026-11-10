@@ -1,20 +1,29 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { isHttpsUrl, looksLikeJiraCloud } from '../../shared/schemas';
+import { isAllowedJiraUrl, looksLikeJiraCloud } from '../../shared/schemas';
 import type { StringKey } from '../../shared/strings';
-import type { JiraProject, PermissionStatus, Settings, SettingsView } from '../../shared/types';
+import type { PermissionStatus, Settings, SettingsView } from '../../shared/types';
 import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
 import { AppMark, ErrorIcon, SuccessIcon } from '../shared/icons';
 import { useI18n } from '../shared/i18n';
 import { Row, Segmented, ShortcutRecorder, SwitchRow } from './controls';
 import { CaptureIcon, GlobeIcon, LinkIcon, LockIcon, ShieldIcon, SparkIcon } from './navIcons';
+import {
+  connectionKeyOf,
+  isLatestRequest,
+  isolate,
+  optionLabel,
+  projectField,
+  settleSaved,
+  testedNow,
+  type ListOutcome,
+  type SavedProjects,
+  type TestedConnection,
+} from './projects';
 import styles from './Settings.module.css';
 
-type TestState =
-  | { kind: 'idle' }
-  | { kind: 'testing' }
-  | { kind: 'ok'; name: string }
-  | { kind: 'error'; message: string };
+/** A successful test is kept in `tested` (tagged with its details), not here. */
+type TestState = { kind: 'idle' } | { kind: 'testing' } | { kind: 'error'; message: string };
 
 type Section = 'jira' | 'ai' | 'capture' | 'language' | 'privacy' | 'permissions';
 
@@ -53,26 +62,66 @@ export default function SettingsPage() {
   const [form, setForm] = useState<Settings | null>(null);
   const [token, setToken] = useState('');
   const [test, setTest] = useState<TestState>({ kind: 'idle' });
-  const [testedKey, setTestedKey] = useState<string | null>(null);
-  const [projects, setProjects] = useState<JiraProject[]>([]);
+  const [tested, setTested] = useState<TestedConnection | null>(null);
+  const [saved, setSaved] = useState<SavedProjects>({ kind: 'none' });
   const [perm, setPerm] = useState<PermissionStatus | null>(null);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [section, setSection] = useState<Section>('jira');
   const tabRefs = useRef(new Map<Section, HTMLButtonElement>());
+  // Request counters drop answers that arrive after a newer request (Major 2 in QA).
+  const savedRequest = useRef(0);
+  const testRequest = useRef(0);
+  const mounted = useRef(false);
+  // "Try again" unmounts while the reload runs; once it settles, focus goes to the project
+  // field instead of being lost to the document body.
+  const focusProject = useRef<'off' | 'waiting' | 'settled'>('off');
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (focusProject.current !== 'settled') return;
+    focusProject.current = 'off';
+    document.getElementById('default-project')?.focus();
+  });
+
+  /** Marks a pending "Try again" as finished so the effect above can move focus. */
+  function retrySettled() {
+    if (focusProject.current === 'waiting') focusProject.current = 'settled';
+  }
+
+  /** Loads the projects with the saved connection (the only one `jira:listProjects` uses). */
+  function loadSavedProjects(v: SettingsView) {
+    const request = ++savedRequest.current;
+    if (!v.hasToken || v.settings.jiraBaseUrl === '') {
+      setSaved({ kind: 'none' });
+      return;
+    }
+    setSaved({ kind: 'loading', key: connectionKeyOf(v.settings, ''), request });
+    const settle = (outcome: ListOutcome) => {
+      if (!mounted.current) return;
+      setSaved((slot) => settleSaved(slot, request, outcome));
+      if (isLatestRequest(request, savedRequest.current)) retrySettled();
+    };
+    void laqta.jiraListProjects().then(
+      (list) => settle({ ok: true, list }),
+      () => settle({ ok: false }),
+    );
+  }
 
   useEffect(() => {
     void laqta.settingsGet().then((v) => {
       setView(v);
       setForm(v.settings);
-      if (v.hasToken && v.settings.jiraBaseUrl !== '') {
-        laqta
-          .jiraListProjects()
-          .then(setProjects)
-          .catch(() => undefined);
-      }
+      loadSavedProjects(v);
     });
     void laqta.permissionsGet().then(setPerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once; later loads run on save
   }, []);
 
   if (view === null || form === null) return null;
@@ -90,17 +139,27 @@ export default function SettingsPage() {
     perm !== null ? perm.platform === 'darwin' : navigator.userAgent.includes('Macintosh');
   const cloud = form.jiraDeployment === 'cloud';
   const emailMissing = cloud && form.jiraEmail.trim() === '';
-  const connectionKey = [form.jiraBaseUrl, form.jiraDeployment, form.jiraEmail, token].join(
-    '\u0000',
-  );
+  const connectionKey = connectionKeyOf(form, token);
   const connectionChanged =
     form.jiraBaseUrl !== view.settings.jiraBaseUrl ||
     form.jiraDeployment !== view.settings.jiraDeployment ||
     form.jiraEmail !== view.settings.jiraEmail ||
     token !== '';
-  const urlValid = form.jiraBaseUrl === '' || isHttpsUrl(form.jiraBaseUrl);
-  const needsTest = connectionChanged && testedKey !== connectionKey;
+  // `allowHttpJira` is true only in E2E runs (never packaged), for the mock Jira on 127.0.0.1.
+  const urlUsable = isAllowedJiraUrl(form.jiraBaseUrl, view.allowHttpJira);
+  const urlValid = form.jiraBaseUrl === '' || urlUsable;
+  // Based on the last successful test's details, not on `test`, so typing the tested details
+  // back in after an edit counts as tested again.
+  const isTested = testedNow(tested, connectionKey);
+  const needsTest = connectionChanged && !isTested;
   const configured = view.hasToken && view.settings.jiraBaseUrl !== '';
+  const field = projectField({
+    connectionKey,
+    savedKey: configured ? connectionKeyOf(view.settings, '') : null,
+    saved,
+    tested,
+    defaultProjectKey: form.defaultProjectKey,
+  });
   const dirty = token !== '' || JSON.stringify(form) !== JSON.stringify(view.settings);
   const showPermissions = perm !== null && perm.platform === 'darwin';
   const screenMissing = showPermissions && perm.screen !== 'granted';
@@ -111,11 +170,11 @@ export default function SettingsPage() {
   if (current === undefined) return null;
 
   const status: { tone: 'ok' | 'error' | 'neutral'; title: string; detail: string } =
-    test.kind === 'ok' && !needsTest
+    tested !== null && isTested
       ? {
           tone: 'ok',
           title: t('settings.statusConnected'),
-          detail: f('settings.connectedAs', { name: test.name }),
+          detail: f('settings.connectedAs', { name: tested.userName }),
         }
       : test.kind === 'error'
         ? { tone: 'error', title: t('settings.statusFailed'), detail: test.message }
@@ -128,11 +187,13 @@ export default function SettingsPage() {
             };
 
   async function runTest() {
-    if (form === null || !isHttpsUrl(form.jiraBaseUrl)) return;
+    if (form === null || !urlUsable) return;
     if (form.jiraDeployment === 'cloud' && form.jiraEmail.trim() === '') {
       setTest({ kind: 'error', message: t('settings.emailRequired') });
       return;
     }
+    const request = ++testRequest.current;
+    const key = connectionKey;
     setTest({ kind: 'testing' });
     const result = await laqta.settingsTestConnection({
       baseUrl: form.jiraBaseUrl,
@@ -140,12 +201,23 @@ export default function SettingsPage() {
       deployment: form.jiraDeployment,
       email: form.jiraEmail.trim(),
     });
+    if (!mounted.current || !isLatestRequest(request, testRequest.current)) return;
     if (result.ok) {
-      setTest({ kind: 'ok', name: result.userDisplayName ?? '' });
-      setTestedKey(connectionKey);
+      setTest({ kind: 'idle' });
+      setTested({ key, userName: result.userDisplayName ?? '', projects: result.projects ?? null });
     } else {
       setTest({ kind: 'error', message: result.error?.userMessage ?? t('error.UNKNOWN') });
+      // These details no longer work, so an earlier success with them must not count.
+      setTested((prev) => (prev !== null && prev.key === key ? null : prev));
     }
+    retrySettled();
+  }
+
+  function retryProjects() {
+    if (view === null || field.mode !== 'fallback') return;
+    focusProject.current = 'waiting';
+    if (field.retry === 'saved') loadSavedProjects(view);
+    else void runTest();
   }
 
   async function save() {
@@ -163,15 +235,12 @@ export default function SettingsPage() {
       });
       setConflicts(result.hotkeyConflicts);
       setToken('');
-      setTestedKey(null);
+      setTested(null);
       setView(result);
       setForm(result.settings);
       setMessage({ kind: 'ok', text: t('settings.saved') });
       if (result.hotkeyConflicts.length > 0) setSection('capture');
-      laqta
-        .jiraListProjects()
-        .then(setProjects)
-        .catch(() => undefined);
+      loadSavedProjects(result);
       if (result.settings.uiLanguage !== view.settings.uiLanguage) window.location.reload();
     } catch (error) {
       setMessage({
@@ -302,9 +371,7 @@ export default function SettingsPage() {
                   type="button"
                   className="btn"
                   onClick={() => void runTest()}
-                  disabled={
-                    !isHttpsUrl(form.jiraBaseUrl) || emailMissing || test.kind === 'testing'
-                  }
+                  disabled={!urlUsable || emailMissing || test.kind === 'testing'}
                 >
                   {test.kind === 'testing' ? (
                     <>
@@ -420,31 +487,70 @@ export default function SettingsPage() {
                   <label className={styles.fieldLabel} htmlFor="default-project">
                     {t('settings.defaultProject')}
                   </label>
-                  {projects.length > 0 ? (
-                    <select
-                      id="default-project"
-                      className="select"
-                      value={form.defaultProjectKey}
-                      onChange={(e) => set({ defaultProjectKey: e.target.value })}
-                      aria-describedby="project-help"
-                    >
-                      <option value="">{t('editor.projectPlaceholder')}</option>
-                      {projects.map((p) => (
-                        <option key={p.key} value={p.key}>
-                          {p.key} · {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
+                  {field.mode === 'fallback' ? (
                     <input
                       id="default-project"
                       className="input"
                       dir="ltr"
                       value={form.defaultProjectKey}
                       onChange={(e) => set({ defaultProjectKey: e.target.value.toUpperCase() })}
-                      aria-describedby="project-help"
+                      aria-describedby="project-status project-help"
                     />
+                  ) : (
+                    <select
+                      id="default-project"
+                      className="select"
+                      value={field.mode === 'select' ? form.defaultProjectKey : ''}
+                      onChange={(e) => set({ defaultProjectKey: e.target.value })}
+                      disabled={field.mode !== 'select' || field.options.length === 0}
+                      aria-describedby="project-status project-help"
+                      aria-busy={field.mode === 'loading'}
+                    >
+                      <option value="">
+                        {field.mode === 'loading'
+                          ? t('settings.projectLoading')
+                          : field.mode === 'disconnected'
+                            ? t('settings.projectPlaceholderDisconnected')
+                            : t('editor.projectPlaceholder')}
+                      </option>
+                      {field.mode === 'select' &&
+                        field.options.map((p) => (
+                          <option key={p.key} value={p.key}>
+                            {optionLabel(p)}
+                          </option>
+                        ))}
+                    </select>
                   )}
+                  <div id="project-status">
+                    {/* The error Banner is role="alert" itself, so it sits outside this polite
+                        region and each message is announced once. */}
+                    <div aria-live="polite">
+                      {field.mode === 'disconnected' && (
+                        <Banner kind="info">{t('settings.projectConnectFirst')}</Banner>
+                      )}
+                      {field.mode === 'select' && field.options.length === 0 && (
+                        <Banner kind="info">{t('settings.projectNone')}</Banner>
+                      )}
+                      {field.mode === 'select' && field.staleKey !== null && (
+                        <Banner kind="warning" lead={t('settings.warningLead')}>
+                          {f('settings.projectStale', { key: isolate(field.staleKey) })}
+                        </Banner>
+                      )}
+                    </div>
+                    {field.mode === 'fallback' && (
+                      <Banner
+                        kind="error"
+                        lead={t('error.lead')}
+                        action={
+                          <button type="button" className="btn" onClick={retryProjects}>
+                            {t('settings.projectRetry')}
+                          </button>
+                        }
+                      >
+                        {t('settings.projectLoadFailed')}
+                      </Banner>
+                    )}
+                  </div>
                   <p id="project-help" className={styles.fieldHelp}>
                     {t('settings.defaultProjectHelp')}
                   </p>

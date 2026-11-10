@@ -28,6 +28,7 @@ export type LogEvent =
   | 'jira.create'
   | 'jira.verify'
   | 'jira.attach'
+  | 'jira.projects'
   | 'ipc.rejected'
   | 'settings.load'
   | 'settings.save'

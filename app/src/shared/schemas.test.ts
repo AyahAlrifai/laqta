@@ -3,10 +3,15 @@ import {
   ApprovedBugSchema,
   BugDraftSchema,
   DraftRequestSchema,
+  isAllowedJiraUrl,
   isHttpsUrl,
   looksLikeJiraCloud,
   SetRedactedImageSchema,
   SettingsSchema,
+  SettingsSchemaForE2e,
+  SettingsSetRequestSchema,
+  TestConnectionSchema,
+  TestConnectionSchemaForE2e,
   DEFAULT_SETTINGS,
 } from './schemas';
 
@@ -49,6 +54,30 @@ describe('schemas', () => {
         .success,
     ).toBe(true);
     expect(isHttpsUrl('https://user:pw@jira.example.com')).toBe(false);
+  });
+
+  it('settings: the mock Jira on http://127.0.0.1 is accepted only by the E2E schemas', () => {
+    const mock = 'http://127.0.0.1:4545';
+    const local = { ...DEFAULT_SETTINGS, jiraBaseUrl: mock };
+    expect(SettingsSchema.safeParse(local).success).toBe(false);
+    expect(SettingsSetRequestSchema.safeParse({ settings: local }).success).toBe(false);
+    expect(TestConnectionSchema.safeParse({ baseUrl: mock }).success).toBe(false);
+    expect(SettingsSchemaForE2e.safeParse(local).success).toBe(true);
+    expect(TestConnectionSchemaForE2e.safeParse({ baseUrl: mock }).success).toBe(true);
+    expect(isAllowedJiraUrl(mock, false)).toBe(false);
+    expect(isAllowedJiraUrl('https://jira.example.com', false)).toBe(true);
+    // Even in E2E runs, only loopback http without credentials passes.
+    for (const url of [
+      'http://jira.example.com',
+      'http://localhost:4545',
+      'http://user:pw@127.0.0.1:4545',
+      'ftp://127.0.0.1',
+    ]) {
+      expect(isAllowedJiraUrl(url, true)).toBe(false);
+      expect(
+        SettingsSchemaForE2e.safeParse({ ...DEFAULT_SETTINGS, jiraBaseUrl: url }).success,
+      ).toBe(false);
+    }
   });
 
   it('rejects wrong IPC shapes', () => {

@@ -85,11 +85,18 @@ export const DEFAULT_SETTINGS: Settings = {
   aiProvider: 'gateway',
 };
 
-/** Empty means "not configured yet" (first run). Otherwise https only (spec section 4). */
-export const JiraBaseUrlSchema = z
-  .string()
-  .max(500)
-  .refine((v) => v === '' || isHttpsUrl(v), { message: 'https only' });
+/**
+ * Empty means "not configured yet" (first run). Otherwise https only (spec section 4).
+ * `allowLocalHttp` is for E2E runs only (main passes it when `LAQTA_E2E=1` in an unpackaged
+ * build), so the Settings page can be tested against the mock Jira on http://127.0.0.1.
+ */
+function jiraBaseUrlSchema(allowLocalHttp: boolean) {
+  return z
+    .string()
+    .max(500)
+    .refine((v) => v === '' || isAllowedJiraUrl(v, allowLocalHttp), { message: 'https only' });
+}
+export const JiraBaseUrlSchema = jiraBaseUrlSchema(false);
 
 export function isHttpsUrl(value: string): boolean {
   try {
@@ -100,31 +107,61 @@ export function isHttpsUrl(value: string): boolean {
   }
 }
 
+/** E2E only: the mock Jira, plain http on the loopback address the JiraClient also allows. */
+export function isLocalTestHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'http:' &&
+      url.hostname === '127.0.0.1' &&
+      url.username === '' &&
+      url.password === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** https, or the E2E mock's local http when the caller says this is an E2E run. */
+export function isAllowedJiraUrl(value: string, allowLocalHttp: boolean): boolean {
+  return isHttpsUrl(value) || (allowLocalHttp && isLocalTestHttpUrl(value));
+}
+
 const accelerator = z
   .string()
   .max(60)
   .regex(/^[A-Za-z0-9+]*$/);
 
-export const SettingsSchema: z.ZodType<Settings> = z.object({
-  jiraBaseUrl: JiraBaseUrlSchema,
-  jiraDeployment: z.enum(['datacenter', 'cloud']),
-  jiraEmail: z.union([z.literal(''), z.email().max(254)]),
-  defaultProjectKey: z.union([z.literal(''), ProjectKeySchema]),
-  bugLanguage: BugLanguageSchema,
-  uiLanguage: z.enum(['en', 'ar']),
-  hotkeyArea: accelerator,
-  hotkeyWindow: accelerator,
-  voiceEnabled: z.boolean(),
-  voiceLanguage: VoiceLanguageSchema,
-  telemetryEnabled: z.boolean(),
-  confirmNoBlur: z.boolean(),
-  aiProvider: z.enum(['gateway', 'claude-code']),
-});
+function settingsSchema(allowLocalHttp: boolean): z.ZodType<Settings> {
+  return z.object({
+    jiraBaseUrl: jiraBaseUrlSchema(allowLocalHttp),
+    jiraDeployment: z.enum(['datacenter', 'cloud']),
+    jiraEmail: z.union([z.literal(''), z.email().max(254)]),
+    defaultProjectKey: z.union([z.literal(''), ProjectKeySchema]),
+    bugLanguage: BugLanguageSchema,
+    uiLanguage: z.enum(['en', 'ar']),
+    hotkeyArea: accelerator,
+    hotkeyWindow: accelerator,
+    voiceEnabled: z.boolean(),
+    voiceLanguage: VoiceLanguageSchema,
+    telemetryEnabled: z.boolean(),
+    confirmNoBlur: z.boolean(),
+    aiProvider: z.enum(['gateway', 'claude-code']),
+  });
+}
 
-export const SettingsSetRequestSchema: z.ZodType<SettingsSetRequest> = z.object({
-  settings: SettingsSchema,
-  token: z.string().min(1).max(500).optional(),
-});
+export const SettingsSchema = settingsSchema(false);
+/** E2E runs only (see `jiraBaseUrlSchema`); never used by a packaged build. */
+export const SettingsSchemaForE2e = settingsSchema(true);
+
+function settingsSetRequestSchema(allowLocalHttp: boolean): z.ZodType<SettingsSetRequest> {
+  return z.object({
+    settings: settingsSchema(allowLocalHttp),
+    token: z.string().min(1).max(500).optional(),
+  });
+}
+export const SettingsSetRequestSchema = settingsSetRequestSchema(false);
+export const SettingsSetRequestSchemaForE2e = settingsSetRequestSchema(true);
 
 // ---- IPC payloads (spec section 3) ----
 
@@ -178,13 +215,18 @@ export const RetryAttachmentSchema = z.object({
   issueKey: IssueKeySchema,
   requestId: RequestIdSchema,
 });
-export const TestConnectionSchema = z.object({
-  baseUrl: JiraBaseUrlSchema.refine((v) => v !== ''),
-  /** Empty or omitted means use the stored token. */
-  token: z.string().max(500).optional(),
-  deployment: z.enum(['datacenter', 'cloud']).default('datacenter'),
-  email: z.string().max(254).optional(),
-});
+function testConnectionSchema(allowLocalHttp: boolean) {
+  return z.object({
+    baseUrl: jiraBaseUrlSchema(allowLocalHttp).refine((v) => v !== ''),
+    /** Empty or omitted means use the stored token. */
+    token: z.string().max(500).optional(),
+    deployment: z.enum(['datacenter', 'cloud']).default('datacenter'),
+    email: z.string().max(254).optional(),
+  });
+}
+export const TestConnectionSchema = testConnectionSchema(false);
+/** E2E runs only (see `jiraBaseUrlSchema`). */
+export const TestConnectionSchemaForE2e = testConnectionSchema(true);
 
 /** Jira Cloud sites live on atlassian.net (spec section 8.2). */
 export function looksLikeJiraCloud(url: string): boolean {
