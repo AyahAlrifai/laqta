@@ -23,7 +23,13 @@ export default tseslint.config(
       globals: { ...globals.node },
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.js', 'tools/*.js', 'tools/fixtures/*.cjs'],
+          allowDefaultProject: [
+            'eslint.config.js',
+            'tools/*.js',
+            'tools/*.cjs',
+            'tools/fixtures/*.cjs',
+            'tools/icon/*.cjs',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },

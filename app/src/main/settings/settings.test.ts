@@ -34,6 +34,14 @@ describe('settings store', () => {
     expect(migrateSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
+  it('keeps the no-blur confirm on for settings files written before the field existed', () => {
+    const older: Partial<typeof DEFAULT_SETTINGS> = { ...DEFAULT_SETTINGS };
+    delete older.confirmNoBlur;
+    expect(migrateSettings({ ...older, confirmNoBlur: undefined }).confirmNoBlur).toBe(true);
+    expect(migrateSettings(older).confirmNoBlur).toBe(true);
+    expect(migrateSettings({ ...older, confirmNoBlur: false }).confirmNoBlur).toBe(false);
+  });
+
   it('saves and reloads', () => {
     const d = dir();
     new SettingsStore(d).set({

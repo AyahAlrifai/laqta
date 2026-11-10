@@ -1,40 +1,125 @@
+/* Workbench frame shared by Describe (editor) and Review: header with the step indicator,
+   a muted body holding white cards, and an action bar. Matches the Settings window. */
+
 .shell {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100%;
-  background: var(--surface);
+  background: var(--surface-muted);
 }
 
 .header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-3) var(--space-5) var(--space-3) var(--space-6);
+  background: var(--surface);
   border-bottom: 1px solid var(--hairline);
 }
 
+.header > svg {
+  flex: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(29, 63, 184, 0.28);
+}
+
 .title {
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
 .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--accent-soft);
   color: var(--accent-ink);
   border-radius: 999px;
-  padding: 2px 12px;
+  padding: 3px 12px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .spacer {
   flex: 1;
 }
 
+/* ---------------------------------------------------------------- steps */
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 var(--space-3) 0 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.step + .step::before {
+  content: '';
+  width: 28px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--hairline);
+  margin-inline-end: var(--space-1);
+}
+
+.step[data-state='done'] + .step::before {
+  background: var(--accent);
+}
+
+.stepNumber {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid var(--hairline);
+  background: var(--surface);
+}
+
+.step[data-state='current'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.step[data-state='current'] .stepNumber {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.step[data-state='done'] .stepNumber {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
 .close {
   min-width: 44px;
   padding: 0;
+  border-radius: 50%;
+  color: var(--muted);
 }
+
+.close:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- body and footer */
 
 .main {
   min-height: 0;
@@ -47,6 +132,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-6);
+  background: var(--surface);
   border-top: 1px solid var(--hairline);
 }
 

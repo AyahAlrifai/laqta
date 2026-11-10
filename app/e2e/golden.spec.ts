@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -16,6 +16,7 @@ import { MockJira } from '../test/mock-jira';
 const mock = new MockJira();
 let jiraUrl = '';
 let app: ElectronApplication;
+let userData = '';
 
 test.beforeAll(async () => {
   jiraUrl = await mock.start();
@@ -33,7 +34,7 @@ test.beforeEach(async () => {
       ...process.env,
       LAQTA_E2E: '1',
       LAQTA_E2E_JIRA_URL: jiraUrl,
-      LAQTA_E2E_USER_DATA: mkdtempSync(join(tmpdir(), 'laqta-e2e-')),
+      LAQTA_E2E_USER_DATA: (userData = mkdtempSync(join(tmpdir(), 'laqta-e2e-'))),
     },
   });
 });
@@ -60,7 +61,8 @@ async function windowFor(kind: string): Promise<Page> {
   throw new Error(`no ${kind} window`);
 }
 
-async function captureAndAsk(prompt: string): Promise<Page> {
+/** Capture an area and open the workbench; optionally blur one area with the keyboard. */
+async function captureToEditor(blur: boolean): Promise<Page> {
   await expect
     .poll(() => app.evaluate(() => typeof (globalThis as Record<string, unknown>).__laqtaE2E), {
       timeout: 20_000,
@@ -88,10 +90,17 @@ async function captureAndAsk(prompt: string): Promise<Page> {
   const canvas = wb.getByRole('img', { name: /Screenshot/ });
   await expect(canvas).toBeVisible();
   // Redact an area with the keyboard: R selects Blur, Enter on the canvas adds a centred one.
-  await canvas.focus();
-  await wb.keyboard.press('r');
-  await wb.keyboard.press('Enter');
-  await expect(wb.getByRole('button', { name: 'Blur (1)' })).toBeVisible();
+  if (blur) {
+    await canvas.focus();
+    await wb.keyboard.press('r');
+    await wb.keyboard.press('Enter');
+    await expect(wb.getByRole('button', { name: 'Blur (1)' })).toBeVisible();
+  }
+  return wb;
+}
+
+async function captureAndAsk(prompt: string): Promise<Page> {
+  const wb = await captureToEditor(true);
   await wb.getByLabel('What is wrong?').fill(prompt);
   await wb.getByLabel('Project').selectOption('PROJ');
   await shot(wb, '2-editor');
@@ -148,4 +157,32 @@ test('unknown result: the request label is found and exactly one bug exists', as
   await expect(toast.getByText('Bug PROJ-1001 created')).toBeVisible({ timeout: 30_000 });
   expect(mock.createCalls).toBe(1);
   expect(mock.issues).toHaveLength(1);
+});
+
+test('no-blur confirm: asks by default, and "Don’t ask me again" is saved', async () => {
+  const wb = await captureToEditor(false);
+  await wb.getByLabel('What is wrong?').fill('The total is shown twice');
+  await wb.getByLabel('Project').selectOption('PROJ');
+  await wb.getByRole('button', { name: 'Generate draft' }).click();
+  // Spec section 5: nothing leaves the machine before the user answers.
+  const confirm = wb.getByRole('alertdialog');
+  await expect(
+    confirm.getByRole('heading', { name: 'Send without blurring anything?' }),
+  ).toBeVisible();
+  await confirm.getByLabel('Don’t ask me again').check();
+  await confirm.getByRole('button', { name: 'Send as is' }).click();
+  await expect(wb.getByRole('heading', { name: 'Review the draft' })).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        (
+          JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')) as {
+            confirmNoBlur: boolean;
+          }
+        ).confirmNoBlur,
+    )
+    .toBe(false);
+  // End the session so the app can close (an open draft asks before closing).
+  await wb.getByRole('button', { name: 'Close' }).click();
+  await wb.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
 });

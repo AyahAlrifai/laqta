@@ -18,12 +18,12 @@ Decision needed from the meeting: approve this architecture and settle the open 
 
 Four decisions from the first discussion set the scope, and each directly affects the design.
 
-| Decision | Choice | Impact on the design |
-| --- | --- | --- |
+| Decision | Choice                             | Impact on the design |
+| --- |------------------------------------| --- |
 | Jira type | Data Center / Server (self-hosted) | Official Rovo MCP is unsupported. Use REST API v2 with a Personal Access Token per user. Descriptions use wiki markup, not ADF |
-| Operating systems | Windows + macOS | Cross-platform framework. macOS needs Screen Recording and Microphone permissions. Code signing on both |
-| Users | All of Digitinary (internal product) | Signed installer, auto-update, central config, Security approval, usage and cost limits |
-| Prompt input | Text + voice, Arabic + English | Speech-to-text must handle Jordanian dialect mixed with English technical terms. Bug text defaults to English and is configurable per user |
+| Operating systems | Windows + macOS                    | Cross-platform framework. macOS needs Screen Recording and Microphone permissions. Code signing on both |
+| Users | All of QA (internal product)       | Signed installer, auto-update, central config, Security approval, usage and cost limits |
+| Prompt input | Text + voice, Arabic + English     | Speech-to-text must handle Jordanian dialect mixed with English technical terms. Bug text defaults to English and is configurable per user |
 
 ## Architecture options and recommendation
 

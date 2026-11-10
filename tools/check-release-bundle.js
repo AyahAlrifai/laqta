@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.argv[2] ?? 'app/out';
-const needles = ['ANTHROPIC_API_KEY', 'api.anthropic.com'];
+const needles = ['ANTHROPIC_API_KEY', 'api.anthropic.com', 'LAQTA_AI_PROVIDER'];
 const hits = [];
 
 function walk(dir) {

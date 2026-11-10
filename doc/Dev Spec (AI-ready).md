@@ -255,6 +255,8 @@ export interface Settings {
   voiceEnabled: boolean;       // default false in the MVP
   voiceLanguage: 'ar-JO' | 'en' | 'auto';
   telemetryEnabled: boolean;
+  confirmNoBlur: boolean;      // section 5, no-redaction confirm; default true
+  aiProvider: 'gateway' | 'claude-code'; // section 7; default 'gateway'
 }
 
 export type AppErrorCode =
@@ -292,7 +294,7 @@ export interface AppError { code: AppErrorCode; userMessage: string; detail?: st
 
 **Export rule (security critical):** when the user clicks Generate draft, `renderFinalPng()` draws the base, then overwrites the pixels inside every redaction rectangle in the output bitmap, then draws annotations on top. The result is sent to the main process with `session:setRedactedImage`, which replaces the temp file and zeroes and discards the original bytes. After that, redactions can no longer be undone. Canvas export contains no metadata. Write a unit test that proves no pixel inside a redaction rectangle equals the corresponding source pixel (except by chance on flat areas, so use a noisy test image).
 
-**No-redaction confirm:** if there are zero redactions, Generate draft first opens the confirm dialog (design board 5, card 4). The user chooses Go back and blur or Send as is.
+**No-redaction confirm:** if there are zero redactions, Generate draft first opens the confirm dialog (design board 5, card 4). The user chooses Go back and blur or Send as is. (Changed at the product owner's request:) the dialog has a "Don't ask me again" checkbox. Checking it and choosing Send as is sets `Settings.confirmNoBlur` to false, and the dialog no longer appears; Settings › Privacy has a switch that turns it back on. `confirmNoBlur` defaults to true, so a new install, and an existing settings file without the field, still always asks.
 
 **Size handling:** keep the Jira attachment at most `maxAttachmentBytes` (default 8,000,000, to be set from the real Jira limit) by downscaling in 0.85 steps. For the AI call make a separate copy with the long edge at most 1568 px (confirm against the current vision documentation). Both copies come from the already redacted bitmap.
 
@@ -337,6 +339,15 @@ export interface DraftProvider {
 - **Structured output:** declare one tool, `submit_bug_draft`, whose `input_schema` is the JSON Schema of `BugDraft`, and set `tool_choice` to force it. The tool is only a structured-output channel: the app never executes it. Read the `tool_use` content block's `input`.
 - Validate with the Zod `BugDraft` schema. On failure, retry once with the validation errors appended to the user text; on a second failure return `AI_INVALID_OUTPUT`. Timeout 45 seconds, cancelable through the `AbortSignal`.
 - Enforce that `issueType` is in `allowed.issueTypes`, otherwise replace it with the first allowed value and set `priority` to null if not in `allowed.priorities`.
+
+**`ClaudeCodeProvider` (added during the build; allowed in release builds as an opt-in since the product owner's request)**
+
+Runs the locally installed Claude Code CLI (`claude`, or the path in `LAQTA_CLAUDE_PATH`) in print mode, so the request uses the person's own Claude Code login and the app holds no AI key. Release builds: the user chooses it in Settings › AI (`Settings.aiProvider = 'claude-code'`); the default stays `'gateway'`. `SettingsView.gatewayConfigured` tells the Settings window whether this build has a gateway URL. The provider is read from settings for each draft, so a change applies without a restart. Development builds: `LAQTA_AI_PROVIDER=claude-code` also selects it, and `ANTHROPIC_API_KEY` (direct provider) wins over both. The environment switch and the direct provider stay compiled out of release builds; `tools/check-release-bundle.js` checks for `LAQTA_AI_PROVIDER`, `ANTHROPIC_API_KEY` and `api.anthropic.com`. The CLI lookup also tries `%USERPROFILE%\.local\bin\claude.exe` on Windows.
+
+- Command: `claude -p --input-format stream-json --output-format stream-json --verbose --tools "" --strict-mcp-config --no-session-persistence --settings '{"disableAllHooks":true}' --system-prompt <system prompt> --json-schema <BugDraft JSON Schema>`, plus `--model` when `LAQTA_AI_MODEL` is set. No tools, no MCP servers, no hooks and no saved session; the working directory is an empty temporary folder so no project `CLAUDE.md` is read.
+- Input: one stream-json user message on stdin with the same `image` block (base64 PNG) and `text` block as the direct provider. The image is never written to disk.
+- The system prompt is the one below, followed by one line saying that the structured output takes the place of the `submit_bug_draft` call.
+- Output: the `result` event's `structured_output`, validated with the Zod `BugDraft` schema, with the same retry-once rule as the direct provider. A missing CLI, a non-zero exit or an error result maps to `AI_UNAVAILABLE`. Timeout 90 seconds (the CLI adds start-up time); cancel kills the process. stdout and stderr are never logged.
 
 **`GatewayProvider` (release)** posts multipart to `POST /v1/draft` with parts `image` (PNG) and `payload` (JSON of the other fields) and receives a `BugDraft` JSON. The gateway holds the Anthropic key, applies per-user rate limits and cost caps, and logs metadata only. How the gateway authenticates the employee is an open decision (section 14).
 

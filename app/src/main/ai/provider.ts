@@ -17,4 +17,10 @@ export interface DraftProvider {
 /** Spec section 7: 45 second timeout for a draft request. */
 export const DRAFT_TIMEOUT_MS = 45_000;
 
+/** Base64 for the image block. Lives here so providers in release builds need not import
+ *  the direct (dev-only) provider. */
+export function bytesToBase64(bytes: Uint8Array): string {
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('base64');
+}
+
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;

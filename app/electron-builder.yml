@@ -15,6 +15,9 @@ extraResources:
   - from: resources
     to: .
     filter: ['*.png']
+# get-windows ships prebuilt helpers: a universal Swift binary on macOS and an N-API
+# (ABI-stable) addon on Windows. Nothing needs rebuilding against Electron's headers.
+npmRebuild: false
 asarUnpack:
   # get-windows ships native helpers that must run from disk.
   - node_modules/get-windows/**
@@ -49,6 +52,9 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
+  # Universal merge: get-windows uses its universal Swift helper on macOS; the leftover
+  # arm64 N-API file in lib/binding is never loaded there, so either copy is fine.
+  x64ArchFiles: '**/node_modules/get-windows/**'
   extendInfo:
     LSUIElement: true
     NSMicrophoneUsageDescription: Laqta records your spoken bug report only while you hold the Speak button. Audio is never stored.

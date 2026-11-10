@@ -13,3 +13,16 @@ export function trayIconFileName(platform: NodeJS.Platform): string {
 export function resourcesDir(isPackaged: boolean, appPath: string, resourcesPath: string): string {
   return isPackaged ? resourcesPath : join(appPath, 'resources');
 }
+
+/**
+ * Release builds are menu-bar only (`LSUIElement`). Development runs keep the Dock icon,
+ * because the tray icon is easy to lose behind the notch and the Dock gives a reliable way
+ * back in. E2E runs hide it so they behave like the shipped app.
+ */
+export function showsDockIcon(
+  platform: NodeJS.Platform,
+  isPackaged: boolean,
+  e2e: boolean,
+): boolean {
+  return platform === 'darwin' && !isPackaged && !e2e;
+}

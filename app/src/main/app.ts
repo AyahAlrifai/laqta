@@ -68,6 +68,7 @@ import type {
 import { attachmentFileName } from '../shared/wiki';
 import { requestDraft } from './ai/draft-service';
 import { FakeDraftProvider } from './ai/fake-provider';
+import { ClaudeCodeProvider, resolveClaudeCommand } from './ai/claude-code';
 import { GatewayProvider } from './ai/gateway-provider';
 import type { DraftProvider, FetchLike } from './ai/provider';
 import { sanitizeLabels, sanitizeSummary } from './ai/sanitize';
@@ -178,7 +179,9 @@ export class LaqtaApp {
   private readonly temp: TempImages;
   private readonly telemetry: Telemetry;
   private readonly killSwitch: KillSwitch;
-  private readonly provider: DraftProvider | null;
+  /** Fixed for the whole run: the E2E fake, a dev provider from the environment, or the gateway. */
+  private readonly fixedProvider: DraftProvider | null;
+  private readonly gatewayProvider: DraftProvider | null;
   private readonly transcriber: Transcriber;
   private readonly e2e: boolean;
 
@@ -218,7 +221,16 @@ export class LaqtaApp {
       config.statusPublicKey,
       fetchViaNet,
     );
-    this.provider = this.chooseProvider();
+    this.gatewayProvider =
+      config.gatewayUrl !== null
+        ? new GatewayProvider({
+            baseUrl: config.gatewayUrl,
+            fetch: fetchViaNet,
+            // D-AUTH (spec section 15) decides the header; none until then.
+            authHeader: () => Promise.resolve(null),
+          })
+        : null;
+    this.fixedProvider = this.e2e ? new FakeDraftProvider() : (this.devProviderFactory?.() ?? null);
     this.transcriber =
       config.gatewayUrl !== null
         ? new GatewayTranscriber(config.gatewayUrl, fetchViaNet, () => Promise.resolve(null))
@@ -226,19 +238,18 @@ export class LaqtaApp {
     if (this.e2e) this.applyE2eSettings();
   }
 
-  private chooseProvider(): DraftProvider | null {
-    if (this.e2e) return new FakeDraftProvider();
-    const dev = this.devProviderFactory?.() ?? null;
-    if (dev !== null) return dev;
-    if (config.gatewayUrl !== null) {
-      // D-AUTH (spec section 15) decides the header; none until then.
-      return new GatewayProvider({
-        baseUrl: config.gatewayUrl,
-        fetch: fetchViaNet,
-        authHeader: () => Promise.resolve(null),
+  /**
+   * Read for every draft, so a change in Settings › AI applies without a restart (spec
+   * section 7). The E2E fake and the dev environment switches win over the setting.
+   */
+  private provider(): DraftProvider | null {
+    if (this.fixedProvider !== null) return this.fixedProvider;
+    if (this.settings.get().aiProvider === 'claude-code') {
+      return new ClaudeCodeProvider({
+        command: resolveClaudeCommand(process.env.LAQTA_CLAUDE_PATH),
       });
     }
-    return null;
+    return this.gatewayProvider;
   }
 
   private applyE2eSettings(): void {
@@ -781,8 +792,8 @@ export class LaqtaApp {
     const win = createAppWindow({
       kind: 'settings',
       title: t(this.lang(), 'settings.windowTitle'),
-      width: 760,
-      height: 760,
+      width: 860,
+      height: 680,
     });
     win.once('ready-to-show', () => this.bringToFront(win));
     win.on('closed', () => {
@@ -859,7 +870,8 @@ export class LaqtaApp {
       data.draftAbort = null;
     };
     const status = this.killSwitch.current();
-    if (this.provider === null || status.aiDisabled || data.redactedPng === null) {
+    const provider = this.provider();
+    if (provider === null || status.aiDisabled || data.redactedPng === null) {
       const error = appError('AI_UNAVAILABLE', {
         detail: data.redactedPng === null ? 'no redacted image' : 'no provider',
       });
@@ -875,7 +887,7 @@ export class LaqtaApp {
     try {
       const allowed = await this.allowedFor(request.projectKey);
       const draft = await requestDraft(
-        this.provider,
+        provider,
         {
           imagePng: aiCopy(data.redactedPng, config.aiMaxEdge),
           prompt: request.prompt,
@@ -1076,6 +1088,7 @@ export class LaqtaApp {
       appVersion: app.getVersion(),
       aiDisabledMessage: status.aiDisabled ? (status.message ?? '') : null,
       allowHttpJira: this.e2e,
+      gatewayConfigured: config.gatewayUrl !== null,
     };
   }
 

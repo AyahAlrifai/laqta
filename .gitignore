@@ -1,6 +1,7 @@
 node_modules/
 out/
 dist/
+dist-unsigned/
 coverage/
 *.log
 .env
@@ -11,7 +12,10 @@ coverage/
 # Real screenshots must never be committed (spec section 0, rule 10). Fixtures are added explicitly.
 *.png
 !app/resources/*.png
+!app/build/icon.png
 !fixtures/*.png
 !doc/**/*.png
 test-results/
 playwright-report/
+# macOS development copy of Electron.app, renamed to Laqta (tools/dev-bundle.cjs).
+app/.dev/

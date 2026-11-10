@@ -7,16 +7,18 @@
   "main": "out/main/index.js",
   "scripts": {
     "postinstall": "install-electron",
-    "dev": "electron-vite dev",
+    "dev": "node ../tools/dev-bundle.cjs electron-vite dev",
     "build": "electron-vite build",
-    "start": "electron-vite preview",
+    "start": "node ../tools/dev-bundle.cjs electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
     "test": "vitest run",
     "test:e2e": "electron-vite build && playwright test",
     "mock-jira": "tsx test/run-mock-jira.ts",
     "build:release": "LAQTA_RELEASE=1 electron-vite build",
     "dist:win": "electron-builder --win --publish never",
-    "dist:mac": "electron-builder --mac --publish never"
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:mac:unsigned": "pnpm build:release && node ../tools/check-release-bundle.js out && electron-builder --mac --config electron-builder.unsigned.yml --publish never",
+    "dist:win:unsigned": "pnpm build:release && node ../tools/check-release-bundle.js out && electron-builder --win --config electron-builder.unsigned.yml --publish never"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

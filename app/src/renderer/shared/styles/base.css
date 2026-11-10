@@ -80,6 +80,13 @@ textarea {
   color: #ffffff;
 }
 
+/* The generic .btn hover turns the background light; coloured buttons keep their colour
+   and only darken, so white text stays readable. */
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-ink);
+  border-color: var(--danger-ink);
+}
+
 .btn-ghost {
   border-color: transparent;
   background: transparent;
@@ -96,6 +103,10 @@ textarea {
   border-color: var(--warning-text);
   color: var(--warning-text);
   background: transparent;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: rgba(107, 70, 0, 0.08);
 }
 
 .input,

@@ -1,27 +1,39 @@
+/* Describe step (board 2): the image with its tools on the start side, the request in cards
+   on the end side. Same card language as Settings: muted body, white rounded cards. */
+
 .columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
   width: 100%;
   min-height: 0;
 }
 
 .left {
-  background: var(--surface-muted);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-4) var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-height: 0;
   overflow: auto;
 }
 
 .right {
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   overflow: auto;
 }
+
+[dir='rtl'] .left {
+  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-4);
+}
+
+[dir='rtl'] .right {
+  padding: var(--space-5) var(--space-4) var(--space-5) var(--space-6);
+}
+
+/* ---------------------------------------------------------------- toolbar */
 
 .toolbarWrap {
   display: flex;
@@ -33,23 +45,76 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: 2px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  padding: var(--space-2);
+  border-radius: 14px;
+  padding: 4px;
   align-self: flex-start;
+  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.05);
 }
 
-.toolActive {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+.tool,
+.iconTool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--control-height);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.tool {
+  padding: 0 var(--space-3);
+}
+
+.iconTool {
+  width: var(--control-height);
+  color: var(--muted);
+}
+
+.tool svg {
+  color: var(--muted);
+}
+
+.tool:hover,
+.iconTool:hover:not(:disabled) {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.tool[aria-pressed='true'] {
+  background: var(--accent);
+  color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 1px 3px rgba(29, 63, 184, 0.35);
+}
+
+.tool[aria-pressed='true'] svg {
+  color: #ffffff;
+}
+
+/* Blur is the privacy tool: it keeps a hint of the warning colour when not selected. */
+.toolBlur:not([aria-pressed='true']) svg {
+  color: var(--warning-text);
+}
+
+.iconTool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .divider {
   width: 1px;
-  height: 28px;
+  height: 24px;
   background: var(--hairline);
   margin: 0 var(--space-1);
 }
@@ -57,31 +122,124 @@
 .subtools {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  max-width: 420px;
+  gap: var(--space-3);
+  max-width: 480px;
 }
 
-.subtools .label {
+.subLabel {
   margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
   white-space: nowrap;
 }
 
+.subInput {
+  background: var(--surface);
+}
+
+/* ---------------------------------------------------------------- segmented (radio group) */
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+
+.segmentedFull {
+  display: flex;
+  background: var(--surface-muted);
+}
+
+.segment {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.segment input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.segment label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  min-width: 88px;
+  padding: 0 var(--space-3);
+  border-radius: 7px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segment input:checked + label {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.segmentedFull .segment input:checked + label {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow:
+    0 1px 3px rgba(20, 23, 31, 0.12),
+    0 0 0 1px rgba(20, 23, 31, 0.04);
+}
+
+.segment input:focus-visible + label {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* ---------------------------------------------------------------- image */
+
 .canvasWrap {
+  flex: 1;
+  min-height: 0;
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.04);
+  padding: var(--space-3);
   display: flex;
-  justify-content: center;
+}
+
+/* A soft dotted stage, so the edges of the screenshot are always visible. */
+.stage {
+  flex: 1;
   min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  background-color: #f7f8fa;
+  background-image: radial-gradient(#d9dde5 1px, transparent 1px);
+  background-size: 14px 14px;
 }
 
 .canvas {
   max-width: 100%;
-  max-height: 52vh;
+  max-height: 56vh;
   object-fit: contain;
   cursor: crosshair;
   touch-action: none;
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(20, 23, 31, 0.08),
+    0 8px 24px rgba(20, 23, 31, 0.14);
 }
 
 .selectCursor {
@@ -91,18 +249,116 @@
 .caption {
   color: var(--muted);
   margin: 0;
+  font-size: 13px;
+  padding: 0 var(--space-1);
 }
 
-.promptLabel {
-  font-weight: 600;
-  font-size: 17px;
+/* ---------------------------------------------------------------- cards */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.04);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cardTitle {
   margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.promptBox {
+  position: relative;
 }
 
 .prompt {
-  min-height: 140px;
+  min-height: 132px;
   line-height: 1.6;
+  padding-bottom: var(--space-6);
+  background: var(--surface);
 }
+
+.count {
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  bottom: var(--space-2);
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.quickStart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+/* The chips are 36 px tall; this keeps the hit area at 44 px. */
+.chip {
+  position: relative;
+}
+
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.chip svg {
+  color: var(--accent);
+}
+
+.chip:hover {
+  background: var(--accent-soft);
+  border-color: #c6d3fb;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fieldLabel {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.field :global(.select) {
+  background: var(--surface);
+}
+
+/* ---------------------------------------------------------------- voice */
 
 .voiceRow {
   display: flex;
@@ -126,57 +382,63 @@
 .hint {
   color: var(--muted);
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   flex: 1;
   min-width: 160px;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.chip {
-  border-radius: 999px;
-}
-
-.selects {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
+/* ---------------------------------------------------------------- notes */
 
 .privacy {
-  background: var(--warning-soft);
-  color: var(--warning-text);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
   margin: 0;
+  padding: 0 var(--space-1);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.privacy svg,
+.footerNote svg {
+  flex: none;
+  margin-top: 2px;
 }
 
 .footerNote {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
   color: var(--warning-text);
   margin: 0;
   flex: 1;
+  font-size: 14px;
 }
+
+/* ---------------------------------------------------------------- drafting overlay */
 
 .drafting {
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(243, 244, 247, 0.82);
+  backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-4);
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 500;
   z-index: 50;
 }
 
+.drafting p {
+  margin: 0;
+}
+
 .spinner {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 4px solid var(--accent-soft);
   border-top-color: var(--accent);
@@ -195,6 +457,20 @@
   }
 }
 
-.toolbar :global(.btn) {
-  padding: 0 var(--space-3);
+/* ---------------------------------------------------------------- no-blur dialog */
+
+.dontAsk {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  margin-top: var(--space-2);
+  cursor: pointer;
+}
+
+.dontAsk input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
 }

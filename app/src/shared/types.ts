@@ -98,6 +98,10 @@ export interface Settings {
   voiceEnabled: boolean; // default false in the MVP
   voiceLanguage: 'ar-JO' | 'en' | 'auto';
   telemetryEnabled: boolean;
+  /** Spec section 5: ask before sending an image with nothing blurred. Default true. */
+  confirmNoBlur: boolean;
+  /** Spec section 7: the company gateway, or the user's own Claude Code CLI. */
+  aiProvider: 'gateway' | 'claude-code';
 }
 
 export type AppErrorCode =
@@ -141,6 +145,8 @@ export interface SettingsView {
   aiDisabledMessage: string | null;
   /** E2E runs against a local http mock Jira. */
   allowHttpJira: boolean;
+  /** This build has a gateway URL, so `aiProvider: 'gateway'` can work. */
+  gatewayConfigured: boolean;
 }
 
 export interface SettingsSetRequest {

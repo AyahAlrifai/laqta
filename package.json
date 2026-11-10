@@ -19,9 +19,12 @@
     "check:release": "node tools/check-release-bundle.js app/out",
     "dist:win": "pnpm --filter @laqta/app dist:win",
     "dist:mac": "pnpm --filter @laqta/app dist:mac",
+    "dist:mac:unsigned": "pnpm --filter @laqta/app dist:mac:unsigned",
+    "dist:win:unsigned": "pnpm --filter @laqta/app dist:win:unsigned",
     "eval": "pnpm --filter @laqta/app exec tsx ../tools/eval/run.ts",
     "spike:jira": "pnpm --filter @laqta/app exec tsx ../tools/spike/jira.ts",
     "fixtures": "pnpm --filter @laqta/app exec electron ../tools/fixtures/generate.cjs",
+    "icon": "pnpm --filter @laqta/app exec electron ../tools/icon/generate.cjs",
     "mock-jira": "pnpm --filter @laqta/app mock-jira",
     "wer": "pnpm --filter @laqta/app exec tsx ../tools/wer/wer.ts",
     "gateway:test": "mvn -B -f gateway/pom.xml test"

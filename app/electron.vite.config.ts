@@ -35,6 +35,9 @@ export default defineConfig({
   main: {
     define: { __LAQTA_DEV_PROVIDER__: JSON.stringify(devProvider) },
     build: {
+      // The workspace contract package ships TypeScript source; Node will not load .ts from
+      // node_modules in a packaged app, so it is bundled instead of required at runtime.
+      externalizeDeps: { exclude: ['@laqta/gateway-contract'] },
       rollupOptions: {
         external: ['get-windows'],
       },

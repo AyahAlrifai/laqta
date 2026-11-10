@@ -9,7 +9,7 @@ import type {
 import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
 import { useI18n } from '../shared/i18n';
-import { BackArrowIcon } from '../shared/icons';
+import { BackArrowIcon, PencilIcon, SparkleIcon } from '../shared/icons';
 import Shell from '../workbench/Shell';
 import { useWorkbench } from '../workbench/store';
 import AssigneePicker, { initials } from './AssigneePicker';
@@ -177,6 +177,7 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
     <Shell
       title={t('review.title')}
       badge={t('review.draftedByAi')}
+      step={2}
       onClose={onDiscard}
       footer={
         <>
@@ -211,29 +212,42 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
     >
       <div className={styles.columns}>
         <aside className={styles.left}>
-          <h2 className="section-label">{t('review.attachment')}</h2>
-          <div className={styles.thumb}>
-            {imageUrl !== null && <img src={imageUrl} alt={t('review.screenshotAttached')} />}
-          </div>
-          <p className={styles.fileName}>{`laqta-${session.id}.png`}</p>
-          <p className={styles.muted}>{t('review.attachmentNote')}</p>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => void laqta.sessionBack()}
-            disabled={inFlight}
-          >
-            {t('review.editImage')}
-          </button>
-          <span className={styles.flex} />
-          <h2 className="section-label">{t('review.yourRequest')}</h2>
-          <p className={styles.request} dir="auto">
-            {s.prompt}
-          </p>
+          <section className={styles.card} aria-labelledby="attachment-title">
+            <h2 id="attachment-title" className={styles.cardLabel}>
+              {t('review.attachment')}
+            </h2>
+            <div className={styles.thumb}>
+              {imageUrl !== null && <img src={imageUrl} alt={t('review.screenshotAttached')} />}
+            </div>
+            <div>
+              <p className={styles.fileName}>{`laqta-${session.id}.png`}</p>
+              <p className={styles.muted}>{t('review.attachmentNote')}</p>
+            </div>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void laqta.sessionBack()}
+              disabled={inFlight}
+            >
+              <PencilIcon />
+              {t('review.editImage')}
+            </button>
+          </section>
+          <section className={styles.card} aria-labelledby="request-title">
+            <h2 id="request-title" className={styles.cardLabel}>
+              {t('review.yourRequest')}
+            </h2>
+            <blockquote className={styles.request} dir="auto">
+              {s.prompt}
+            </blockquote>
+          </section>
         </aside>
 
         <section className={styles.right} aria-busy={inFlight}>
-          <Banner kind="info">{t('review.aiBanner')}</Banner>
+          <p className={styles.aiNote}>
+            <SparkleIcon />
+            <span>{t('review.aiBanner')}</span>
+          </p>
           {dup !== undefined && (
             <Banner
               kind="warning"
@@ -285,13 +299,13 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
             </Banner>
           )}
 
-          <div>
-            <label className="section-label" htmlFor="summary">
+          <div className={styles.card}>
+            <label className={styles.cardLabel} htmlFor="summary">
               {t('review.summary')}
             </label>
             <input
               id="summary"
-              className="input"
+              className={`input ${styles.summary}`}
               dir="auto"
               maxLength={120}
               value={draft.summary}
@@ -303,8 +317,8 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
             )}
           </div>
 
-          <fieldset className={styles.description}>
-            <legend className="section-label">{t('review.description')}</legend>
+          <fieldset className={`${styles.card} ${styles.description}`}>
+            <legend className={styles.cardLabel}>{t('review.description')}</legend>
             <label className={styles.descLabel} htmlFor="environment">
               {t('review.environment')}
             </label>
@@ -387,114 +401,121 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
             )}
           </fieldset>
 
-          <div className={styles.tiles}>
-            <div className={styles.tile}>
-              <span className="label">{t('review.project')}</span>
-              <strong>{s.projectKey}</strong>
-            </div>
-            <div className={styles.tile}>
-              <label className="label" htmlFor="issue-type">
-                {t('review.type')}
-              </label>
-              <select
-                id="issue-type"
-                className="select"
-                value={draft.issueType}
-                onChange={(e) => void changeIssueType(e.target.value)}
-              >
-                {(s.createMeta?.issueTypes ?? [{ id: draft.issueType, name: draft.issueType }]).map(
-                  (it) => (
+          <section className={styles.card} aria-labelledby="fields-title">
+            <h2 id="fields-title" className={styles.cardLabel}>
+              {t('review.fields')}
+            </h2>
+            <div className={styles.tiles}>
+              <div className={styles.tile}>
+                <span className="label">{t('review.project')}</span>
+                <strong>{s.projectKey}</strong>
+              </div>
+              <div className={styles.tile}>
+                <label className="label" htmlFor="issue-type">
+                  {t('review.type')}
+                </label>
+                <select
+                  id="issue-type"
+                  className="select"
+                  value={draft.issueType}
+                  onChange={(e) => void changeIssueType(e.target.value)}
+                >
+                  {(
+                    s.createMeta?.issueTypes ?? [{ id: draft.issueType, name: draft.issueType }]
+                  ).map((it) => (
                     <option key={it.id} value={it.name}>
                       {it.name}
                     </option>
-                  ),
-                )}
-              </select>
-            </div>
-            <div className={styles.tile}>
-              <label className="label" htmlFor="priority">
-                {t('review.priority')}
-                {aiPriority !== null && draft.priority === aiPriority && (
-                  <span className={styles.aiTag}> · {t('review.aiSuggested')}</span>
-                )}
-              </label>
-              <select
-                id="priority"
-                className="select"
-                value={draft.priority ?? ''}
-                onChange={(e) =>
-                  update({ priority: e.target.value === '' ? null : (e.target.value as Priority) })
-                }
-              >
-                <option value="">{t('review.priorityNone')}</option>
-                {(s.createMeta?.priorities ?? []).map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.tiles2}>
-            <div className={`${styles.tile} ${styles.assignee}`}>
-              {s.assignee !== null ? (
-                <>
-                  <span className={styles.avatar} aria-hidden="true">
-                    {initials(s.assignee.displayName)}
-                  </span>
-                  <span className={styles.flex}>
-                    <span className="label">{t('review.assignee')}</span>
-                    <strong dir="auto">{s.assignee.displayName}</strong>
-                    {s.resolution?.preselected === s.assignee.username &&
-                      s.resolution.matchedFrom !== null && (
-                        <span className={styles.matched} dir="auto">
-                          {f('review.matchedFrom', { query: s.resolution.matchedFrom })}
-                        </span>
-                      )}
-                  </span>
-                </>
-              ) : (
-                <span className={styles.flex}>
-                  <span className="label">{t('review.assignee')}</span>
-                  <strong>{t('review.unassigned')}</strong>
-                </span>
-              )}
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setShowSearch(true)}
-                disabled={inFlight}
-              >
-                {t('review.change')}
-              </button>
-            </div>
-            <div className={styles.tile}>
-              <label className="label" htmlFor="labels">
-                {t('review.labels')}
-              </label>
-              <div className={styles.labels}>
-                <span className={styles.labelChip}>laqta</span>
-                <input
-                  id="labels"
-                  className="input"
-                  value={draft.labels.join(', ')}
+                  ))}
+                </select>
+              </div>
+              <div className={styles.tile}>
+                <label className="label" htmlFor="priority">
+                  {t('review.priority')}
+                  {aiPriority !== null && draft.priority === aiPriority && (
+                    <span className={styles.aiTag}> · {t('review.aiSuggested')}</span>
+                  )}
+                </label>
+                <select
+                  id="priority"
+                  className="select"
+                  value={draft.priority ?? ''}
                   onChange={(e) =>
                     update({
-                      labels: e.target.value
-                        .split(',')
-                        .map((x) => x.trim().toLowerCase())
-                        .filter((x) => x !== '')
-                        .slice(0, 5),
+                      priority: e.target.value === '' ? null : (e.target.value as Priority),
                     })
                   }
-                />
+                >
+                  <option value="">{t('review.priorityNone')}</option>
+                  {(s.createMeta?.priorities ?? []).map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          </div>
+
+            <div className={styles.tiles2}>
+              <div className={`${styles.tile} ${styles.assignee}`}>
+                {s.assignee !== null ? (
+                  <>
+                    <span className={styles.avatar} aria-hidden="true">
+                      {initials(s.assignee.displayName)}
+                    </span>
+                    <span className={styles.flex}>
+                      <span className="label">{t('review.assignee')}</span>
+                      <strong dir="auto">{s.assignee.displayName}</strong>
+                      {s.resolution?.preselected === s.assignee.username &&
+                        s.resolution.matchedFrom !== null && (
+                          <span className={styles.matched} dir="auto">
+                            {f('review.matchedFrom', { query: s.resolution.matchedFrom })}
+                          </span>
+                        )}
+                    </span>
+                  </>
+                ) : (
+                  <span className={styles.flex}>
+                    <span className="label">{t('review.assignee')}</span>
+                    <strong>{t('review.unassigned')}</strong>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowSearch(true)}
+                  disabled={inFlight}
+                >
+                  {t('review.change')}
+                </button>
+              </div>
+              <div className={styles.tile}>
+                <label className="label" htmlFor="labels">
+                  {t('review.labels')}
+                </label>
+                <div className={styles.labels}>
+                  <span className={styles.labelChip}>laqta</span>
+                  <input
+                    id="labels"
+                    className="input"
+                    value={draft.labels.join(', ')}
+                    onChange={(e) =>
+                      update({
+                        labels: e.target.value
+                          .split(',')
+                          .map((x) => x.trim().toLowerCase())
+                          .filter((x) => x !== '')
+                          .slice(0, 5),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
 
           {showSearch && (
-            <div className={styles.searchRow}>
+            <div className={`${styles.card} ${styles.searchRow}`}>
               <label className="label" htmlFor="assignee-search">
                 {t('review.searchAssignee')}
               </label>
@@ -536,7 +557,7 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
           )}
 
           {s.createMeta !== null && s.createMeta.requiredFields.length > 0 && (
-            <div className={styles.required}>
+            <div className={`${styles.card} ${styles.required}`}>
               {s.createMeta.requiredFields.map((field) => {
                 const id = `rf-${field.id}`;
                 const value = s.extraValues[field.id] ?? '';

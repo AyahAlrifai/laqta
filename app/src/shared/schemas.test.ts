@@ -88,7 +88,7 @@ describe('schemas', () => {
   });
 
   it('detects Jira Cloud addresses', () => {
-    expect(looksLikeJiraCloud('https://digitinary.atlassian.net')).toBe(true);
+    expect(looksLikeJiraCloud('https://example.atlassian.net')).toBe(true);
     expect(looksLikeJiraCloud('https://jira.example.com')).toBe(false);
     expect(looksLikeJiraCloud('https://atlassian.net.evil.test')).toBe(false);
   });

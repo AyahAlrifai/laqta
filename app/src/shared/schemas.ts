@@ -81,6 +81,8 @@ export const DEFAULT_SETTINGS: Settings = {
   voiceEnabled: false,
   voiceLanguage: 'auto',
   telemetryEnabled: false,
+  confirmNoBlur: true,
+  aiProvider: 'gateway',
 };
 
 /** Empty means "not configured yet" (first run). Otherwise https only (spec section 4). */
@@ -115,6 +117,8 @@ export const SettingsSchema: z.ZodType<Settings> = z.object({
   voiceEnabled: z.boolean(),
   voiceLanguage: VoiceLanguageSchema,
   telemetryEnabled: z.boolean(),
+  confirmNoBlur: z.boolean(),
+  aiProvider: z.enum(['gateway', 'claude-code']),
 });
 
 export const SettingsSetRequestSchema: z.ZodType<SettingsSetRequest> = z.object({

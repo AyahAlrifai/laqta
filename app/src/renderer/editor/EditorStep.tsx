@@ -7,6 +7,7 @@ import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
 import Dialog from '../shared/Dialog';
 import { useI18n } from '../shared/i18n';
+import { LockSmallIcon, PlusIcon, ShieldSmallIcon } from '../shared/icons';
 import Shell from '../workbench/Shell';
 import { useWorkbench } from '../workbench/store';
 import AnnotationCanvas from './AnnotationCanvas';
@@ -45,6 +46,7 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
   const { t, f } = useI18n();
   const s = useWorkbench();
   const [confirmNoBlur, setConfirmNoBlur] = useState(false);
+  const [dontAskAgain, setDontAskAgain] = useState(false);
   const [busy, setBusy] = useState(false);
   const [validation, setValidation] = useState<string | null>(null);
   const drafting = s.session?.state === 'drafting';
@@ -82,8 +84,11 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
       document.getElementById('project')?.focus();
       return;
     }
-    // Spec section 5: with zero redactions, confirm before anything leaves the machine.
-    if (!skipConfirm && blurCount === 0) {
+    // Spec section 5: with zero redactions, confirm before anything leaves the machine,
+    // unless the user chose "Don't ask me again" (Settings.confirmNoBlur, default true).
+    const askNoBlur = s.settingsView?.settings.confirmNoBlur !== false;
+    if (!skipConfirm && blurCount === 0 && askNoBlur) {
+      setDontAskAgain(false);
       setConfirmNoBlur(true);
       return;
     }
@@ -118,6 +123,22 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
     }
   }
 
+  /**
+   * Saves confirmNoBlur = false. Read fresh settings first so a change made meanwhile in the
+   * Settings window is not overwritten. A failure only means the dialog shows again next time.
+   */
+  async function stopAskingNoBlur() {
+    try {
+      const view = await laqta.settingsGet();
+      const saved = await laqta.settingsSet({
+        settings: { ...view.settings, confirmNoBlur: false },
+      });
+      s.set({ settingsView: saved });
+    } catch {
+      // Keep asking: safer than silently dropping the user's choice the other way.
+    }
+  }
+
   const insertChip = (text: string) => {
     const next = s.prompt.trim() === '' ? text : `${s.prompt}\n${text}`;
     s.set({ prompt: next.slice(0, MAX_PROMPT_CHARS) });
@@ -129,10 +150,14 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
   return (
     <Shell
       title={t('editor.title')}
+      step={1}
       onClose={onDiscard}
       footer={
         <>
-          <p className={styles.footerNote}>{t('editor.footerWarning')}</p>
+          <p className={styles.footerNote}>
+            <ShieldSmallIcon />
+            <span>{t('editor.footerWarning')}</span>
+          </p>
           <button type="button" className="btn" onClick={onDiscard}>
             {t('editor.cancel')}
           </button>
@@ -151,7 +176,9 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
         <section className={styles.left}>
           <Toolbar />
           <div className={styles.canvasWrap}>
-            <AnnotationCanvas base={base} />
+            <div className={styles.stage}>
+              <AnnotationCanvas base={base} />
+            </div>
           </div>
           <p className={styles.caption} dir="auto">
             {caption}
@@ -163,53 +190,65 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
               {f('editor.aiOff', { message: s.settingsView.aiDisabledMessage })}
             </Banner>
           )}
-          <label htmlFor="prompt" className={styles.promptLabel}>
-            {t('editor.whatIsWrong')}
-          </label>
-          <textarea
-            id="prompt"
-            className={`textarea ${styles.prompt}`}
-            dir="auto"
-            maxLength={MAX_PROMPT_CHARS}
-            placeholder={t('editor.promptPlaceholder')}
-            value={s.prompt}
-            onChange={(e) => s.set({ prompt: e.target.value })}
-            aria-describedby={validation ? 'editor-validation' : undefined}
-          />
-          {voiceEnabled && (
-            <MicButton
-              language={s.voiceLanguage}
-              onLanguage={(voiceLanguage) => s.set({ voiceLanguage })}
-              onTranscript={(text) =>
-                s.set({
-                  prompt: (s.prompt.trim() === '' ? text : `${s.prompt} ${text}`).slice(
-                    0,
-                    MAX_PROMPT_CHARS,
-                  ),
-                })
-              }
-            />
-          )}
-          <div>
-            <p className="section-label" id="chips-label">
-              {t('editor.quickStart')}
-            </p>
-            <div className={styles.chips} role="group" aria-labelledby="chips-label">
-              {CHIPS.map((c) => (
-                <button
-                  key={c.label}
-                  type="button"
-                  className={`btn ${styles.chip}`}
-                  onClick={() => insertChip(t(c.text))}
-                >
-                  {t(c.label)}
-                </button>
-              ))}
+          <div className={styles.card}>
+            <label id="prompt-label" htmlFor="prompt" className={styles.cardTitle}>
+              {t('editor.whatIsWrong')}
+            </label>
+            <div className={styles.promptBox}>
+              <textarea
+                id="prompt"
+                className={`textarea ${styles.prompt}`}
+                dir="auto"
+                maxLength={MAX_PROMPT_CHARS}
+                placeholder={t('editor.promptPlaceholder')}
+                value={s.prompt}
+                onChange={(e) => s.set({ prompt: e.target.value })}
+                aria-describedby={validation ? 'editor-validation' : 'prompt-count'}
+              />
+              <span id="prompt-count" className={styles.count}>
+                {f('editor.charCount', { count: s.prompt.length, max: MAX_PROMPT_CHARS })}
+              </span>
+            </div>
+            {voiceEnabled && (
+              <MicButton
+                language={s.voiceLanguage}
+                onLanguage={(voiceLanguage) => s.set({ voiceLanguage })}
+                onTranscript={(text) =>
+                  s.set({
+                    prompt: (s.prompt.trim() === '' ? text : `${s.prompt} ${text}`).slice(
+                      0,
+                      MAX_PROMPT_CHARS,
+                    ),
+                  })
+                }
+              />
+            )}
+            <div className={styles.quickStart}>
+              <p className={styles.subLabel} id="chips-label">
+                {t('editor.quickStart')}
+              </p>
+              <div className={styles.chips} role="group" aria-labelledby="chips-label">
+                {CHIPS.map((c) => (
+                  <button
+                    key={c.label}
+                    type="button"
+                    className={styles.chip}
+                    onClick={() => insertChip(t(c.text))}
+                  >
+                    <PlusIcon />
+                    {t(c.label)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className={styles.selects}>
-            <div>
-              <label className="label" htmlFor="project">
+
+          <section className={styles.card} aria-labelledby="details-title">
+            <h2 id="details-title" className={styles.cardTitle}>
+              {t('editor.details')}
+            </h2>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="project">
                 {t('editor.project')}
               </label>
               <select
@@ -229,21 +268,33 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
                 )}
               </select>
             </div>
-            <div>
-              <label className="label" htmlFor="bug-language">
+            <div className={styles.field}>
+              <span className={styles.fieldLabel} id="bug-language-label">
                 {t('editor.bugLanguage')}
-              </label>
-              <select
-                id="bug-language"
-                className="select"
-                value={s.bugLanguage}
-                onChange={(e) => s.set({ bugLanguage: e.target.value === 'ar' ? 'ar' : 'en' })}
+              </span>
+              <div
+                className={`${styles.segmented} ${styles.segmentedFull}`}
+                role="radiogroup"
+                aria-labelledby="bug-language-label"
               >
-                <option value="en">{t('lang.en')}</option>
-                <option value="ar">{t('lang.ar')}</option>
-              </select>
+                {(['en', 'ar'] as const).map((lang) => (
+                  <span key={lang} className={styles.segment}>
+                    <input
+                      id={`bug-language-${lang}`}
+                      type="radio"
+                      name="bug-language"
+                      checked={s.bugLanguage === lang}
+                      onChange={() => s.set({ bugLanguage: lang })}
+                    />
+                    <label htmlFor={`bug-language-${lang}`} lang={lang}>
+                      {lang === 'en' ? t('lang.nativeEn') : t('lang.nativeAr')}
+                    </label>
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          </section>
+
           {validation !== null && (
             <div id="editor-validation">
               <Banner kind="error" lead={t('error.lead')}>
@@ -264,7 +315,10 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
               {s.draftError.userMessage}
             </Banner>
           )}
-          <p className={styles.privacy}>{t('editor.privacy')}</p>
+          <p className={styles.privacy}>
+            <LockSmallIcon />
+            <span>{t('editor.privacy')}</span>
+          </p>
         </section>
       </div>
 
@@ -302,6 +356,7 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
                 className="btn"
                 onClick={() => {
                   setConfirmNoBlur(false);
+                  if (dontAskAgain) void stopAskingNoBlur();
                   void generate(true);
                 }}
               >
@@ -311,6 +366,14 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
           }
         >
           <p>{t('confirm.noBlurBody')}</p>
+          <label className={styles.dontAsk}>
+            <input
+              type="checkbox"
+              checked={dontAskAgain}
+              onChange={(e) => setDontAskAgain(e.target.checked)}
+            />
+            {t('confirm.noBlurDontAsk')}
+          </label>
         </Dialog>
       )}
     </Shell>

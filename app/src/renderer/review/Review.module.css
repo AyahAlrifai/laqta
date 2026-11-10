@@ -1,49 +1,110 @@
+/* Review step (board 3): attachment and request on the start side, the draft as cards on
+   the end side. Same card language as the Describe step and Settings. */
+
 .columns {
   display: grid;
-  grid-template-columns: minmax(260px, 0.6fr) minmax(0, 1.6fr);
+  grid-template-columns: minmax(260px, 0.62fr) minmax(0, 1.6fr);
   width: 100%;
   min-height: 0;
 }
 
 .left {
-  background: var(--surface-muted);
-  padding: var(--space-5) var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  overflow: auto;
-}
-
-.right {
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-4) var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   overflow: auto;
 }
 
-.thumb {
+.right {
+  padding: var(--space-5) var(--space-6) var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow: auto;
+}
+
+[dir='rtl'] .left {
+  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-4);
+}
+
+[dir='rtl'] .right {
+  padding: var(--space-5) var(--space-4) var(--space-6) var(--space-6);
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.card {
   background: var(--surface);
   border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.04);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.cardLabel {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.aiNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--accent-soft), rgba(230, 236, 253, 0.35));
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.aiNote svg {
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- attachment */
+
+.thumb {
   border-radius: var(--radius);
   padding: var(--space-3);
+  background-color: #f7f8fa;
+  background-image: radial-gradient(#d9dde5 1px, transparent 1px);
+  background-size: 12px 12px;
 }
 
 .thumb img {
   width: 100%;
   display: block;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(20, 23, 31, 0.08),
+    0 4px 14px rgba(20, 23, 31, 0.12);
 }
 
 .fileName {
-  margin: 0;
-  font-weight: 500;
+  margin: 0 0 2px;
+  font-weight: 600;
+  font-size: 13px;
   word-break: break-all;
 }
 
 .muted {
   color: var(--muted);
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .flex {
@@ -56,27 +117,54 @@
 .request {
   margin: 0;
   white-space: pre-wrap;
+  padding: var(--space-1) var(--space-3);
+  border-inline-start: 3px solid var(--accent);
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+/* ---------------------------------------------------------------- draft fields */
+
+.summary {
+  font-size: 17px;
+  font-weight: 600;
+  min-height: 48px;
 }
 
 .description {
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius);
-  padding: var(--space-4);
-  margin: 0;
-  display: flex;
-  flex-direction: column;
   gap: var(--space-2);
+}
+
+/* A legend sits on the fieldset border by default; float it so it reads like the other
+   card labels. */
+.description > legend {
+  float: inline-start;
+  width: 100%;
+  margin-bottom: var(--space-1);
+}
+
+.description > legend + * {
+  clear: both;
 }
 
 .descLabel {
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 14px;
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  margin-top: var(--space-2);
 }
 
 .needsInput {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning-border);
   color: var(--warning-text);
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -90,12 +178,21 @@
   color: var(--warning-text);
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-2);
+  font-size: 14px;
 }
 
 .missing p,
 .missing ul {
   margin: 0;
 }
+
+.missing ul {
+  padding-inline-start: var(--space-5);
+  margin-top: var(--space-1);
+}
+
+/* ---------------------------------------------------------------- Jira fields */
 
 .tiles {
   display: grid;
@@ -110,12 +207,23 @@
 }
 
 .tile {
-  border: 1px solid var(--hairline);
+  background: var(--surface-muted);
+  border: 1px solid transparent;
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  min-width: 0;
+}
+
+.tile :global(.select),
+.tile :global(.input) {
+  background: var(--surface);
+}
+
+.tile strong {
+  font-size: 16px;
 }
 
 .assignee {
@@ -128,8 +236,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  background: linear-gradient(180deg, #4a72f0, #1d3fb8);
+  color: #ffffff;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -139,7 +247,7 @@
 
 .matched {
   color: var(--success);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .aiTag {
@@ -154,7 +262,10 @@
 }
 
 .labelChip {
-  background: var(--surface-muted);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 13px;
   border-radius: 999px;
   padding: 4px 12px;
 }
@@ -172,6 +283,11 @@
   flex-wrap: wrap;
 }
 
+.row :global(.input) {
+  flex: 1;
+  min-width: 200px;
+}
+
 .required {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -183,6 +299,7 @@
   text-align: end;
   color: var(--muted);
   margin: 0;
+  font-size: 14px;
 }
 
 .errorCard {

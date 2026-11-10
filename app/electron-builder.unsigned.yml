@@ -1,0 +1,18 @@
+# Unsigned builds for trying Laqta outside the company (for example sharing with a friend).
+# They extend the real config but: no code-signing certificate (macOS gets an ad-hoc
+# signature so it runs on Apple Silicon), no notarization, and no update feed.
+# Never publish these: they are not the release artefacts of spec section 11.
+#   pnpm dist:mac:unsigned     (on a Mac)
+#   pnpm dist:win:unsigned     (on Windows)
+extends: ./electron-builder.yml
+directories:
+  output: dist-unsigned
+publish: null
+mac:
+  identity: '-'
+  notarize: false
+  # Hardened runtime is only needed for notarization; with an ad-hoc signature it would
+  # block loading the app's own frameworks (library validation).
+  hardenedRuntime: false
+win:
+  signtoolOptions: null

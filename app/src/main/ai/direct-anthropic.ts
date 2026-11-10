@@ -3,7 +3,15 @@ import type { BugDraft } from '../../shared/types';
 import { appError, AppFailure, isAbortError } from '../errors';
 import { log } from '../log';
 import { BUG_DRAFT_JSON_SCHEMA, buildUserText, SYSTEM_PROMPT, TOOL_NAME } from './prompt';
-import { DRAFT_TIMEOUT_MS, type DraftInput, type DraftProvider, type FetchLike } from './provider';
+import {
+  bytesToBase64,
+  DRAFT_TIMEOUT_MS,
+  type DraftInput,
+  type DraftProvider,
+  type FetchLike,
+} from './provider';
+
+export { bytesToBase64 };
 
 // Spec section 7. DEVELOPMENT ONLY: reads a developer key from the environment and must
 // never ship in a release build (T-072 removes it from release bundles; CI checks for the
@@ -18,10 +26,6 @@ export interface DirectAnthropicOptions {
   model?: string;
   fetch: FetchLike;
   timeoutMs?: number;
-}
-
-export function bytesToBase64(bytes: Uint8Array): string {
-  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('base64');
 }
 
 export function buildRequestBody(input: DraftInput, model: string, validationErrors?: string) {

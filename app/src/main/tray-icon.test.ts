@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { resourcesDir, trayIconFileName } from './tray-icon';
+import { resourcesDir, showsDockIcon, trayIconFileName } from './tray-icon';
 
 describe('trayIconFileName', () => {
   it('uses the template image on macOS', () => {
@@ -19,5 +19,20 @@ describe('resourcesDir', () => {
 
   it('reads from the packaged resources folder in a release build', () => {
     expect(resourcesDir(true, '/dev/app', '/pkg/res')).toBe('/pkg/res');
+  });
+});
+
+describe('showsDockIcon', () => {
+  it('keeps the Dock icon in macOS development runs', () => {
+    expect(showsDockIcon('darwin', false, false)).toBe(true);
+  });
+
+  it('hides it in packaged builds and E2E runs', () => {
+    expect(showsDockIcon('darwin', true, false)).toBe(false);
+    expect(showsDockIcon('darwin', false, true)).toBe(false);
+  });
+
+  it('never applies on Windows', () => {
+    expect(showsDockIcon('win32', false, false)).toBe(false);
   });
 });

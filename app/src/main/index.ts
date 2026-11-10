@@ -3,6 +3,7 @@ import { app } from 'electron';
 import { LaqtaApp } from './app';
 import type { DraftProvider } from './ai/provider';
 import { fileSink, log, setLogSink } from './log';
+import { showsDockIcon } from './tray-icon';
 import { installSessionPolicy } from './windows';
 
 // App lifecycle (spec section 2): single-instance lock, tray, start-up and quit.
@@ -30,6 +31,11 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => laqta?.focusOrSettings());
   // Laqta lives in the tray, so closing its windows must not quit the app.
   app.on('window-all-closed', () => undefined);
+  // Clicking the Dock icon (development runs only) acts like the tray click. Activation with
+  // a window already showing (switching apps mid-session) must not pull Settings on top.
+  app.on('activate', (_event, hasVisibleWindows) => {
+    if (!hasVisibleWindows) laqta?.focusOrSettings();
+  });
   app.on('before-quit', () => {
     log('app.quit', {});
     laqta?.shutdown();
@@ -38,7 +44,10 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(async () => {
     setLogSink(fileSink(join(app.getPath('userData'), 'logs')));
     log('app.start', { version: app.getVersion(), platform: process.platform });
-    if (process.platform === 'darwin') app.dock?.hide();
+    const e2e = process.env.LAQTA_E2E === '1';
+    if (process.platform === 'darwin' && !showsDockIcon(process.platform, app.isPackaged, e2e)) {
+      app.dock?.hide();
+    }
     installSessionPolicy();
     laqta = new LaqtaApp(await loadDevProvider());
     await laqta.start();
