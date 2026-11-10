@@ -9,6 +9,7 @@ export type LogEvent =
   | 'app.start'
   | 'app.quit'
   | 'app.error'
+  | 'tray.ready'
   | 'hotkey.register'
   | 'hotkey.conflict'
   | 'capture.start'

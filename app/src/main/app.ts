@@ -398,6 +398,12 @@ export class LaqtaApp {
     this.tray = new Tray(icon);
     this.tray.setToolTip(t(this.lang(), 'tray.tooltip'));
     this.refreshTray();
+    // Where macOS put the icon helps when it is hidden behind the notch.
+    const tray = this.tray;
+    setTimeout(() => {
+      const b = tray.getBounds();
+      log('tray.ready', { x: b.x, y: b.y, width: b.width, empty: icon.isEmpty() });
+    }, 1500);
   }
 
   private refreshTray(): void {
