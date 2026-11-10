@@ -93,7 +93,7 @@ export interface Settings {
   defaultProjectKey: string;
   bugLanguage: BugLanguage; // default 'en'
   uiLanguage: 'en' | 'ar';
-  hotkeyArea: string; // Electron accelerator, default 'CommandOrControl+Shift+J'
+  hotkeyArea: string; // Electron accelerator, default 'Control+Shift+J'
   hotkeyWindow: string;
   voiceEnabled: boolean; // default false in the MVP
   voiceLanguage: 'ar-JO' | 'en' | 'auto';
