@@ -249,7 +249,8 @@ export interface Settings {
   defaultProjectKey: string;
   bugLanguage: BugLanguage;    // default 'en'
   uiLanguage: 'en' | 'ar';
-  hotkeyArea: string;          // Electron accelerator, default 'CommandOrControl+Shift+J'
+  hotkeyArea: string;          // Electron accelerator, default 'Control+Shift+J' (⌃⇧J on Mac, as on board 4; ⌘⇧J is Notion AI's shortcut)
+  // hotkeyWindow default: 'Control+Shift+W' (⌘⇧W closes windows in many Mac apps)
   hotkeyWindow: string;
   voiceEnabled: boolean;       // default false in the MVP
   voiceLanguage: 'ar-JO' | 'en' | 'auto';

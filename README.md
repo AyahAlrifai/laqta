@@ -24,7 +24,7 @@ pnpm build && LAQTA_E2E=1 LAQTA_E2E_JIRA_URL=http://127.0.0.1:4545 \
   npx pnpm@12.18.0 --filter @laqta/app exec electron .   # terminal 2
 ```
 
-Press `Ctrl+Shift+J` (`⌘⇧J` on macOS) or use the tray menu. In this mode drafts come from the fake provider and Jira is the mock. Use project `PROJ`, or `REQ` to see a required custom field. Type "assign Sara" to see the assignee picker.
+Press `Ctrl+Shift+J` (`⌃⇧J`, Control+Shift+J, on macOS) or use the tray menu. In this mode drafts come from the fake provider and Jira is the mock. Use project `PROJ`, or `REQ` to see a required custom field. Type "assign Sara" to see the assignee picker.
 
 ## Against a real Jira and Claude (development build)
 

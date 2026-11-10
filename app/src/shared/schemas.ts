@@ -75,8 +75,9 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultProjectKey: '',
   bugLanguage: 'en',
   uiLanguage: 'en',
-  hotkeyArea: 'CommandOrControl+Shift+J',
-  hotkeyWindow: 'CommandOrControl+Shift+W',
+  // Control, not Command, on Mac: ⌘⇧J is Notion AI's global shortcut (spec section 4).
+  hotkeyArea: 'Control+Shift+J',
+  hotkeyWindow: 'Control+Shift+W',
   voiceEnabled: false,
   voiceLanguage: 'auto',
   telemetryEnabled: false,
