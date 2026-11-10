@@ -17,7 +17,7 @@ Contract additions made during the build are in spec sections 2.1, 3.1, 4.1, 8.1
 - `doc/Product plan.md`: PM plan with the reasons behind the decisions, the risks and the open questions. It is background reading, not a contract.
 - `doc/Laqta — UI Design (v0.1).html` and the `-png/` folder: the five design boards (1280×800) that are the visual source of truth for the UI (§9). Online copy: https://claude.ai/artifact/3QSPxbpnD3FJJz3JXshHHo
 
-Laqta is an Electron tray app for Windows and macOS. It turns a screenshot plus one sentence into a reviewed Jira **Data Center** bug with the screenshot attached. The AI writes a JSON draft, the user reviews it, and only the app's Jira client writes to Jira.
+Laqta is an Electron tray app for Windows and macOS. It turns a screenshot plus one sentence into a reviewed Jira bug (Data Center, or Cloud since §8.2) with the screenshot attached. The AI writes a JSON draft, the user reviews it, and only the app's Jira client writes to Jira.
 
 ## How work is done here
 
@@ -54,16 +54,28 @@ Single test: `pnpm --filter @laqta/app exec vitest run <path> -t "<name>"`. E2E 
 
 Version notes: TypeScript is pinned to 6.0.x because typescript-eslint supports `<6.1`. pnpm enforces a minimum release age, so pin versions that are at least a few days old instead of adding `minimumReleaseAgeExclude` entries. Only `get-windows` may run an install script (`allowBuilds`).
 
+## Running the app locally (macOS)
+
+- Start the built app: `cd app && npx electron-vite build && ./node_modules/.bin/electron .`. It runs as "Electron" with no Dock icon (tray app).
+- Single instance: launching again makes the running copy show Settings (or focus the active session), then the new copy exits. Settings also opens at start-up while Jira is not configured.
+- On notched Macs the tray icon is often hidden when the active app has long menus. Use the hotkey or relaunch instead.
+- Default capture hotkeys are `Control+Shift+J` and `Control+Shift+W` (⌘⇧J is Notion AI's global shortcut and does not show up as a registration conflict).
+- Stop it with `pkill -f "electron/dist/Electron.app/Contents/MacOS/Electron"`. The pnpm store path contains a version suffix, so narrower patterns can miss the process. A stale process keeps old main-process code while renderers load the new build, which crashes pages.
+- Logs: `~/Library/Application Support/Laqta/logs/laqta.log` (metadata only). Settings: `settings.json` in the same folder.
+- E2E mode (never in packaged builds): `LAQTA_E2E=1` uses the fake provider and synthetic frames; `LAQTA_E2E_JIRA_URL` points at the mock, `LAQTA_E2E_JIRA_DEPLOYMENT=cloud` switches it to Cloud, and `LAQTA_E2E_USER_DATA` isolates settings. Playwright triggers captures through `globalThis.__laqtaE2E.capture(mode)`, because it cannot press global hotkeys. `app.close()` hangs while a session is editing, because of the discard confirm.
+
 ## Architecture (big picture)
 
 Layout, §2 and §2.1: workspace packages `app` and `gateway-contract`, plus `gateway/` (Spring Boot 4, Maven). `app/src/main/app.ts` is the composition root and effect runner; renderers are `overlay/`, `workbench/` (hosting `editor/` and `review/`), `toast/` and `settings/`.
 
 - **The main process owns all I/O**: capture, network (`net.fetch`, so the system proxy and corporate certificates work), disk and secrets (`safeStorage`). Renderers never touch the network or the disk. Their CSP sets `connect-src 'none'`.
-- **The preload script** exposes only `window.laqta`, a typed wrapper over the IPC channels in `src/shared/ipc-channels.ts`. `main/ipc.ts` checks the sender frame and validates every payload with Zod.
+- **The preload script** exposes only `window.laqta`, a typed wrapper over the IPC channels in `src/shared/ipc-channels.ts`. `main/ipc-guard.ts` (pure, tested) checks the sender frame and validates every payload with Zod; the handlers are registered in `registerIpc()` in `main/app.ts`. Every handler answers `{ ok, value | error }`; the preload passes that envelope through and `renderer/shared/api.ts` unwraps it, because errors thrown across `contextBridge` lose their fields.
 - **Orchestrator** (`main/orchestrator.ts`): a pure function `(state, event) => { state, effects }` plus an effect runner. States are idle → capturing → editing → drafting → reviewing → submitting → (verifying | partial | done). Every row of the §3 table needs a unit test, and none of those tests may need Electron. Only one session is active at a time.
 - **Windows**: one overlay per display showing a frozen frame, one Workbench window (Annotate & Ask, then Review, in the same window so the draft stays in memory), plus small Toast and Settings windows. All of them come from the hardened factory in `windows.ts` (§10).
 - **AI** (`main/ai/`): the `DraftProvider` interface. `DirectAnthropicProvider` is dev-only (key in `ANTHROPIC_API_KEY`, forced `submit_bug_draft` tool used as a structured-output channel, Zod validation, one retry) and must never ship in release builds. CI fails if the bundle contains `ANTHROPIC_API_KEY`. `GatewayProvider` is the release path. Every model text field goes through `sanitize.ts`, which neutralises Jira wiki markup.
-- **Jira** (`main/jira/`): REST API v2 with wiki markup (not ADF). Data Center uses a Bearer PAT; Jira Cloud (§8.2, `Settings.jiraDeployment`) uses Basic email:apiToken, `accountId` assignees and `/rest/api/3/search/jql`. The mock server has both modes. The create POST goes out on a fresh session partition because Chromium resends POSTs on reset reused sockets (§8.1). The app builds the description from the approved fields in `wiki.ts`. It never takes the description from the model as one string. `createBug.ts` makes the create idempotent by adding a `laqta-<requestId>` label, never retries the create automatically, searches for that label in a `verifying` step when the outcome is unknown, and on an attachment-only failure returns `partial` with a retry that only re-uploads the image.
+- **Jira** (`main/jira/`): REST API v2 with wiki markup (not ADF). Data Center uses a Bearer PAT; Jira Cloud (§8.2, `Settings.jiraDeployment`) uses Basic email:apiToken, `accountId` assignees and `/rest/api/3/search/jql`. The mock server has both modes. The create POST goes out on a fresh session partition because Chromium resends POSTs on reset reused sockets (§8.1). The app builds the description from the approved fields in `wiki.ts`. It never takes the description from the model as one string. `create-bug.ts` makes the create idempotent by adding a `laqta-<requestId>` label, never retries the create automatically, searches for that label in a `verifying` step when the outcome is unknown, and on an attachment-only failure returns `partial` with a retry that only re-uploads the image.
+- **Effects run after the transition**: `dispatch()` in `app.ts` applies the pure transition, then runs each effect in a microtask. IPC handlers that need a result (`draft:request`, `jira:createBug`, `jira:retryAttachment`) create a deferred on the session before dispatching, and the effect resolves it.
+- `strings.ts`, `wiki.ts` (description builder, re-exported by `main/jira/wiki.ts`) and `fields.ts` live in `src/shared/` because main and renderers both use them.
 - Shared types and Zod schemas live in `src/shared/` (`types.ts`, `schemas.ts`) and are the single source of truth for every external payload.
 
 ## Non-negotiable invariants (each one maps to a test)
