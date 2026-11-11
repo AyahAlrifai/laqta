@@ -4,10 +4,13 @@ import { fieldInputKind } from '../../shared/fields';
 import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
 import { useI18n } from '../shared/i18n';
+import BusyOverlay from '../shared/BusyOverlay';
 import { BackArrowIcon, PencilIcon, SparkleIcon } from '../shared/icons';
+import Select from '../shared/Select';
 import Shell from '../workbench/Shell';
 import { useWorkbench } from '../workbench/store';
 import AssigneeField, { type AssigneeSuggestion } from './AssigneeField';
+import LabelsField from './LabelsField';
 import { buildApproved, missingRequired } from './approved';
 import OfflineCard from './OfflineCard';
 import styles from './Review.module.css';
@@ -381,20 +384,15 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
                 <label className="label" htmlFor="issue-type">
                   {t('review.type')}
                 </label>
-                <select
+                <Select
                   id="issue-type"
-                  className="select"
+                  label={t('review.type')}
                   value={draft.issueType}
-                  onChange={(e) => void changeIssueType(e.target.value)}
-                >
-                  {(
+                  onChange={(v) => void changeIssueType(v)}
+                  options={(
                     s.createMeta?.issueTypes ?? [{ id: draft.issueType, name: draft.issueType }]
-                  ).map((it) => (
-                    <option key={it.id} value={it.name}>
-                      {it.name}
-                    </option>
-                  ))}
-                </select>
+                  ).map((it) => ({ value: it.name, label: it.name }))}
+                />
               </div>
               <div className={styles.tile}>
                 <label className="label" htmlFor="priority">
@@ -403,23 +401,16 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
                     <span className={styles.aiTag}> · {t('review.aiSuggested')}</span>
                   )}
                 </label>
-                <select
+                <Select
                   id="priority"
-                  className="select"
+                  label={t('review.priority')}
                   value={draft.priority ?? ''}
-                  onChange={(e) =>
-                    update({
-                      priority: e.target.value === '' ? null : (e.target.value as Priority),
-                    })
-                  }
-                >
-                  <option value="">{t('review.priorityNone')}</option>
-                  {(s.createMeta?.priorities ?? []).map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => update({ priority: v === '' ? null : (v as Priority) })}
+                  options={[
+                    { value: '', label: t('review.priorityNone') },
+                    ...(s.createMeta?.priorities ?? []).map((p) => ({ value: p, label: p })),
+                  ]}
+                />
               </div>
             </div>
 
@@ -442,23 +433,12 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
                 <label className="label" htmlFor="labels">
                   {t('review.labels')}
                 </label>
-                <div className={styles.labels}>
-                  <span className={styles.labelChip}>laqta</span>
-                  <input
-                    id="labels"
-                    className="input"
-                    value={draft.labels.join(', ')}
-                    onChange={(e) =>
-                      update({
-                        labels: e.target.value
-                          .split(',')
-                          .map((x) => x.trim().toLowerCase())
-                          .filter((x) => x !== '')
-                          .slice(0, 5),
-                      })
-                    }
-                  />
-                </div>
+                <LabelsField
+                  id="labels"
+                  labels={draft.labels}
+                  disabled={inFlight}
+                  onChange={(labels) => update({ labels })}
+                />
               </div>
             </div>
           </section>
@@ -477,21 +457,16 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
                       {f('review.requiredField', { name: field.name })}
                     </label>
                     {kind === 'select' && field.allowedValues ? (
-                      <select
+                      <Select
                         id={id}
-                        className="select"
+                        label={field.name}
                         value={value}
-                        onChange={(e) => setValue(e.target.value)}
+                        placeholder={t('review.chooseValue')}
+                        onChange={setValue}
                         aria-invalid={missing.includes(field.id)}
-                        required
-                      >
-                        <option value="">{t('review.chooseValue')}</option>
-                        {field.allowedValues.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </select>
+                        aria-required
+                        options={field.allowedValues.map((v) => ({ value: v.id, label: v.label }))}
+                      />
                     ) : kind === 'date' || kind === 'datetime' || kind === 'number' ? (
                       // Native pickers: keyboard, screen reader and locale support for free,
                       // and they only ever produce the ISO format Jira expects.
@@ -532,6 +507,16 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
           </p>
         </section>
       </div>
+      {inFlight && (
+        <BusyOverlay
+          title={
+            state === 'verifying'
+              ? t('review.verifying')
+              : f('review.creatingTitle', { project: s.projectKey })
+          }
+          detail={state === 'verifying' ? t('review.verifyingDetail') : t('review.creatingDetail')}
+        />
+      )}
     </Shell>
   );
 }

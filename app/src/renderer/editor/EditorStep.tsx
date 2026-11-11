@@ -5,9 +5,11 @@ import { unescapeWiki } from '../../shared/wiki';
 import type { BugDraft } from '../../shared/types';
 import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
+import BusyOverlay from '../shared/BusyOverlay';
 import Dialog from '../shared/Dialog';
 import { useI18n } from '../shared/i18n';
-import { LockSmallIcon, PlusIcon, ShieldSmallIcon } from '../shared/icons';
+import { CheckSmallIcon, LockSmallIcon, PlusIcon, ShieldSmallIcon } from '../shared/icons';
+import Select from '../shared/Select';
 import Shell from '../workbench/Shell';
 import { useWorkbench } from '../workbench/store';
 import AnnotationCanvas from './AnnotationCanvas';
@@ -24,11 +26,30 @@ interface Props {
   onDiscard: () => void;
 }
 
-const CHIPS: { label: StringKey; text: StringKey }[] = [
-  { label: 'editor.chipUi', text: 'editor.chipUiText' },
-  { label: 'editor.chipBackend', text: 'editor.chipBackendText' },
-  { label: 'editor.chipData', text: 'editor.chipDataText' },
+/**
+ * What a senior tester would add next to a screenshot, ordered by how much each one helps the
+ * AI write a reproducible bug: steps and expected result first (the draft's weakest fields
+ * without them), then the facts a developer asks for before starting (error text, how often,
+ * where, which build, which data, whether it is a regression). Each inserts a labelled line,
+ * which the model reads far more reliably than free prose.
+ */
+const DETAILS: { label: StringKey; text: StringKey; question: StringKey }[] = [
+  { label: 'editor.qSteps', text: 'editor.qStepsText', question: 'editor.qStepsAsk' },
+  { label: 'editor.qExpected', text: 'editor.qExpectedText', question: 'editor.qExpectedAsk' },
+  { label: 'editor.qError', text: 'editor.qErrorText', question: 'editor.qErrorAsk' },
+  { label: 'editor.qFrequency', text: 'editor.qFrequencyText', question: 'editor.qFrequencyAsk' },
+  { label: 'editor.qWhere', text: 'editor.qWhereText', question: 'editor.qWhereAsk' },
+  { label: 'editor.qEnv', text: 'editor.qEnvText', question: 'editor.qEnvAsk' },
+  { label: 'editor.qData', text: 'editor.qDataText', question: 'editor.qDataAsk' },
+  {
+    label: 'editor.qRegression',
+    text: 'editor.qRegressionText',
+    question: 'editor.qRegressionAsk',
+  },
 ];
+
+/** The line's label, up to its colon: how a detail already in the prompt is recognised. */
+const detailKey = (text: string) => text.slice(0, text.indexOf(':') + 1).trim();
 
 function forDisplay(d: BugDraft): BugDraft {
   return {
@@ -139,10 +160,31 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
     }
   }
 
-  const insertChip = (text: string) => {
-    const next = s.prompt.trim() === '' ? text : `${s.prompt}\n${text}`;
-    s.set({ prompt: next.slice(0, MAX_PROMPT_CHARS) });
-    document.getElementById('prompt')?.focus();
+  /** Adds the detail's line, or jumps to it when it is already there. */
+  const insertDetail = (text: string) => {
+    const el = document.getElementById('prompt');
+    const key = detailKey(text);
+    const at = key === '' ? -1 : s.prompt.indexOf(key);
+    let caret: number;
+    if (at >= 0) {
+      const end = s.prompt.indexOf('\n', at);
+      caret = end < 0 ? s.prompt.length : end;
+    } else {
+      const sep = s.prompt.trim() === '' ? '' : s.prompt.endsWith('\n') ? '' : '\n';
+      const next = `${s.prompt.trim() === '' ? '' : s.prompt}${sep}${text}`.slice(
+        0,
+        MAX_PROMPT_CHARS,
+      );
+      caret = next.length;
+      s.set({ prompt: next });
+    }
+    // After React has written the new value, put the caret where the user types next.
+    requestAnimationFrame(() => {
+      if (el instanceof HTMLTextAreaElement) {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      }
+    });
   };
 
   const voiceEnabled = s.settingsView?.settings.voiceEnabled === true;
@@ -225,20 +267,26 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
             )}
             <div className={styles.quickStart}>
               <p className={styles.subLabel} id="chips-label">
-                {t('editor.quickStart')}
+                {t('editor.helpAi')}
               </p>
+              <p className={styles.chipsHint}>{t('editor.helpAiHint')}</p>
               <div className={styles.chips} role="group" aria-labelledby="chips-label">
-                {CHIPS.map((c) => (
-                  <button
-                    key={c.label}
-                    type="button"
-                    className={styles.chip}
-                    onClick={() => insertChip(t(c.text))}
-                  >
-                    <PlusIcon />
-                    {t(c.label)}
-                  </button>
-                ))}
+                {DETAILS.map((d) => {
+                  const added = s.prompt.includes(detailKey(t(d.text)));
+                  return (
+                    <button
+                      key={d.label}
+                      type="button"
+                      className={`${styles.chip} ${added ? styles.chipAdded : ''}`}
+                      title={t(d.question)}
+                      onClick={() => insertDetail(t(d.text))}
+                    >
+                      {added ? <CheckSmallIcon /> : <PlusIcon />}
+                      {t(d.label)}
+                      {added && <span className="visually-hidden">{t('editor.detailAdded')}</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -251,22 +299,19 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
               <label className={styles.fieldLabel} htmlFor="project">
                 {t('editor.project')}
               </label>
-              <select
+              <Select
                 id="project"
-                className="select"
+                label={t('editor.project')}
                 value={s.projectKey}
-                onChange={(e) => s.set({ projectKey: e.target.value })}
-              >
-                <option value="">{t('editor.projectPlaceholder')}</option>
-                {s.projects.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.key} · {p.name}
-                  </option>
-                ))}
-                {s.projectKey !== '' && !s.projects.some((p) => p.key === s.projectKey) && (
-                  <option value={s.projectKey}>{s.projectKey}</option>
-                )}
-              </select>
+                placeholder={t('editor.projectPlaceholder')}
+                onChange={(projectKey) => s.set({ projectKey })}
+                options={[
+                  ...s.projects.map((p) => ({ value: p.key, label: `${p.key} · ${p.name}` })),
+                  ...(s.projectKey !== '' && !s.projects.some((p) => p.key === s.projectKey)
+                    ? [{ value: s.projectKey, label: s.projectKey }]
+                    : []),
+                ]}
+              />
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel} id="bug-language-label">
@@ -323,15 +368,22 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
       </div>
 
       {(drafting || busy) && (
-        <div className={styles.drafting} role="status" aria-live="polite">
-          <span className={styles.spinner} aria-hidden="true" />
-          <p>{t('editor.drafting')}</p>
-          {drafting && (
-            <button type="button" className="btn" onClick={() => void laqta.draftCancel()}>
-              {t('editor.cancelDraft')}
-            </button>
-          )}
-        </div>
+        <BusyOverlay
+          title={t('editor.drafting')}
+          detail={t('editor.draftingDetail')}
+          steps={[
+            { label: t('editor.stepPrepare'), state: drafting ? 'done' : 'current' },
+            { label: t('editor.stepRead'), state: drafting ? 'current' : 'next' },
+            { label: t('editor.stepReview'), state: 'next' },
+          ]}
+          action={
+            drafting ? (
+              <button type="button" className="btn" onClick={() => void laqta.draftCancel()}>
+                {t('editor.cancelDraft')}
+              </button>
+            ) : undefined
+          }
+        />
       )}
 
       {confirmNoBlur && (

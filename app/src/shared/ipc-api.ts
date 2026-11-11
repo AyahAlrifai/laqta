@@ -23,6 +23,7 @@ import type {
   ToastData,
   VoiceLanguage,
 } from './types';
+import type { ToastResize } from './schemas';
 
 /** Every IPC handler answers with this envelope; the preload unwraps it. */
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: AppError };
@@ -73,6 +74,7 @@ export interface LaqtaApi {
   }): Promise<TestConnectionResult>;
   toastGet(): Promise<ToastData | null>;
   toastClose(): Promise<void>;
+  toastResize(p: ToastResize): Promise<void>;
   appOpenLink(p: { url: string }): Promise<void>;
   appCopyText(p: { text: string }): Promise<void>;
   appOpenSettings(): Promise<void>;

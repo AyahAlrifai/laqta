@@ -1,9 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactElement,
+} from 'react';
 import type { CaptureMode, OverlayFrame, Rect } from '../../shared/types';
 import { laqta } from '../shared/api';
 import { useI18n } from '../shared/i18n';
 import styles from './Overlay.module.css';
 import {
+  AreaIcon,
+  CancelIcon,
+  ContinueIcon,
+  GripIcon,
+  ScreenIcon,
+  WindowIcon,
+} from './overlayIcons';
+import {
+  clampBar,
   defaultSelection,
   HANDLES,
   handlePoint,
@@ -21,7 +37,8 @@ type Drag =
   | { kind: 'move'; dx: number; dy: number }
   | { kind: 'handle'; handle: Handle };
 
-const BAR_HEIGHT = 76;
+const BAR_HEIGHT = 50;
+const BAR_STEP = 10;
 
 /** Board 1: frozen frame, selection box with eight handles, size pill, mode bar, status pill. */
 export default function Overlay() {
@@ -33,6 +50,27 @@ export default function Overlay() {
   const drag = useRef<Drag | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const done = useRef(false);
+  const bar = useRef<HTMLDivElement>(null);
+  // Where the user dragged the mode bar to; null keeps it next to the selection.
+  const [barPos, setBarPos] = useState<{ x: number; y: number } | null>(null);
+  const [barSize, setBarSize] = useState({ width: 420, height: BAR_HEIGHT });
+  const barDrag = useRef<{ dx: number; dy: number } | null>(null);
+
+  const ready = frame !== null && imageUrl !== null;
+  useLayoutEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const measure = () =>
+      setBarSize((old) =>
+        old.width === el.offsetWidth && old.height === el.offsetHeight
+          ? old
+          : { width: el.offsetWidth, height: el.offsetHeight },
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ready]);
 
   useEffect(() => {
     let url: string | null = null;
@@ -152,14 +190,65 @@ export default function Overlay() {
         ? rect.y - 16 - BAR_HEIGHT
         : rect.y + rect.height - BAR_HEIGHT - 16
     : bounds.height - BAR_HEIGHT - 32;
-  const barLeft = rect ? Math.min(Math.max(rect.x, 16), Math.max(bounds.width - 560, 16)) : 16;
-  const modes: { id: CaptureMode; label: string }[] = [
-    { id: 'area', label: t('capture.modeArea') },
+  const barLeft = rect
+    ? Math.min(Math.max(rect.x, 16), Math.max(bounds.width - barSize.width - 16, 16))
+    : 16;
+  const barAt = barPos ?? { x: barLeft, y: barTop };
+  const modes: { id: CaptureMode; label: string; icon: () => ReactElement }[] = [
+    { id: 'area', label: t('capture.modeArea'), icon: AreaIcon },
     ...(frame.windowModeAvailable
-      ? [{ id: 'window' as const, label: t('capture.modeWindow') }]
+      ? [{ id: 'window' as const, label: t('capture.modeWindow'), icon: WindowIcon }]
       : []),
-    { id: 'screen', label: t('capture.modeScreen') },
+    { id: 'screen', label: t('capture.modeScreen'), icon: ScreenIcon },
   ];
+
+  // The bar can be dragged anywhere by its grip (or by any spot that is not a button).
+  const onBarPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    const onButton = target.closest('button');
+    if (onButton !== null && onButton.dataset.grip !== 'true') return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const box = root.current?.getBoundingClientRect();
+    barDrag.current = {
+      dx: event.clientX - (box?.left ?? 0) - barAt.x,
+      dy: event.clientY - (box?.top ?? 0) - barAt.y,
+    };
+  };
+  const onBarPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    const d = barDrag.current;
+    if (!d) return;
+    const box = root.current?.getBoundingClientRect();
+    setBarPos(
+      clampBar(
+        {
+          x: event.clientX - (box?.left ?? 0) - d.dx,
+          y: event.clientY - (box?.top ?? 0) - d.dy,
+        },
+        barSize,
+        bounds,
+      ),
+    );
+  };
+  const onBarPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (barDrag.current === null) return;
+    barDrag.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+  /** Keyboard moving: arrow keys on the grip (Shift for bigger steps). */
+  const onGripKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!event.key.startsWith('Arrow')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const step = event.shiftKey ? BAR_STEP * 5 : BAR_STEP;
+    const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+    const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+    setBarPos(clampBar({ x: barAt.x + dx, y: barAt.y + dy }, barSize, bounds));
+  };
 
   return (
     <div
@@ -232,28 +321,53 @@ export default function Overlay() {
       </p>
 
       <div
-        className={styles.modeBar}
-        style={{ top: barTop, left: barLeft }}
-        onPointerDown={(e) => e.stopPropagation()}
+        ref={bar}
+        className={`${styles.modeBar} ${barPos !== null ? styles.modeBarMoved : ''}`}
+        style={{ top: barAt.y, left: barAt.x }}
+        onPointerDown={onBarPointerDown}
+        onPointerMove={onBarPointerMove}
+        onPointerUp={onBarPointerUp}
       >
+        <button
+          type="button"
+          className={styles.grip}
+          data-grip="true"
+          aria-label={t('capture.moveBar')}
+          title={t('capture.moveBarHint')}
+          onKeyDown={onGripKeyDown}
+          onDoubleClick={() => setBarPos(null)}
+        >
+          <GripIcon />
+        </button>
         <div role="group" aria-label={t('capture.modes')} className={styles.modes}>
-          {modes.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={`btn btn-ghost ${mode === m.id ? styles.modeActive : ''}`}
-              aria-pressed={mode === m.id}
-              onClick={() => applyMode(frame, m.id)}
-            >
-              {m.label}
-            </button>
-          ))}
+          {modes.map((m) => {
+            const Icon = m.icon;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                className={`${styles.barBtn} ${mode === m.id ? styles.modeActive : ''}`}
+                aria-pressed={mode === m.id}
+                onClick={() => applyMode(frame, m.id)}
+              >
+                <Icon />
+                {m.label}
+              </button>
+            );
+          })}
         </div>
         <span className={styles.divider} aria-hidden="true" />
-        <button type="button" className={`btn btn-ghost ${styles.muted}`} onClick={cancel}>
+        <button type="button" className={`${styles.barBtn} ${styles.muted}`} onClick={cancel}>
+          <CancelIcon />
           {t('capture.escToCancel')}
         </button>
-        <button type="button" className="btn btn-primary" onClick={finish} disabled={!rect}>
+        <button
+          type="button"
+          className={`${styles.barBtn} ${styles.primary}`}
+          onClick={finish}
+          disabled={!rect}
+        >
+          <ContinueIcon />
           {t('capture.continue')}
         </button>
       </div>

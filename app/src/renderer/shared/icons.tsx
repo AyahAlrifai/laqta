@@ -145,3 +145,11 @@ export function PlusIcon() {
     </svg>
   );
 }
+
+export function CheckSmallIcon() {
+  return (
+    <svg {...line} width={14} height={14} strokeWidth={2.6}>
+      <path d="m5 12.5 4.5 4.5L19 7" />
+    </svg>
+  );
+}

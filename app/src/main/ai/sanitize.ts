@@ -1,3 +1,4 @@
+import { addLabels } from '../../shared/labels';
 import type { BugDraft } from '../../shared/types';
 
 // Spec section 7, sanitizer. Applied to every model text field after schema validation.
@@ -110,21 +111,7 @@ function sanitizeLine(text: string, max: number): string {
 }
 
 export function sanitizeLabels(labels: readonly string[]): string[] {
-  const out: string[] = [];
-  for (const raw of labels) {
-    const label = raw
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, LIMITS.label);
-    if (label === '' || label === 'laqta' || label.startsWith('laqta-')) continue;
-    if (!out.includes(label)) out.push(label);
-    if (out.length === 5) break;
-  }
-  return out;
+  return addLabels([], labels);
 }
 
 export function sanitizeDraft(draft: BugDraft, jiraHost: string | null): BugDraft {

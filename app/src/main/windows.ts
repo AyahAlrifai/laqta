@@ -88,7 +88,10 @@ export function createAppWindow(opts: WindowOptions): BrowserWindow {
     enableLargerThanScreen: overlay,
     backgroundColor: overlay ? '#00000000' : '#FFFFFF',
     autoHideMenuBar: true,
-    webPreferences: { ...HARDENED_WEB_PREFERENCES, preload: PRELOAD_PATH },
+    webPreferences: {
+      ...HARDENED_WEB_PREFERENCES,
+      preload: PRELOAD_PATH,
+    },
   });
 
   const id = win.webContents.id;

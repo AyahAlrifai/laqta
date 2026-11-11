@@ -3,6 +3,7 @@ import type { VoiceLanguage } from '../../shared/types';
 import { laqta } from '../shared/api';
 import { useI18n } from '../shared/i18n';
 import { MicIcon } from '../shared/icons';
+import Select from '../shared/Select';
 import styles from './Editor.module.css';
 
 // Spec section 6 (Phase 2, behind voiceEnabled): toggle recording with the button or Space,
@@ -132,16 +133,18 @@ export default function MicButton({ language, onLanguage, onTranscript }: Props)
       <label className="visually-hidden" htmlFor="voice-language">
         {t('editor.voiceLanguage')}
       </label>
-      <select
+      <Select
         id="voice-language"
-        className="select"
+        label={t('editor.voiceLanguage')}
+        className={styles.voiceSelect}
         value={language}
-        onChange={(e) => onLanguage(e.target.value as VoiceLanguage)}
-      >
-        <option value="ar-JO">{t('lang.arJO')}</option>
-        <option value="en">{t('lang.en')}</option>
-        <option value="auto">{t('lang.auto')}</option>
-      </select>
+        onChange={(v) => onLanguage(v === 'ar-JO' ? 'ar-JO' : v === 'en' ? 'en' : 'auto')}
+        options={[
+          { value: 'ar-JO', label: t('lang.arJO') },
+          { value: 'en', label: t('lang.en') },
+          { value: 'auto', label: t('lang.auto') },
+        ]}
+      />
       <p className={styles.hint}>
         {denied ? t('editor.micDenied') : busy ? t('editor.transcribing') : t('editor.voiceHint')}
       </p>

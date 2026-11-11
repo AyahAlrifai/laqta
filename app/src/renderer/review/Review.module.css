@@ -236,19 +236,85 @@
   font-weight: 600;
 }
 
-.labels {
+/* Looks like one input; the chips and the text box wrap inside it. */
+.labelsBox {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
+  min-height: var(--control-height);
+  padding: 4px var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--control-border);
+  background: var(--surface);
+  cursor: text;
+}
+
+.labelsBox:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.labelsDisabled {
+  background: var(--surface-muted);
+  border-color: var(--hairline);
 }
 
 .labelChip {
+  display: inline-flex;
+  align-items: center;
   background: var(--accent-soft);
   color: var(--accent-ink);
   font-weight: 600;
   font-size: 13px;
   border-radius: 999px;
   padding: 4px 12px;
+}
+
+.labelChip:has(.labelRemove) {
+  padding-inline-end: 0;
+}
+
+/* 44 px tall to meet the target size; the negative margin keeps the chip itself small. */
+.labelRemove {
+  width: 32px;
+  height: 44px;
+  margin-block: -14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.labelRemove:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+/* The box draws the focus ring, so the text box itself does not. */
+.labelsInput {
+  flex: 1 1 120px;
+  min-width: 120px;
+  min-height: 34px;
+  border: 0;
+  background: transparent;
+  padding: 0 var(--space-1);
+}
+
+.labelsInput:focus-visible {
+  outline: none;
+}
+
+.labelsHint {
+  margin: var(--space-1) 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.labelsError {
+  color: var(--danger);
 }
 
 .row {
@@ -365,41 +431,20 @@
   flex: none;
 }
 
+/* Attached to the field: the message line goes under the list, not between them. */
 .comboList {
-  list-style: none;
-  margin: 0;
-  padding: var(--space-1);
-  background: var(--surface);
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  margin-top: 0;
   max-height: 264px;
-  overflow-y: auto;
-}
-
-.comboOption {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 44px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: calc(var(--radius) - 2px);
-  cursor: pointer;
-}
-
-.comboOption:hover,
-.comboOptionActive {
-  background: var(--accent-soft);
-}
-
-.comboOption[aria-selected='true'] {
-  font-weight: 600;
 }
 
 .comboUnassigned {
   color: var(--muted);
-  border-top: 1px solid var(--hairline);
+}
+
+/* A divider before "Leave unassigned" only when people are listed above it. */
+.comboUnassigned:not(:first-child) {
   margin-top: var(--space-1);
+  box-shadow: 0 -5px 0 -4px var(--hairline);
 }
 
 .comboMessage {

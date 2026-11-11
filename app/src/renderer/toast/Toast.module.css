@@ -1,6 +1,13 @@
+/* The window takes the card's height (preferredSizeMode in main), so the page must not
+   stretch to the window: base.css gives html, body and #root 100%. */
+:global(html),
+:global(body),
+:global(#root) {
+  height: auto;
+}
+
 .card {
   position: relative;
-  height: 100%;
   padding: var(--space-5) var(--space-6);
   border-top: 4px solid var(--success);
 }

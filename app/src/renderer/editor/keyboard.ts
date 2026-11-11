@@ -66,14 +66,27 @@ export function handleEditorKey(
     });
     return true;
   }
-  if (event.key === 'Enter' && s.tool !== 'select') {
-    if (s.tool === 'text' && s.textLabel.trim() === '') return false;
+  if (event.key === 'Enter' && s.tool === 'text') {
+    // Same as clicking the image: open a label editor, centred.
+    s.set({
+      textDraft: {
+        id: null,
+        x: Math.round(image.width / 2),
+        y: Math.round(image.height / 2),
+        text: '',
+      },
+      selectedId: null,
+    });
+    return true;
+  }
+  const current = s.tool;
+  if (event.key === 'Enter' && current !== 'select' && current !== 'text') {
     const shape = centredShape(
-      s.tool,
+      current,
       image.width,
       image.height,
-      s.textLabel.trim(),
       s.redactionMode,
+      s.colors[current],
     );
     s.set({ history: commit(s.history, [...s.history.present, shape]), selectedId: shape.id });
     return true;

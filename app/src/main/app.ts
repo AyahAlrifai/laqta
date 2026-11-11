@@ -29,6 +29,7 @@ import {
   CaptureStartSchema,
   CheckDuplicatesSchema,
   CopyTextSchema,
+  ToastResizeSchema,
   DraftRequestSchema,
   LoadCreateMetaSchema,
   JiraMyselfSchema,
@@ -881,6 +882,25 @@ export class LaqtaApp {
     this.toast = win;
   }
 
+  /**
+   * Fits the toast window to its card (`toast:resize`), so there is no empty band under the
+   * buttons. The bottom edge stays put, so new content (Retry upload) grows it upwards.
+   * Chromium's preferred-size event cannot do this: it never reports less than the window.
+   */
+  private fitToast(height: number): void {
+    const win = this.toast;
+    if (!win || win.isDestroyed()) return;
+    const area = screen.getPrimaryDisplay().workArea;
+    const fitted = Math.min(height, area.height - 48);
+    const { width } = win.getBounds();
+    win.setBounds({
+      x: area.x + area.width - width - 24,
+      y: area.y + area.height - fitted - 24,
+      width,
+      height: fitted,
+    });
+  }
+
   private async openLink(url: string): Promise<void> {
     if (!isAllowedJiraLink(url, this.jiraBaseUrl())) {
       // E2E runs Jira on http://127.0.0.1 and never opens a browser.
@@ -1410,6 +1430,10 @@ export class LaqtaApp {
       onlyKind(sender, ['toast']);
       // Same as the user closing the window: ends the session.
       this.toast?.close();
+    });
+    handle(IPC.toastResize, ToastResizeSchema, (p, sender) => {
+      onlyKind(sender, ['toast']);
+      this.fitToast(p.height);
     });
     handle(IPC.appOpenLink, OpenLinkSchema, (p) => this.openLink(p.url));
     handle(IPC.appCopyText, CopyTextSchema, async (p) => {

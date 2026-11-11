@@ -98,3 +98,16 @@ export function defaultSelection(bounds: Bounds): Rect {
 export function toPixels(r: Rect, scale: number): { width: number; height: number } {
   return { width: Math.round(r.width * scale), height: Math.round(r.height * scale) };
 }
+
+/** Keeps the dragged mode bar fully on screen, with a small margin. */
+export function clampBar(
+  pos: { x: number; y: number },
+  size: { width: number; height: number },
+  bounds: Bounds,
+): { x: number; y: number } {
+  const margin = 8;
+  return {
+    x: clamp(pos.x, margin, Math.max(margin, bounds.width - size.width - margin)),
+    y: clamp(pos.y, margin, Math.max(margin, bounds.height - size.height - margin)),
+  };
+}

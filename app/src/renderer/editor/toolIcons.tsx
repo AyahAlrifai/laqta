@@ -2,8 +2,8 @@
 
 const common = {
   'aria-hidden': true,
-  width: 18,
-  height: 18,
+  width: 16,
+  height: 16,
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
@@ -12,10 +12,12 @@ const common = {
   strokeLinejoin: 'round',
 } as const;
 
+/** A hand: select and move what is already on the image. */
 export function SelectIcon() {
   return (
     <svg {...common}>
-      <path d="M5 3l14 7-6 2-2 6L5 3Z" />
+      <path d="M18 11V6a2 2 0 0 0-4 0v0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" />
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15" />
     </svg>
   );
 }

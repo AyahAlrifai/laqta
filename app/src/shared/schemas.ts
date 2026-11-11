@@ -238,6 +238,9 @@ export function looksLikeJiraCloud(url: string): boolean {
 }
 export const OpenLinkSchema = z.object({ url: z.string().max(2000) });
 export const CopyTextSchema = z.object({ text: z.string().max(2000) });
+/** The toast card's height, so main can fit the window to it. */
+export const ToastResizeSchema = z.object({ height: z.number().int().min(80).max(800) });
+export type ToastResize = z.infer<typeof ToastResizeSchema>;
 export const OverlayGetFrameSchema = z.object({ displayId: z.string().max(64) });
 export const RestoreDraftSchema = z.object({ requestId: RequestIdSchema });
 

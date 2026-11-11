@@ -6,6 +6,7 @@ import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
 import { AppMark, ErrorIcon, SuccessIcon } from '../shared/icons';
 import { useI18n } from '../shared/i18n';
+import Select from '../shared/Select';
 import { Row, Segmented, ShortcutRecorder, SwitchRow } from './controls';
 import { CaptureIcon, GlobeIcon, LinkIcon, LockIcon, ShieldIcon, SparkIcon } from './navIcons';
 import {
@@ -505,29 +506,27 @@ export default function SettingsPage() {
                       aria-describedby="project-status project-help"
                     />
                   ) : (
-                    <select
+                    <Select
                       id="default-project"
-                      className="select"
+                      label={t('settings.defaultProject')}
                       value={field.mode === 'select' ? form.defaultProjectKey : ''}
-                      onChange={(e) => set({ defaultProjectKey: e.target.value })}
+                      onChange={(defaultProjectKey) => set({ defaultProjectKey })}
                       disabled={field.mode !== 'select' || field.options.length === 0}
                       aria-describedby="project-status project-help"
                       aria-busy={field.mode === 'loading'}
-                    >
-                      <option value="">
-                        {field.mode === 'loading'
+                      placeholder={
+                        field.mode === 'loading'
                           ? t('settings.projectLoading')
                           : field.mode === 'disconnected'
                             ? t('settings.projectPlaceholderDisconnected')
-                            : t('editor.projectPlaceholder')}
-                      </option>
-                      {field.mode === 'select' &&
-                        field.options.map((p) => (
-                          <option key={p.key} value={p.key}>
-                            {optionLabel(p)}
-                          </option>
-                        ))}
-                    </select>
+                            : t('editor.projectPlaceholder')
+                      }
+                      options={
+                        field.mode === 'select'
+                          ? field.options.map((p) => ({ value: p.key, label: optionLabel(p) }))
+                          : []
+                      }
+                    />
                   )}
                   <div id="project-status">
                     {/* The error Banner is role="alert" itself, so it sits outside this polite
@@ -658,25 +657,20 @@ export default function SettingsPage() {
                 />
                 {form.voiceEnabled && (
                   <Row htmlFor="voice-lang" label={t('settings.voiceLanguage')}>
-                    <select
+                    <Select
                       id="voice-lang"
-                      className={`select ${styles.compactSelect}`}
+                      label={t('settings.voiceLanguage')}
+                      className={styles.compactSelect}
                       value={form.voiceLanguage}
-                      onChange={(e) =>
-                        set({
-                          voiceLanguage:
-                            e.target.value === 'ar-JO'
-                              ? 'ar-JO'
-                              : e.target.value === 'en'
-                                ? 'en'
-                                : 'auto',
-                        })
+                      onChange={(v) =>
+                        set({ voiceLanguage: v === 'ar-JO' ? 'ar-JO' : v === 'en' ? 'en' : 'auto' })
                       }
-                    >
-                      <option value="ar-JO">{t('lang.arJO')}</option>
-                      <option value="en">{t('lang.en')}</option>
-                      <option value="auto">{t('lang.auto')}</option>
-                    </select>
+                      options={[
+                        { value: 'ar-JO', label: t('lang.arJO') },
+                        { value: 'en', label: t('lang.en') },
+                        { value: 'auto', label: t('lang.auto') },
+                      ]}
+                    />
                   </Row>
                 )}
               </section>

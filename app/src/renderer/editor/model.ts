@@ -3,11 +3,46 @@
 
 export type RedactionMode = 'fill' | 'pixelate';
 
+// `color` is a hex from ANNOTATION_COLORS. It is optional so shapes made before colours
+// existed (and the unit-test fixtures) still draw, in the default red.
 export type Shape =
-  | { id: string; kind: 'box'; x: number; y: number; w: number; h: number }
-  | { id: string; kind: 'arrow'; x1: number; y1: number; x2: number; y2: number }
-  | { id: string; kind: 'text'; x: number; y: number; text: string }
-  | { id: string; kind: 'redact'; x: number; y: number; w: number; h: number; mode: RedactionMode };
+  | { id: string; kind: 'box'; x: number; y: number; w: number; h: number; color?: string }
+  | { id: string; kind: 'arrow'; x1: number; y1: number; x2: number; y2: number; color?: string }
+  | { id: string; kind: 'text'; x: number; y: number; text: string; color?: string }
+  | {
+      id: string;
+      kind: 'redact';
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      mode: RedactionMode;
+      color?: string;
+    };
+
+export type ShapeKind = Shape['kind'];
+
+/** The colour choices offered for every shape type. The first is each type's default. */
+export const ANNOTATION_COLORS = [
+  '#D6362B',
+  '#F08C00',
+  '#F5C400',
+  '#1F9D55',
+  '#2F5BEA',
+  '#8B3FD9',
+  '#14171F',
+  '#FFFFFF',
+] as const;
+
+/** Solid redactions default to black, the other shapes to red. */
+export const DEFAULT_COLORS: Record<ShapeKind, string> = {
+  box: '#D6362B',
+  arrow: '#D6362B',
+  text: '#D6362B',
+  redact: '#14171F',
+};
+
+export const MAX_LABEL_CHARS = 80;
 
 export type Tool = 'select' | 'box' | 'arrow' | 'text' | 'redact';
 
@@ -43,11 +78,12 @@ export function newId(): string {
 
 export const TEXT_SIZE = 22;
 
-export function textWidth(text: string): number {
-  return Math.max(TEXT_SIZE, text.length * TEXT_SIZE * 0.6) + 16;
+export function textWidth(text: string, scale = 1): number {
+  return (Math.max(TEXT_SIZE, text.length * TEXT_SIZE * 0.6) + 16) * scale;
 }
 
-export function bbox(s: Shape): { x: number; y: number; w: number; h: number } {
+/** `scale` is the editor's drawing scale; text labels are drawn that much larger. */
+export function bbox(s: Shape, scale = 1): { x: number; y: number; w: number; h: number } {
   switch (s.kind) {
     case 'box':
     case 'redact':
@@ -60,7 +96,7 @@ export function bbox(s: Shape): { x: number; y: number; w: number; h: number } {
         h: Math.abs(s.y2 - s.y1),
       };
     case 'text':
-      return { x: s.x, y: s.y, w: textWidth(s.text), h: TEXT_SIZE + 12 };
+      return { x: s.x, y: s.y, w: textWidth(s.text, scale), h: (TEXT_SIZE + 12) * scale };
   }
 }
 
@@ -85,6 +121,7 @@ export function hitTest(
   x: number,
   y: number,
   tolerance: number,
+  scale = 1,
 ): Shape | null {
   for (let i = shapes.length - 1; i >= 0; i--) {
     const s = shapes[i];
@@ -93,7 +130,7 @@ export function hitTest(
       if (distanceToSegment(x, y, s.x1, s.y1, s.x2, s.y2) <= tolerance) return s;
       continue;
     }
-    const b = bbox(s);
+    const b = bbox(s, scale);
     if (
       x >= b.x - tolerance &&
       x <= b.x + b.w + tolerance &&
@@ -114,11 +151,11 @@ export function move(s: Shape, dx: number, dy: number): Shape {
 
 /** Default shape for keyboard creation (Enter): centred, a quarter of the image. */
 export function centredShape(
-  tool: Exclude<Tool, 'select'>,
+  tool: Exclude<Tool, 'select' | 'text'>,
   width: number,
   height: number,
-  text: string,
   mode: RedactionMode,
+  color?: string,
 ): Shape {
   const w = Math.max(Math.round(width / 4), 24);
   const h = Math.max(Math.round(height / 4), 24);
@@ -127,14 +164,28 @@ export function centredShape(
   const id = newId();
   switch (tool) {
     case 'box':
-      return { id, kind: 'box', x, y, w, h };
+      return { id, kind: 'box', x, y, w, h, color };
     case 'redact':
-      return { id, kind: 'redact', x, y, w, h, mode };
+      return { id, kind: 'redact', x, y, w, h, mode, color };
     case 'arrow':
-      return { id, kind: 'arrow', x1: x, y1: y + h, x2: x + w, y2: y };
-    case 'text':
-      return { id, kind: 'text', x, y, text };
+      return { id, kind: 'arrow', x1: x, y1: y + h, x2: x + w, y2: y, color };
   }
+}
+
+/** Readable text colour on a filled label: dark on light colours, white on dark ones. */
+export function textOn(hex: string): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b > 160 ? '#14171F' : '#FFFFFF';
+}
+
+/** Hex `#RRGGBB` to RGB, black when malformed (a redaction must always overwrite pixels). */
+export function hexToRgb(hex: string | undefined): [number, number, number] {
+  if (hex === undefined || !/^#[0-9a-fA-F]{6}$/.test(hex)) return [0, 0, 0];
+  const n = Number.parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
 export function counts(shapes: readonly Shape[]): {

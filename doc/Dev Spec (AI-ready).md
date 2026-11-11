@@ -168,12 +168,15 @@ Every handler answers `{ ok: true, value } | { ok: false, error: AppError }`; th
 | `jira:listProjects` | workbench, settings to main | none | `JiraProject[]` |
 | `draft:keepForLater` | workbench to main | `ReviewState` | `{ saved }` |
 | `toast:get` / `toast:close` | toast to main | none | `ToastData \| null` / none |
+| `toast:resize` | toast to main | `{ height }` (CSS pixels, 80 to 800) | none (main fits the window to the card, keeping its bottom edge) |
 | `app:openLink` | any to main | `{ url }` (Jira host only) | none |
 | `app:copyText`, `app:openSettings`, `window:close` | any to main | `{ text }` / none | none |
 | `app:relaunch` | settings to main | none | none (restarts Laqta so macOS applies a new Screen Recording grant; the next start opens Settings) |
 | `permissions:get`, `permissions:openSystemSettings`, `permissions:requestMicrophone` | settings, workbench to main | none / `{ kind }` | `PermissionStatus` / none / `boolean` |
 
 `settings:get` returns `SettingsView` and `settings:set` takes `SettingsSetRequest` (the token is write-only) and returns `SettingsSetResult` (with hotkey conflicts). `settings:testConnection` takes an optional token; empty means the stored one. On success it also returns the projects visible with those details (omitted if that call fails), so Settings can offer the Default project dropdown before the details are saved. The Default project is only chosen from that list: while there is no working connection the field is disabled and says to connect first. If the list cannot be loaded while connected, the user may type the key instead. Jira URLs must be https; the only exception is E2E runs of unpackaged builds (`LAQTA_E2E=1`), where `settings:testConnection`, `settings:set` and the settings store also accept `http://127.0.0.1` so the Settings flow can be tested against the mock Jira. `jira:loadCreateMeta` takes an optional `issueTypeName` so the review form can reload required fields when the type changes.
+
+The result toast closes itself after 8 seconds (the same as the user closing it, so the session ends). Pointer hover or keyboard focus on it holds it open, and new content (the result of Retry upload) restarts the time.
 
 Extra state transitions: `capturing` + `capture:failed` -> `idle` (permission denied, no frames); `partial` + `jira:retryAttachment` -> `submitting` (upload only); `idle` + `draft:restore` -> `reviewing` (resume an offline draft). Transitions not in the table are rejected and logged.
 

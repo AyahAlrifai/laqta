@@ -10,6 +10,8 @@ export interface Redaction {
   w: number;
   h: number;
   mode: RedactionMode;
+  /** Solid fill colour (RGB); black when absent. Pixelate ignores it. */
+  fill?: readonly [number, number, number];
 }
 
 /** At least 12 px and at least one sixth of the shorter side of the rectangle. */
@@ -41,12 +43,13 @@ export function applyRedactions(
     const { x0, y0, x1, y1 } = clipRect(r, width, height);
     if (x1 <= x0 || y1 <= y0) continue;
     if (r.mode === 'fill') {
+      const [fr, fg, fb] = r.fill ?? [0, 0, 0];
       for (let y = y0; y < y1; y++) {
         for (let x = x0; x < x1; x++) {
           const i = (y * width + x) * 4;
-          data[i] = 0;
-          data[i + 1] = 0;
-          data[i + 2] = 0;
+          data[i] = fr;
+          data[i + 1] = fg;
+          data[i + 2] = fb;
           data[i + 3] = 255;
         }
       }

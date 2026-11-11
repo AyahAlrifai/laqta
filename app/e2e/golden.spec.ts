@@ -9,6 +9,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { MockJira } from '../test/mock-jira';
+import { pick } from './pick';
 
 // Spec section 12, end to end: golden path, partial failure and unknown-result verify, with
 // the fake draft provider (LAQTA_E2E=1) and the mock Jira server.
@@ -102,7 +103,7 @@ async function captureToEditor(blur: boolean): Promise<Page> {
 async function captureAndAsk(prompt: string): Promise<Page> {
   const wb = await captureToEditor(true);
   await wb.getByLabel('What is wrong?').fill(prompt);
-  await wb.getByLabel('Project').selectOption('PROJ');
+  await pick(wb.getByRole('combobox', { name: 'Project' }), 'PROJ');
   await shot(wb, '2-editor');
   await wb.getByRole('button', { name: 'Generate draft' }).click();
   await expect(wb.getByRole('heading', { name: 'Review the draft' })).toBeVisible();
@@ -123,6 +124,16 @@ test('golden path: capture, annotate, redact, draft, review, pick assignee, crea
   await options.getByRole('option', { name: /Sara H\./ }).click();
   await expect(assignee).toHaveValue('Sara H.');
   await expect(options).toBeHidden();
+  // Labels: comma, space and Enter each finish one; invalid text is explained, not kept.
+  const labels = wb.getByLabel('Labels', { exact: true });
+  await labels.fill('Checkout, ui-bug ');
+  await labels.pressSequentially('فاتورة');
+  await labels.press('Enter');
+  await expect(wb.getByText('“فاتورة” can’t be a label.', { exact: false })).toBeVisible();
+  await labels.pressSequentially('slow');
+  await labels.press('Enter');
+  await wb.getByRole('button', { name: 'Remove label ui-bug' }).click();
+  await expect(wb.getByRole('button', { name: /^Remove label / })).toHaveCount(3);
   await shot(wb, '3-review');
   expect(mock.createCalls).toBe(0); // nothing written before the click
   await wb.getByRole('button', { name: 'Create bug in PROJ' }).click();
@@ -133,9 +144,21 @@ test('golden path: capture, annotate, redact, draft, review, pick assignee, crea
   expect(mock.issues).toHaveLength(1);
   const issue = mock.issues[0];
   expect(issue?.fields.assignee).toEqual({ name: 'sara.h' });
-  expect((issue?.fields.labels as string[])[0]).toBe('laqta');
+  const sent = issue?.fields.labels as string[];
+  expect(sent[0]).toBe('laqta');
+  expect(sent.slice(2)).toEqual(['billing', 'checkout', 'slow']);
   expect(issue?.attachments).toHaveLength(1);
   expect(String(issue?.fields.description)).toContain('h3. Environment');
+  // The window fits the card: only the card's own padding is left under the buttons.
+  await expect
+    .poll(async () => {
+      const box = await toast.getByRole('button', { name: 'Open in Jira' }).boundingBox();
+      const inner = await toast.evaluate<number>('window.innerHeight');
+      return inner - (box ? box.y + box.height : 0);
+    })
+    .toBeLessThanOrEqual(32);
+  // Left alone, the result closes itself.
+  await toast.waitForEvent('close', { timeout: 15_000 });
 });
 
 test('partial failure: attachment fails, Retry upload only uploads the image', async () => {
@@ -166,7 +189,7 @@ test('unknown result: the request label is found and exactly one bug exists', as
 test('no-blur confirm: asks by default, and "Don’t ask me again" is saved', async () => {
   const wb = await captureToEditor(false);
   await wb.getByLabel('What is wrong?').fill('The total is shown twice');
-  await wb.getByLabel('Project').selectOption('PROJ');
+  await pick(wb.getByRole('combobox', { name: 'Project' }), 'PROJ');
   await wb.getByRole('button', { name: 'Generate draft' }).click();
   // Spec section 5: nothing leaves the machine before the user answers.
   const confirm = wb.getByRole('alertdialog');
@@ -187,6 +210,22 @@ test('no-blur confirm: asks by default, and "Don’t ask me again" is saved', as
     )
     .toBe(false);
   // End the session so the app can close (an open draft asks before closing).
+  await wb.getByRole('button', { name: 'Close' }).click();
+  await wb.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
+});
+
+test('text tool: click on the image, type, and Enter adds the label', async () => {
+  const wb = await captureToEditor(false);
+  await wb.getByRole('button', { name: 'Text', exact: true }).click();
+  const canvas = wb.getByRole('img', { name: /Screenshot/ });
+  // A real mouse click: the bug was the mousedown stealing focus back from the editor.
+  await canvas.click({ position: { x: 60, y: 40 } });
+  const label = wb.getByLabel('Label text');
+  await expect(label).toBeFocused();
+  await wb.keyboard.type('Wrong total');
+  await expect(label).toHaveValue('Wrong total');
+  await wb.keyboard.press('Enter');
+  await expect(wb.getByRole('img', { name: /1 text labels/ })).toBeVisible();
   await wb.getByRole('button', { name: 'Close' }).click();
   await wb.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
 });

@@ -60,4 +60,14 @@ describe('applyRedactions (spec section 5, export rule)', () => {
     expect(pixelBlockSize(600, 120)).toBe(20);
     expect(pixelBlockSize(601, 121)).toBe(21);
   });
+
+  it('a solid redaction can use a chosen colour and still overwrites every pixel', () => {
+    const out = noisyImage(width, height);
+    applyRedactions(out, width, height, [
+      { x: 0, y: 0, w: 10, h: 10, mode: 'fill', fill: [255, 255, 255] },
+    ]);
+    for (let y = 0; y < 10; y++) {
+      for (let x = 0; x < 10; x++) expect(pixel(out, width, x, y)).toEqual([255, 255, 255]);
+    }
+  });
 });

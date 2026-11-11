@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ToastData } from '../../shared/types';
 import { laqta } from '../shared/api';
 import { useI18n } from '../shared/i18n';
 import { CloseIcon, ErrorIcon, SuccessIcon } from '../shared/icons';
 import styles from './Toast.module.css';
+
+/** The result closes itself after this long, unless the pointer or focus is on it. */
+export const AUTO_CLOSE_MS = 8000;
 
 /** Board 4, cards 1 and 3: ResultToast and PartialFailureCard. */
 export default function Toast() {
@@ -12,6 +15,10 @@ export default function Toast() {
   const [copied, setCopied] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
+  // Hover or keyboard focus holds the toast open (WCAG 2.2.1); leaving restarts the full time.
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const card = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     void laqta.toastGet().then(setData);
@@ -21,6 +28,25 @@ export default function Toast() {
       if (s !== null) void laqta.toastGet().then(setData);
     });
   }, []);
+
+  // Main fits the window to the card, whatever the text length, language or state.
+  const hasData = data !== null;
+  useEffect(() => {
+    const el = card.current;
+    if (!el) return;
+    const report = () =>
+      void laqta.toastResize({ height: Math.ceil(el.getBoundingClientRect().height) });
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasData]);
+
+  // New content (first show, or the result of Retry upload) also restarts the time.
+  useEffect(() => {
+    if (data === null || hovered || focused || retrying) return;
+    const timer = setTimeout(() => void laqta.toastClose(), AUTO_CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [data, hovered, focused, retrying]);
 
   if (data === null) return null;
 
@@ -50,7 +76,16 @@ export default function Toast() {
   };
 
   return (
-    <div className={`${styles.card} ${data.kind === 'partial' ? styles.failure : ''}`}>
+    <div
+      ref={card}
+      className={`${styles.card} ${data.kind === 'partial' ? styles.failure : ''}`}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+      }}
+    >
       <button
         type="button"
         className={`btn btn-ghost ${styles.close}`}

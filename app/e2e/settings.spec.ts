@@ -10,6 +10,7 @@ import {
 } from '@playwright/test';
 import { format, t, type StringKey } from '../src/shared/strings';
 import { MockJira } from '../test/mock-jira';
+import { pick, valueOf } from './pick';
 
 // Settings › Jira › Default project (spec section 9, board 5): a Jira-backed dropdown that is
 // disabled until a connection works, falls back to a text input when the list fails, and
@@ -64,7 +65,7 @@ async function launchSettings(): Promise<Page> {
 }
 
 const projectField = (page: Page, lang: 'en' | 'ar' = 'en') =>
-  page.getByLabel(t(lang, 'settings.defaultProject'), { exact: true });
+  page.getByRole('combobox', { name: t(lang, 'settings.defaultProject'), exact: true });
 
 /** Types the mock's details and presses Test connection; waits for the success status. */
 async function connect(page: Page, url = jiraUrl): Promise<void> {
@@ -78,7 +79,7 @@ async function connect(page: Page, url = jiraUrl): Promise<void> {
 
 async function connectAndSave(page: Page, projectKey: string): Promise<void> {
   await connect(page);
-  await projectField(page).selectOption(projectKey);
+  await pick(projectField(page), projectKey);
   await page.getByRole('button', { name: en('settings.saveContinue'), exact: true }).click();
   await expect(page.getByText(en('settings.saved'), { exact: true })).toBeVisible();
 }
@@ -87,7 +88,7 @@ test('first run: the project select is disabled until Jira is connected', async 
   const page = await launchSettings();
   const select = projectField(page);
   await expect(select).toBeDisabled();
-  await expect(select).toHaveValue('');
+  await expect(select).toHaveAttribute(valueOf, '');
   await expect(page.getByText(en('settings.projectConnectFirst'), { exact: true })).toBeVisible();
   expect(mock.calls).toEqual([]);
 });
@@ -98,13 +99,16 @@ test('test connection lists the projects; the saved choice survives a reload', a
   const select = projectField(page);
   await expect(select).toBeEnabled();
   await expect(page.getByText(en('settings.projectConnectFirst'))).toHaveCount(0);
-  // The mock lists PROJ and REQ after the empty placeholder option.
-  await expect(select.locator('option')).toHaveCount(3);
-  await expect(select.locator('option[value=""]')).toHaveText(en('editor.projectPlaceholder'));
-  await expect(select.locator('option[value="PROJ"]')).toHaveCount(1);
-  await expect(select.locator('option[value="REQ"]')).toHaveCount(1);
+  // Nothing chosen yet: the placeholder shows; the list holds the mock's PROJ and REQ.
+  await expect(select).toHaveText(en('editor.projectPlaceholder'));
+  await select.click();
+  const options = page.getByRole('listbox', { name: en('settings.defaultProject') });
+  await expect(options.getByRole('option')).toHaveCount(2);
+  await expect(options.getByRole('option', { name: /^\W*PROJ\b/ })).toHaveCount(1);
+  await select.press('Escape');
+  await expect(options).toBeHidden();
 
-  await select.selectOption('REQ');
+  await pick(select, 'REQ');
   await page.getByRole('button', { name: en('settings.saveContinue'), exact: true }).click();
   await expect(page.getByText(en('settings.saved'), { exact: true })).toBeVisible();
   const stored = JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')) as {
@@ -116,7 +120,7 @@ test('test connection lists the projects; the saved choice survives a reload', a
   // A fresh mount loads the list with the saved connection (jira:listProjects).
   await page.reload();
   await expect(projectField(page)).toBeEnabled();
-  await expect(projectField(page)).toHaveValue('REQ');
+  await expect(projectField(page)).toHaveAttribute(valueOf, 'REQ');
   await expect(page.getByRole('button', { name: en('settings.save'), exact: true })).toBeVisible();
 });
 
@@ -125,7 +129,7 @@ test('editing the address disconnects the field; reverting it brings the list ba
   await connectAndSave(page, 'REQ');
   const address = page.getByLabel(en('settings.jiraAddress'), { exact: true });
   const select = projectField(page);
-  await expect(select).toHaveValue('REQ');
+  await expect(select).toHaveAttribute(valueOf, 'REQ');
 
   await address.fill(`${jiraUrl}/other`);
   await expect(select).toBeDisabled();
@@ -134,7 +138,7 @@ test('editing the address disconnects the field; reverting it brings the list ba
   // Regression: the field used to stay disconnected after typing the saved address back.
   await address.fill(jiraUrl);
   await expect(select).toBeEnabled();
-  await expect(select).toHaveValue('REQ');
+  await expect(select).toHaveAttribute(valueOf, 'REQ');
   await expect(page.getByText(en('settings.projectConnectFirst'))).toHaveCount(0);
 });
 
@@ -154,7 +158,7 @@ test('a failed project list falls back to a text input with Try again', async ()
   await banner.getByRole('button', { name: en('settings.projectRetry'), exact: true }).click();
   const select = page.getByRole('combobox', { name: en('settings.defaultProject'), exact: true });
   await expect(select).toBeEnabled();
-  await expect(select).toHaveValue('PROJ');
+  await expect(select).toHaveAttribute(valueOf, 'PROJ');
   await expect(select).toBeFocused();
   await expect(banner).toHaveCount(0);
 });

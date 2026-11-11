@@ -38,6 +38,7 @@ const api: LaqtaBridge = {
   settingsTestConnection: (p) => call(IPC.settingsTestConnection, p),
   toastGet: () => call(IPC.toastGet),
   toastClose: () => call(IPC.toastClose),
+  toastResize: (p) => call(IPC.toastResize, p),
   appOpenLink: (p) => call(IPC.appOpenLink, p),
   appCopyText: (p) => call(IPC.appCopyText, p),
   appOpenSettings: () => call(IPC.appOpenSettings),

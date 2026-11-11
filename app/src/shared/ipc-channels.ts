@@ -30,6 +30,7 @@ export const IPC = {
   draftKeepForLater: 'draft:keepForLater',
   toastGet: 'toast:get',
   toastClose: 'toast:close',
+  toastResize: 'toast:resize',
   appOpenLink: 'app:openLink',
   appCopyText: 'app:copyText',
   appOpenSettings: 'app:openSettings',

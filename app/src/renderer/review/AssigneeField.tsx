@@ -211,19 +211,11 @@ export default function AssigneeField({
           </button>
         )}
       </div>
-      <p id={`${listId}-msg`} className={styles.comboMessage} aria-live="polite">
-        {message ??
-          (value !== null && matchedFrom !== null ? (
-            <span className={styles.matched} dir="auto">
-              {f('review.matchedFrom', { query: matchedFrom })}
-            </span>
-          ) : null)}
-      </p>
       {open && (
         <ul
           id={listId}
           role="listbox"
-          className={styles.comboList}
+          className={`dropdown-list ${styles.comboList}`}
           aria-label={t('review.assignee')}
         >
           {options.map((c, i) => (
@@ -232,7 +224,7 @@ export default function AssigneeField({
               id={optionId(i)}
               role="option"
               aria-selected={value?.username === c.username}
-              className={`${styles.comboOption} ${i === active ? styles.comboOptionActive : ''}`}
+              className={`dropdown-option ${i === active ? 'dropdown-option-active' : ''}`}
               // mousedown, not click: the input's blur would close the list first.
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -256,8 +248,8 @@ export default function AssigneeField({
             id={optionId(options.length)}
             role="option"
             aria-selected={value === null && hint === null}
-            className={`${styles.comboOption} ${styles.comboUnassigned} ${
-              active === options.length ? styles.comboOptionActive : ''
+            className={`dropdown-option ${styles.comboUnassigned} ${
+              active === options.length ? 'dropdown-option-active' : ''
             }`}
             onMouseDown={(e) => {
               e.preventDefault();
@@ -268,6 +260,14 @@ export default function AssigneeField({
           </li>
         </ul>
       )}
+      <p id={`${listId}-msg`} className={styles.comboMessage} aria-live="polite">
+        {message ??
+          (value !== null && matchedFrom !== null ? (
+            <span className={styles.matched} dir="auto">
+              {f('review.matchedFrom', { query: matchedFrom })}
+            </span>
+          ) : null)}
+      </p>
     </div>
   );
 }

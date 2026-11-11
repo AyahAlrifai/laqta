@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampBar,
   modeBarPlacement,
   normalize,
   nudge,
@@ -74,5 +75,12 @@ describe('overlay selection', () => {
       width: 960,
       height: 420,
     });
+  });
+
+  it('keeps a dragged mode bar on screen', () => {
+    const size = { width: 300, height: 48 };
+    expect(clampBar({ x: -50, y: -10 }, size, bounds)).toEqual({ x: 8, y: 8 });
+    expect(clampBar({ x: 900, y: 790 }, size, bounds)).toEqual({ x: 692, y: 744 });
+    expect(clampBar({ x: 200, y: 300 }, size, bounds)).toEqual({ x: 200, y: 300 });
   });
 });

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron as electron, expect, test, type Page } from '@playwright/test';
 import { MockJira } from '../test/mock-jira';
+import { pick } from './pick';
 
 // Spec section 8.2: the golden path against a Jira Cloud-shaped server.
 
@@ -57,7 +58,7 @@ test('Jira Cloud: draft, pick assignee by accountId, create, attach', async () =
     await wb.keyboard.press('r');
     await wb.keyboard.press('Enter');
     await wb.getByLabel('What is wrong?').fill('The total is shown twice, assign Sara');
-    await wb.getByLabel('Project').selectOption('PROJ');
+    await pick(wb.getByRole('combobox', { name: 'Project' }), 'PROJ');
     await wb.getByRole('button', { name: 'Generate draft' }).click();
     await wb
       .getByRole('listbox', { name: 'Assignee' })

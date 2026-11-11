@@ -12,7 +12,22 @@ import type {
   SettingsView,
   VoiceLanguage,
 } from '../../shared/types';
-import { emptyHistory, type History, type RedactionMode, type Tool } from '../editor/model';
+import {
+  DEFAULT_COLORS,
+  emptyHistory,
+  type History,
+  type RedactionMode,
+  type ShapeKind,
+  type Tool,
+} from '../editor/model';
+
+/** A text label being typed on the image. `id` is set when editing an existing label. */
+export interface TextDraft {
+  id: string | null;
+  x: number;
+  y: number;
+  text: string;
+}
 
 // UI-only state for the workbench window (spec section 2: the flow state lives in main).
 
@@ -29,7 +44,9 @@ export interface WorkbenchStore {
   history: History;
   tool: Tool;
   redactionMode: RedactionMode;
-  textLabel: string;
+  /** The colour new shapes of each type get. */
+  colors: Record<ShapeKind, string>;
+  textDraft: TextDraft | null;
   selectedId: string | null;
   imageVersion: number;
   draftError: AppError | null;
@@ -61,7 +78,8 @@ export const useWorkbench = create<WorkbenchStore>((set) => ({
   history: emptyHistory(),
   tool: 'box',
   redactionMode: 'fill',
-  textLabel: '',
+  colors: { ...DEFAULT_COLORS },
+  textDraft: null,
   selectedId: null,
   imageVersion: 0,
   draftError: null,

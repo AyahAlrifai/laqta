@@ -1,10 +1,8 @@
-import { TEXT_SIZE, type Shape } from './model';
+import { DEFAULT_COLORS, hexToRgb, TEXT_SIZE, textOn, type Shape } from './model';
 import { applyRedactions } from './redact';
 
 // Canvas drawing for the editor. The same function draws the on-screen view and the final
 // export, so what the user sees is exactly what is sent.
-
-export const ANNOTATION_RED = '#D6362B';
 
 function drawRedactions(
   ctx: CanvasRenderingContext2D,
@@ -22,7 +20,14 @@ function drawRedactions(
     // Read the region from the output bitmap, overwrite it, write it back.
     const region = ctx.getImageData(x0, y0, x1 - x0, y1 - y0);
     applyRedactions(region.data, region.width, region.height, [
-      { x: 0, y: 0, w: region.width, h: region.height, mode: s.mode },
+      {
+        x: 0,
+        y: 0,
+        w: region.width,
+        h: region.height,
+        mode: s.mode,
+        fill: hexToRgb(s.color ?? DEFAULT_COLORS.redact),
+      },
     ]);
     ctx.putImageData(region, x0, y0);
   }
@@ -57,11 +62,13 @@ function drawAnnotations(
 ): void {
   const lw = Math.max(2, Math.round(3 * scale));
   ctx.lineWidth = lw;
-  ctx.strokeStyle = ANNOTATION_RED;
-  ctx.fillStyle = ANNOTATION_RED;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const s of shapes) {
+    if (s.kind === 'redact') continue;
+    const color = s.color ?? DEFAULT_COLORS[s.kind];
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
     if (s.kind === 'box') ctx.strokeRect(s.x, s.y, s.w, s.h);
     if (s.kind === 'arrow') drawArrow(ctx, s.x1, s.y1, s.x2, s.y2, lw);
     if (s.kind === 'text') {
@@ -70,14 +77,12 @@ function drawAnnotations(
       const metrics = ctx.measureText(s.text);
       const padX = Math.round(8 * scale);
       const padY = Math.round(6 * scale);
-      ctx.fillStyle = ANNOTATION_RED;
       ctx.beginPath();
       ctx.roundRect(s.x, s.y, metrics.width + padX * 2, size + padY * 2, Math.round(6 * scale));
       ctx.fill();
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = textOn(color);
       ctx.textBaseline = 'top';
       ctx.fillText(s.text, s.x + padX, s.y + padY);
-      ctx.fillStyle = ANNOTATION_RED;
     }
   }
 }

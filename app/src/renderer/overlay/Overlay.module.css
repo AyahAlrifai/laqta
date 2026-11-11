@@ -76,28 +76,116 @@
   position: absolute;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 2px;
   background: #fff;
-  border-radius: 14px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 5px;
   box-shadow: var(--shadow);
-  cursor: default;
+  cursor: grab;
+  touch-action: none;
+}
+
+.modeBar:active {
+  cursor: grabbing;
+}
+
+/* Once dragged, it stops following the selection; a soft outline shows it is pinned. */
+.modeBarMoved {
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px var(--hairline);
+}
+
+.grip {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9aa1ae;
+  cursor: grab;
+}
+
+.grip:hover {
+  background: var(--surface-muted);
+  color: var(--muted);
 }
 
 .modes {
   display: flex;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
-.modeActive {
+/* Compact (36 px); ::after keeps a 44 px tall hit area. */
+.barBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.barBtn::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.barBtn:hover:not(:disabled) {
+  background: var(--surface-muted);
+}
+
+.barBtn svg {
+  color: var(--muted);
+}
+
+.modeActive,
+.modeActive:hover:not(:disabled) {
   background: var(--accent-soft);
   color: var(--accent-ink);
   font-weight: 600;
 }
 
+.modeActive svg {
+  color: var(--accent);
+}
+
+.primary,
+.primary:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.primary svg {
+  color: #fff;
+}
+
+.primary:disabled {
+  background: var(--surface-muted);
+  color: #8a91a0;
+  cursor: not-allowed;
+}
+
+.primary:disabled svg {
+  color: #8a91a0;
+}
+
 .divider {
   width: 1px;
-  height: 32px;
+  height: 22px;
   background: var(--hairline);
   margin: 0 var(--space-1);
 }

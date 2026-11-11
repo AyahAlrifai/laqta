@@ -48,10 +48,25 @@
   gap: 2px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
-  padding: 4px;
+  border-radius: 12px;
+  padding: 3px;
   align-self: flex-start;
   box-shadow: 0 1px 2px rgba(20, 23, 31, 0.05);
+}
+
+/* Compact controls (34 px). Each one keeps a 44 px tall hit area through ::after. */
+.tool,
+.iconTool,
+.swatch {
+  position: relative;
+}
+
+.tool::after,
+.iconTool::after,
+.swatch::after {
+  content: '';
+  position: absolute;
+  inset: -5px 0;
 }
 
 .tool,
@@ -59,12 +74,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: var(--control-height);
+  gap: 5px;
+  height: 34px;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: 8px;
   background: transparent;
   color: var(--ink);
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -73,11 +89,11 @@
 }
 
 .tool {
-  padding: 0 var(--space-3);
+  padding: 0 10px;
 }
 
 .iconTool {
-  width: var(--control-height);
+  width: 34px;
   color: var(--muted);
 }
 
@@ -114,16 +130,68 @@
 
 .divider {
   width: 1px;
-  height: 24px;
+  height: 20px;
   background: var(--hairline);
   margin: 0 var(--space-1);
 }
 
-.subtools {
+/* ---------------------------------------------------------------- colours */
+
+.swatches {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  max-width: 480px;
+  gap: 2px;
+}
+
+.swatches[aria-disabled='true'] {
+  opacity: 0.35;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.swatch::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgba(20, 23, 31, 0.18);
+}
+
+.swatch:hover:not(:disabled) {
+  border-color: var(--hairline);
+}
+
+.swatch[aria-checked='true'] {
+  border-color: var(--ink);
+}
+
+.swatch:disabled {
+  cursor: not-allowed;
+}
+
+.toolHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.subtools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
 }
 
 .subLabel {
@@ -230,6 +298,16 @@
   background-size: 14px 14px;
 }
 
+.canvasBox {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .canvas {
   max-width: 100%;
   max-height: 56vh;
@@ -244,6 +322,62 @@
 
 .selectCursor {
   cursor: default;
+}
+
+.textCursor {
+  cursor: text;
+}
+
+/* The label being typed sits on the image, in the label's own colour and size. */
+.textEditor {
+  position: absolute;
+  z-index: 2;
+  min-width: 140px;
+  max-width: 60%;
+  border: 0;
+  border-radius: 5px;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px var(--accent),
+    0 4px 14px rgba(20, 23, 31, 0.25);
+  outline: none;
+}
+
+.textEditor::placeholder {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* Delete sits on the selected shape's corner, not in the toolbar. */
+.shapeDelete {
+  position: absolute;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  /* Physical, like the left/top it is placed with: the image is never mirrored. */
+  margin-left: -15px;
+  margin-top: -15px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(20, 23, 31, 0.3);
+}
+
+.shapeDelete::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
+
+.shapeDelete:hover {
+  background: var(--danger-ink);
 }
 
 .caption {
@@ -309,21 +443,21 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 34px;
   padding: 0 var(--space-3);
   border: 1px solid var(--hairline);
   border-radius: 999px;
   background: var(--surface-muted);
   color: var(--ink);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition:
     background-color 120ms ease,
     border-color 120ms ease;
 }
 
-/* The chips are 36 px tall; this keeps the hit area at 44 px. */
+/* The chips are 34 px tall; this keeps the hit area at 44 px. */
 .chip {
   position: relative;
 }
@@ -331,7 +465,7 @@
 .chip::after {
   content: '';
   position: absolute;
-  inset: -4px 0;
+  inset: -5px 0;
 }
 
 .chip svg {
@@ -341,6 +475,23 @@
 .chip:hover {
   background: var(--accent-soft);
   border-color: #c6d3fb;
+}
+
+/* Already in the request: the chip stays clickable and jumps to that line. */
+.chipAdded {
+  background: var(--success-soft);
+  border-color: #b5dcc5;
+  color: var(--success);
+}
+
+.chipAdded svg {
+  color: var(--success);
+}
+
+.chipsHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .field {
@@ -367,8 +518,8 @@
   flex-wrap: wrap;
 }
 
-.voiceRow select {
-  width: auto;
+.voiceSelect {
+  width: 200px;
 }
 
 .meter {
@@ -415,48 +566,6 @@
   font-size: 14px;
 }
 
-/* ---------------------------------------------------------------- drafting overlay */
-
-.drafting {
-  position: fixed;
-  inset: 0;
-  background: rgba(243, 244, 247, 0.82);
-  backdrop-filter: blur(6px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  font-size: 17px;
-  font-weight: 500;
-  z-index: 50;
-}
-
-.drafting p {
-  margin: 0;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 4px solid var(--accent-soft);
-  border-top-color: var(--accent);
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation: none;
-  }
-}
-
 /* ---------------------------------------------------------------- no-blur dialog */
 
 .dontAsk {
@@ -473,4 +582,11 @@
   height: 20px;
   margin: 0;
   accent-color: var(--accent);
+}
+
+/* The blur style switch matches the compact toolbar above it. */
+.subtools .segment label {
+  min-height: 30px;
+  min-width: 72px;
+  font-size: 13px;
 }

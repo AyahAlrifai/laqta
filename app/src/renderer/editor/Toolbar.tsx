@@ -1,7 +1,8 @@
-import type { ReactElement } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
+import type { StringKey } from '../../shared/strings';
 import { useI18n } from '../shared/i18n';
 import { useWorkbench } from '../workbench/store';
-import { commit, counts, redo, undo, type Tool } from './model';
+import { ANNOTATION_COLORS, commit, counts, redo, undo, type ShapeKind, type Tool } from './model';
 import styles from './Editor.module.css';
 import {
   ArrowIcon,
@@ -10,11 +11,24 @@ import {
   RedoIcon,
   SelectIcon,
   TextIcon,
-  TrashIcon,
   UndoIcon,
 } from './toolIcons';
 
-/** Board 2 toolbar: Select, Box, Arrow, Text, Blur (n), Undo, Redo, Delete. */
+const COLOR_NAMES: Record<(typeof ANNOTATION_COLORS)[number], StringKey> = {
+  '#D6362B': 'editor.colorRed',
+  '#F08C00': 'editor.colorOrange',
+  '#F5C400': 'editor.colorYellow',
+  '#1F9D55': 'editor.colorGreen',
+  '#2F5BEA': 'editor.colorBlue',
+  '#8B3FD9': 'editor.colorPurple',
+  '#14171F': 'editor.colorBlack',
+  '#FFFFFF': 'editor.colorWhite',
+};
+
+/**
+ * Board 2 toolbar: Select, Box, Arrow, Text, Blur (n), Undo, Redo, then the colour for the
+ * current tool or the selected shape. Deleting a shape is on the shape itself.
+ */
 export default function Toolbar() {
   const { t, f } = useI18n();
   const s = useWorkbench();
@@ -31,16 +45,34 @@ export default function Toolbar() {
       icon: BlurIcon,
     },
   ];
-  const removeSelected = () => {
-    if (s.selectedId === null) return;
-    s.set({
-      history: commit(
-        s.history,
-        s.history.present.filter((x) => x.id !== s.selectedId),
-      ),
-      selectedId: null,
-    });
+
+  // The colour row follows the selected shape, otherwise the tool that is about to draw.
+  const selected = s.history.present.find((x) => x.id === s.selectedId);
+  const colorKind: ShapeKind | null = selected?.kind ?? (s.tool === 'select' ? null : s.tool);
+  const pixelated =
+    selected?.kind === 'redact'
+      ? selected.mode === 'pixelate'
+      : colorKind === 'redact' && s.redactionMode === 'pixelate';
+  const currentColor =
+    colorKind === null ? null : (selected?.color ?? s.colors[colorKind]).toUpperCase();
+  const colorsDisabled = colorKind === null || pixelated;
+
+  const pickColor = (color: string) => {
+    if (colorKind === null) return;
+    const colors = { ...s.colors, [colorKind]: color };
+    if (selected) {
+      s.set({
+        colors,
+        history: commit(
+          s.history,
+          s.history.present.map((x) => (x.id === selected.id ? { ...x, color } : x)),
+        ),
+      });
+    } else {
+      s.set({ colors });
+    }
   };
+
   return (
     <div className={styles.toolbarWrap}>
       <div role="toolbar" aria-label={t('editor.tools')} className={styles.toolbar}>
@@ -84,57 +116,65 @@ export default function Toolbar() {
         >
           <RedoIcon />
         </button>
-        <button
-          type="button"
-          className={styles.iconTool}
-          onClick={removeSelected}
-          disabled={s.selectedId === null}
-          aria-label={t('editor.delete')}
-          title={t('editor.delete')}
-          aria-keyshortcuts="Delete"
-        >
-          <TrashIcon />
-        </button>
       </div>
-      {s.tool === 'redact' && (
-        <div className={styles.subtools}>
-          <span className={styles.subLabel} id="blur-mode-label">
-            {t('editor.blurMode')}
-          </span>
-          <div className={styles.segmented} role="radiogroup" aria-labelledby="blur-mode-label">
-            {(['fill', 'pixelate'] as const).map((mode) => (
-              <span key={mode} className={styles.segment}>
-                <input
-                  id={`blur-mode-${mode}`}
-                  type="radio"
-                  name="blur-mode"
-                  checked={s.redactionMode === mode}
-                  onChange={() => s.set({ redactionMode: mode })}
-                />
-                <label htmlFor={`blur-mode-${mode}`}>
-                  {mode === 'fill' ? t('editor.blurFill') : t('editor.blurPixelate')}
-                </label>
-              </span>
-            ))}
-          </div>
+      <div className={styles.subtools}>
+        <span className={styles.subLabel} aria-hidden="true">
+          {t('editor.color')}
+        </span>
+        <div
+          role="radiogroup"
+          aria-label={t('editor.color')}
+          aria-disabled={colorsDisabled}
+          className={styles.swatches}
+          title={
+            colorKind === null
+              ? t('editor.colorHint')
+              : pixelated
+                ? t('editor.colorPixelate')
+                : t('editor.color')
+          }
+        >
+          {ANNOTATION_COLORS.map((color) => (
+            <button
+              key={color}
+              type="button"
+              role="radio"
+              aria-checked={currentColor === color}
+              aria-label={t(COLOR_NAMES[color])}
+              title={t(COLOR_NAMES[color])}
+              className={styles.swatch}
+              style={{ '--swatch': color } as CSSProperties}
+              disabled={colorsDisabled}
+              onClick={() => pickColor(color)}
+            />
+          ))}
         </div>
-      )}
-      {s.tool === 'text' && (
-        <div className={styles.subtools}>
-          <label className={styles.subLabel} htmlFor="text-label-input">
-            {t('editor.textPrompt')}
-          </label>
-          <input
-            id="text-label-input"
-            className={`input ${styles.subInput}`}
-            dir="auto"
-            maxLength={80}
-            placeholder={t('editor.textPlaceholder')}
-            value={s.textLabel}
-            onChange={(e) => s.set({ textLabel: e.target.value })}
-          />
-        </div>
-      )}
+        {s.tool === 'redact' && (
+          <>
+            <span className={styles.divider} aria-hidden="true" />
+            <span className={styles.subLabel} id="blur-mode-label">
+              {t('editor.blurMode')}
+            </span>
+            <div className={styles.segmented} role="radiogroup" aria-labelledby="blur-mode-label">
+              {(['fill', 'pixelate'] as const).map((mode) => (
+                <span key={mode} className={styles.segment}>
+                  <input
+                    id={`blur-mode-${mode}`}
+                    type="radio"
+                    name="blur-mode"
+                    checked={s.redactionMode === mode}
+                    onChange={() => s.set({ redactionMode: mode })}
+                  />
+                  <label htmlFor={`blur-mode-${mode}`}>
+                    {mode === 'fill' ? t('editor.blurFill') : t('editor.blurPixelate')}
+                  </label>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {s.tool === 'text' && <p className={styles.toolHint}>{t('editor.textHint')}</p>}
       <p id="editor-shortcuts" className="visually-hidden">
         {t('editor.shortcuts')}
       </p>
