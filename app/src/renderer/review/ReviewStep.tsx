@@ -1,18 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import type {
-  AppError,
-  AssigneeCandidate,
-  BugDraft,
-  Priority,
-  ReviewState,
-} from '../../shared/types';
+import type { AppError, BugDraft, Priority, ReviewState } from '../../shared/types';
+import { fieldInputKind } from '../../shared/fields';
 import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
 import { useI18n } from '../shared/i18n';
 import { BackArrowIcon, PencilIcon, SparkleIcon } from '../shared/icons';
 import Shell from '../workbench/Shell';
 import { useWorkbench } from '../workbench/store';
-import AssigneePicker, { initials } from './AssigneePicker';
+import AssigneeField, { type AssigneeSuggestion } from './AssigneeField';
 import { buildApproved, missingRequired } from './approved';
 import OfflineCard from './OfflineCard';
 import styles from './Review.module.css';
@@ -31,14 +26,7 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
   const s = useWorkbench();
   const draft = s.draft;
   const session = s.session;
-  const [picker, setPicker] = useState<{
-    name: string | null;
-    candidates: AssigneeCandidate[];
-  } | null>(null);
-  const [searchText, setSearchText] = useState('');
-  const [searching, setSearching] = useState(false);
-  const [searchEmpty, setSearchEmpty] = useState<string | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
+  const [suggestion, setSuggestion] = useState<AssigneeSuggestion | null>(null);
   const [keptMessage, setKeptMessage] = useState<string | null>(null);
   const loaded = useRef(false);
   const state = session?.state;
@@ -70,13 +58,12 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
             s.set({ assignee: pre, assigneeConfirmed: true });
           } else if (resolution.candidates.length > 0) {
             // Ambiguous: the user must pick (spec section 1, hard requirement).
-            setPicker({ name: query, candidates: resolution.candidates });
+            setSuggestion({ kind: 'ambiguous', name: query, candidates: resolution.candidates });
           } else {
-            setShowSearch(true);
-            setSearchText(draft.assigneeTransliteration ?? query);
+            setSuggestion({ kind: 'none', name: draft.assigneeTransliteration ?? query });
           }
         })
-        .catch(() => setShowSearch(true));
+        .catch(() => setSuggestion({ kind: 'none', name: query }));
     } else if (draft.assigneeQuery === null) {
       s.set({ assigneeConfirmed: true });
     }
@@ -87,13 +74,11 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
 
   const update = (patch: Partial<BugDraft>) => s.set({ draft: { ...draft, ...patch } });
   const missing = missingRequired(s.createMeta, s.extraValues);
-  const pickerOpen = picker !== null;
   const canCreate =
     !inFlight &&
     draft.summary.trim() !== '' &&
     missing.length === 0 &&
     s.assigneeConfirmed &&
-    !pickerOpen &&
     s.createMeta !== null;
   const fieldErrors =
     s.createError?.code === 'FIELD_ERROR' ? (s.createError.fieldErrors ?? {}) : {};
@@ -135,24 +120,6 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
       setKeptMessage(saved ? t('offline.kept') : t('offline.cannotKeep'));
     } catch {
       setKeptMessage(t('offline.cannotKeep'));
-    }
-  }
-
-  async function search() {
-    if (searchText.trim() === '') return;
-    setSearching(true);
-    setSearchEmpty(null);
-    try {
-      const candidates = await laqta.jiraSearchAssignees({
-        projectKey: s.projectKey,
-        query: searchText.trim(),
-      });
-      if (candidates.length === 0) setSearchEmpty(searchText.trim());
-      else setPicker({ name: null, candidates });
-    } catch {
-      setSearchEmpty(searchText.trim());
-    } finally {
-      setSearching(false);
     }
   }
 
@@ -457,37 +424,19 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
             </div>
 
             <div className={styles.tiles2}>
-              <div className={`${styles.tile} ${styles.assignee}`}>
-                {s.assignee !== null ? (
-                  <>
-                    <span className={styles.avatar} aria-hidden="true">
-                      {initials(s.assignee.displayName)}
-                    </span>
-                    <span className={styles.flex}>
-                      <span className="label">{t('review.assignee')}</span>
-                      <strong dir="auto">{s.assignee.displayName}</strong>
-                      {s.resolution?.preselected === s.assignee.username &&
-                        s.resolution.matchedFrom !== null && (
-                          <span className={styles.matched} dir="auto">
-                            {f('review.matchedFrom', { query: s.resolution.matchedFrom })}
-                          </span>
-                        )}
-                    </span>
-                  </>
-                ) : (
-                  <span className={styles.flex}>
-                    <span className="label">{t('review.assignee')}</span>
-                    <strong>{t('review.unassigned')}</strong>
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => setShowSearch(true)}
+              <div className={styles.tile}>
+                <AssigneeField
+                  value={s.assignee}
+                  matchedFrom={
+                    s.assignee !== null && s.resolution?.preselected === s.assignee.username
+                      ? s.resolution.matchedFrom
+                      : null
+                  }
+                  suggestion={suggestion}
                   disabled={inFlight}
-                >
-                  {t('review.change')}
-                </button>
+                  search={(query) => laqta.jiraSearchAssignees({ projectKey: s.projectKey, query })}
+                  onChange={(assignee) => s.set({ assignee, assigneeConfirmed: true })}
+                />
               </div>
               <div className={styles.tile}>
                 <label className="label" htmlFor="labels">
@@ -514,52 +463,11 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
             </div>
           </section>
 
-          {showSearch && (
-            <div className={`${styles.card} ${styles.searchRow}`}>
-              <label className="label" htmlFor="assignee-search">
-                {t('review.searchAssignee')}
-              </label>
-              <div className={styles.row}>
-                <input
-                  id="assignee-search"
-                  className="input"
-                  dir="auto"
-                  maxLength={100}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void search()}
-                />
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => void search()}
-                  disabled={searching}
-                >
-                  {t('review.searchAssigneeButton')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    s.set({ assignee: null, assigneeConfirmed: true });
-                    setShowSearch(false);
-                  }}
-                >
-                  {t('picker.leaveUnassigned')}
-                </button>
-              </div>
-              {searchEmpty !== null && (
-                <p className={styles.muted}>
-                  {f('review.noAssigneeMatch', { query: searchEmpty })}
-                </p>
-              )}
-            </div>
-          )}
-
           {s.createMeta !== null && s.createMeta.requiredFields.length > 0 && (
             <div className={`${styles.card} ${styles.required}`}>
               {s.createMeta.requiredFields.map((field) => {
                 const id = `rf-${field.id}`;
+                const kind = fieldInputKind(field);
                 const value = s.extraValues[field.id] ?? '';
                 const setValue = (v: string) =>
                   s.set({ extraValues: { ...s.extraValues, [field.id]: v } });
@@ -568,7 +476,7 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
                     <label className="label" htmlFor={id}>
                       {f('review.requiredField', { name: field.name })}
                     </label>
-                    {field.allowedValues ? (
+                    {kind === 'select' && field.allowedValues ? (
                       <select
                         id={id}
                         className="select"
@@ -584,6 +492,19 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
                           </option>
                         ))}
                       </select>
+                    ) : kind === 'date' || kind === 'datetime' || kind === 'number' ? (
+                      // Native pickers: keyboard, screen reader and locale support for free,
+                      // and they only ever produce the ISO format Jira expects.
+                      <input
+                        id={id}
+                        className="input"
+                        type={kind === 'datetime' ? 'datetime-local' : kind}
+                        dir="ltr"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        aria-invalid={missing.includes(field.id)}
+                        required
+                      />
                     ) : (
                       <input
                         id={id}
@@ -611,19 +532,6 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
           </p>
         </section>
       </div>
-
-      {picker !== null && (
-        <AssigneePicker
-          name={picker.name}
-          candidates={picker.candidates}
-          onCancel={() => setPicker(null)}
-          onPick={(c) => {
-            s.set({ assignee: c, assigneeConfirmed: true });
-            setPicker(null);
-            setShowSearch(false);
-          }}
-        />
-      )}
     </Shell>
   );
 }

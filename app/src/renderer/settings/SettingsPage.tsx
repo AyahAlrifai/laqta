@@ -120,7 +120,15 @@ export default function SettingsPage() {
       setForm(v.settings);
       loadSavedProjects(v);
     });
-    void laqta.permissionsGet().then(setPerm);
+    void laqta.permissionsGet().then((p) => {
+      setPerm(p);
+      // Opened because capture lacks permission: go straight to the section that fixes it.
+      if (p.platform === 'darwin' && p.screen !== 'granted') setSection('permissions');
+    });
+    // Coming back from System Settings: show the new status without reopening the window.
+    const refresh = () => void laqta.permissionsGet().then(setPerm);
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once; later loads run on save
   }, []);
 
@@ -739,18 +747,35 @@ export default function SettingsPage() {
                           {t('perm.allowed')}
                         </span>
                       ) : (
-                        <button
-                          type="button"
-                          className="btn"
-                          onClick={() => void laqta.permissionsOpenSystemSettings({ kind })}
-                        >
-                          {t('perm.openSettings')}
-                        </button>
+                        <span className={styles.permActions}>
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => void laqta.permissionsOpenSystemSettings({ kind })}
+                          >
+                            {t('perm.openSettings')}
+                          </button>
+                          {kind === 'screen' && (
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={() => void laqta.appRelaunch()}
+                              aria-describedby="perm-restart-help"
+                            >
+                              {t('perm.restart')}
+                            </button>
+                          )}
+                        </span>
                       )}
                     </Row>
                   );
                 })}
               </section>
+              {perm.screen !== 'granted' && (
+                <p id="perm-restart-help" className={styles.note}>
+                  {t('perm.restartHelp')}
+                </p>
+              )}
               <p className={styles.note}>{t('perm.note')}</p>
             </>
           )}

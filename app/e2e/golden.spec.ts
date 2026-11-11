@@ -111,14 +111,18 @@ async function captureAndAsk(prompt: string): Promise<Page> {
 
 test('golden path: capture, annotate, redact, draft, review, pick assignee, create, attach, toast', async () => {
   const wb = await captureAndAsk('The total is shown twice, assign Sara');
-  // Two Saras: the picker opens with nothing preselected and a disabled confirm.
-  const picker = wb.getByRole('dialog');
-  await expect(picker.getByRole('heading', { name: 'Which Sara did you mean?' })).toBeVisible();
-  await expect(picker.getByRole('button', { name: 'Use selected' })).toBeDisabled();
+  // Two Saras: the assignee list opens with nothing chosen and Create stays disabled.
+  const assignee = wb.getByRole('combobox', { name: 'Assignee' });
+  const options = wb.getByRole('listbox', { name: 'Assignee' });
+  await expect(
+    wb.getByText('More than one person matches “Sara”. Pick one to continue.'),
+  ).toBeVisible();
+  await expect(options.getByRole('option')).toHaveCount(3); // two Saras + Leave unassigned
+  await expect(wb.getByRole('button', { name: 'Create bug in PROJ' })).toBeDisabled();
   await shot(wb, '4-picker');
-  await picker.getByRole('radio', { name: /Sara H\./ }).check();
-  await picker.getByRole('button', { name: 'Use selected' }).click();
-  await expect(wb.getByText('Sara H.')).toBeVisible();
+  await options.getByRole('option', { name: /Sara H\./ }).click();
+  await expect(assignee).toHaveValue('Sara H.');
+  await expect(options).toBeHidden();
   await shot(wb, '3-review');
   expect(mock.createCalls).toBe(0); // nothing written before the click
   await wb.getByRole('button', { name: 'Create bug in PROJ' }).click();

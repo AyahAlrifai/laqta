@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Turn a screenshot and one sentence into a reviewed Jira bug.",
+  "author": "Ayah Refai <alrefayayah@gmail.com>",
   "main": "out/main/index.js",
   "scripts": {
     "postinstall": "install-electron",

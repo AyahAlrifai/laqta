@@ -170,6 +170,7 @@ Every handler answers `{ ok: true, value } | { ok: false, error: AppError }`; th
 | `toast:get` / `toast:close` | toast to main | none | `ToastData \| null` / none |
 | `app:openLink` | any to main | `{ url }` (Jira host only) | none |
 | `app:copyText`, `app:openSettings`, `window:close` | any to main | `{ text }` / none | none |
+| `app:relaunch` | settings to main | none | none (restarts Laqta so macOS applies a new Screen Recording grant; the next start opens Settings) |
 | `permissions:get`, `permissions:openSystemSettings`, `permissions:requestMicrophone` | settings, workbench to main | none / `{ kind }` | `PermissionStatus` / none / `boolean` |
 
 `settings:get` returns `SettingsView` and `settings:set` takes `SettingsSetRequest` (the token is write-only) and returns `SettingsSetResult` (with hotkey conflicts). `settings:testConnection` takes an optional token; empty means the stored one. On success it also returns the projects visible with those details (omitted if that call fails), so Settings can offer the Default project dropdown before the details are saved. The Default project is only chosen from that list: while there is no working connection the field is disabled and says to connect first. If the list cannot be loaded while connected, the user may type the key instead. Jira URLs must be https; the only exception is E2E runs of unpackaged builds (`LAQTA_E2E=1`), where `settings:testConnection`, `settings:set` and the settings store also accept `http://127.0.0.1` so the Settings flow can be tested against the mock Jira. `jira:loadCreateMeta` takes an optional `issueTypeName` so the review form can reload required fields when the type changes.
@@ -409,7 +410,7 @@ All calls use `net.fetch` from the main process with `Authorization: Bearer <PAT
 }
 ```
 
-Omit `priority` and `assignee` when null. Merge `extraFields` for required custom fields, shaped from the allowed values in `CreateMeta`.
+Omit `priority` and `assignee` when null. Merge `extraFields` for required custom fields, shaped from the allowed values in `CreateMeta`. Required fields of schema type `date` (for example Start date and Due date) are asked for with a date picker and sent as `yyyy-MM-dd`; `datetime` fields use a date-and-time picker and are sent as `yyyy-MM-dd'T'HH:mm:ss.SSSZ` with the reporter's UTC offset.
 
 **Description builder** (`jira/wiki.ts`, built by the app from the approved fields, never taken from the model as one string)
 
@@ -436,7 +437,7 @@ _Created with Laqta from <appName>. Draft written by AI, reviewed and approved b
 3. If the result is unknown (timeout, connection reset after sending), enter `verifying`: search for the request label up to three times with 2, 4 and 8 second waits. If found, take its key and go to step 4. If not found, return `failed` with `retryable: true`. If the server answered with a clear error (400, 401, 403, 404), return `failed` with the mapped error and no verify step.
 4. Upload the PNG as `laqta-<requestId>.png` with up to three attempts and backoff. Success returns `ok`. Failure returns `partial` with the issue key, and Retry upload calls only step 4 again.
 
-**Assignee resolution** (`jira/assignee.ts`): try the query as spoken, then the transliteration, then the first name fragment. Collect candidates, remove duplicates by username, and sort by exact display-name match, then prefix match. Zero candidates: the preview shows an empty assignee and a search box. One candidate with an exact match: preselect it and show how it was matched. More than one: show the picker with nothing preselected and a disabled confirm button (design board 4, card 2).
+**Assignee resolution** (`jira/assignee.ts`): try the query as spoken, then the transliteration, then the first name fragment. Collect candidates, remove duplicates by username, and sort by exact display-name match, then prefix match. The Review step shows the assignee as one search field (a combobox): typing searches Jira, the list shows matching people plus "Leave unassigned", and a clear button removes the assignee. Zero candidates: the field shows the name with a "no one matched" message. One candidate with an exact match: preselect it and show how it was matched. More than one: the field opens its list with the candidates and nothing chosen, says that one must be picked, and Create stays disabled until the user picks someone or leaves it unassigned. This replaces the separate search card and the picker dialog of design board 4, card 2 (changed at the product owner's request).
 
 **Duplicate check** (`jira/duplicates.ts`): take up to six words of four or more letters from the summary, escape quotes and backslashes, and query `project = "KEY" AND resolution = Unresolved AND created >= -90d AND text ~ "words" ORDER BY created DESC`. Show hits as a warning with an Open button. It never blocks creation.
 
@@ -468,6 +469,8 @@ The same flow also works against Jira Cloud (`*.atlassian.net`), chosen by `Sett
 | Myself | `name`, `displayName` | `accountId`, `displayName` |
 | Create, attach, priorities, projects, description | unchanged: REST v2 with wiki markup, `X-Atlassian-Token: no-check`, field `file` | same |
 
+On Cloud every POST (search, create and attach) also needs `X-Atlassian-Token: no-check`. Requests go out through Chromium, so Jira Cloud sees a browser user agent and applies its XSRF check to all POSTs: without the header they get 403 while GETs still work. The app sends the header on every POST for both deployments.
+
 `AssigneeCandidate.username` and `ApprovedBug.assigneeUsername` hold the Cloud `accountId` when the deployment is Cloud.
 
 ### 8.1 Clarifications made during the build
@@ -487,7 +490,7 @@ The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/art
 | 1 Capture | Overlay, one per display | `SelectionBox`, `SizePill`, `ModeBar`, `StatusPill` | Drag, 8 handles, arrow-key nudge, Shift resizes, Enter continues, Esc cancels. The mode bar flips above the selection near the screen bottom |
 | 2 Annotate and ask | Workbench step 1 | `Toolbar`, `AnnotationCanvas`, `PromptBox`, `MicButton` (Phase 2), `QuickStartChips`, `ProjectSelect`, `LanguageSelect`, `PrivacyNote` | The request box has `dir="auto"` and a font stack that includes an Arabic font. Quick start chips insert starter text. Generate draft runs the no-redaction confirm first |
 | 3 Review | Workbench step 2 | `AiBanner`, `DuplicateBanner`, `SummaryInput`, `DescriptionEditor`, `StepsInput`, `FieldTile`, `AssigneeTile` with Change, `AttachmentCard`, footer with write notice | Every field is editable. The footer states that nothing is written until Create bug. Missing information is highlighted and asks for input |
-| 4 Result and states | Toast, picker, tray | `ResultToast`, `AssigneePicker` (radio group, nothing preselected, disabled confirm), `PartialFailureCard`, `TrayMenu` (menu roles, connection status row) | Retry upload only uploads the image. The tray shows Connected or Offline |
+| 4 Result and states | Toast, picker, tray | `ResultToast`, `AssigneeField` (combobox, see section 8; nothing preselected when ambiguous, Create disabled until a choice), `PartialFailureCard`, `TrayMenu` (menu roles, connection status row) | Retry upload only uploads the image. The tray shows Connected or Offline |
 | 5 First run and errors | Settings and dialogs | `SignInForm`, `PermissionGuide` (macOS), `OfflineCard`, `ConfirmDialog` | Test connection before saving. Tokens are shown masked. Offline keeps the draft encrypted for a short, configurable period |
 
 **Shared rules**
@@ -549,6 +552,8 @@ webPreferences: {
 **Auto-update:** `electron-updater` with a generic provider pointing to an internal https feed. Check on start and every four hours, download in the background, install on quit. Support a staged rollout percentage in the feed (confirm the exact option in the electron-updater documentation) and a `minimumVersion` field in the central config that forces an update prompt. Keep the previous two releases on the feed for rollback.
 
 **Kill switch:** the app fetches a small signed JSON at start (`status.json`) that can disable AI drafting or the whole app with a message. If the fetch fails, the app keeps its last known state.
+
+**Unsigned test builds (added at the product owner's request).** `pnpm dist:mac:unsigned` (on a Mac) and `pnpm dist:win:unsigned` (on Windows) build installers for trying Laqta outside the company, from `electron-builder.unsigned.yml`: it extends the release config without a certificate (macOS gets an ad-hoc signature and no hardened runtime), without notarization and without an update feed, and writes to `app/dist-unsigned/`. They run the same release build and bundle check first. Without a gateway URL these builds draft with the user's own Claude Code (Settings › AI, section 7). They are never published as release artefacts; GitLab has manual jobs for them (`build-win-unsigned`, `build-mac-unsigned`). `docs/install-unsigned.md` is the guide for people who receive one.
 
 ### 11.1 Kill switch format (proposal, to confirm with DevOps and Security)
 

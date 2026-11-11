@@ -26,3 +26,13 @@ export function showsDockIcon(
 ): boolean {
   return platform === 'darwin' && !isPackaged && !e2e;
 }
+
+/**
+ * Release builds hide the Dock icon while Laqta only sits in the menu bar, but show it while
+ * one of its own windows (the bug workbench or Settings) is open. Otherwise a user who
+ * switches to another app mid-report has no Dock or Cmd+Tab entry to come back with, and on
+ * notched Macs the tray icon is often hidden too.
+ */
+export function wantsDockIcon(alwaysShown: boolean, hasAppWindow: boolean): boolean {
+  return alwaysShown || hasAppWindow;
+}

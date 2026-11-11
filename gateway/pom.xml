@@ -15,6 +15,12 @@
   <version>0.1.0</version>
   <name>Laqta AI gateway</name>
   <description>Holds the Claude key, drafts bugs and transcribes speech for the Laqta app (spec sections 7 and 13, M7).</description>
+  <developers>
+    <developer>
+      <name>Ayah Refai</name>
+      <email>alrefayayah@gmail.com</email>
+    </developer>
+  </developers>
 
   <properties>
     <java.version>17</java.version>

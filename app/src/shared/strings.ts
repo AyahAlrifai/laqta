@@ -151,12 +151,13 @@ const en = {
   'review.aiSuggested': 'AI suggested',
   'review.priorityNone': 'None',
   'review.assignee': 'Assignee',
-  'review.unassigned': 'Unassigned',
   'review.matchedFrom': 'Matched from “{query}”, can be assigned in this project',
-  'review.change': 'Change',
-  'review.searchAssignee': 'Search people',
-  'review.searchAssigneeButton': 'Search',
-  'review.noAssigneeMatch': 'No one matched “{query}”. Search for a person or leave it unassigned.',
+  'review.noAssigneeMatch': 'No one matched “{query}”. Type another name or leave it unassigned.',
+  'review.assigneePlaceholder': 'Unassigned. Type a name to search',
+  'review.assigneeSearching': 'Searching…',
+  'review.assigneeSearchFailed': 'The search did not work. Try again.',
+  'review.assigneeClear': 'Remove assignee',
+  'review.assigneeAmbiguous': 'More than one person matches “{name}”. Pick one to continue.',
   'review.labels': 'Labels',
   'review.requiredField': '{name} (required)',
   'review.chooseValue': 'Choose a value',
@@ -170,11 +171,7 @@ const en = {
   'review.loadingMeta': 'Loading project fields…',
 
   // assignee picker (board 4, card 2)
-  'picker.title': 'Which {name} did you mean?',
-  'picker.titleGeneric': 'Which person did you mean?',
-  'picker.pickOne': 'Pick one to continue.',
   'picker.leaveUnassigned': 'Leave unassigned',
-  'picker.useSelected': 'Use selected',
 
   // result (board 4, cards 1 and 3)
   'result.created': 'Bug {key} created',
@@ -306,6 +303,9 @@ const en = {
   'perm.microphone': 'Microphone',
   'perm.allowed': 'Allowed',
   'perm.openSettings': 'Open System Settings',
+  'perm.restart': 'Restart Laqta',
+  'perm.restartHelp':
+    'After you turn on Laqta in System Settings, restart Laqta so macOS applies the change.',
   'perm.note':
     'Microphone is optional. You can always type your request. After you allow Screen Recording, macOS may ask you to restart the app.',
 
@@ -485,12 +485,13 @@ const ar: Dictionary = {
   'review.aiSuggested': 'اقتراح الذكاء الاصطناعي',
   'review.priorityNone': 'بدون',
   'review.assignee': 'المسؤول',
-  'review.unassigned': 'غير مسند',
   'review.matchedFrom': 'تمت المطابقة من “{query}”، ويمكن إسناده في هذا المشروع',
-  'review.change': 'تغيير',
-  'review.searchAssignee': 'ابحث عن شخص',
-  'review.searchAssigneeButton': 'بحث',
-  'review.noAssigneeMatch': 'لم يطابق أحد “{query}”. ابحث عن شخص أو اتركه غير مسند.',
+  'review.noAssigneeMatch': 'لم يطابق أحد “{query}”. اكتب اسماً آخر أو اتركه غير مسند.',
+  'review.assigneePlaceholder': 'غير مسند. اكتب اسماً للبحث',
+  'review.assigneeSearching': 'جارٍ البحث…',
+  'review.assigneeSearchFailed': 'لم ينجح البحث. حاول مجدداً.',
+  'review.assigneeClear': 'أزل المسؤول',
+  'review.assigneeAmbiguous': 'أكثر من شخص يطابق “{name}”. اختر واحداً للمتابعة.',
   'review.labels': 'التسميات',
   'review.requiredField': '{name} (مطلوب)',
   'review.chooseValue': 'اختر قيمة',
@@ -503,11 +504,7 @@ const ar: Dictionary = {
   'review.fieldErrorsLead': 'رفض Jira بعض الحقول:',
   'review.loadingMeta': 'جارٍ تحميل حقول المشروع…',
 
-  'picker.title': 'أي {name} تقصد؟',
-  'picker.titleGeneric': 'أي شخص تقصد؟',
-  'picker.pickOne': 'اختر واحداً للمتابعة.',
   'picker.leaveUnassigned': 'اتركه غير مسند',
-  'picker.useSelected': 'استخدم المحدد',
 
   'result.created': 'تم إنشاء الخطأ {key}',
   'result.assignedAttached': 'أُسند إلى {name}. لقطة الشاشة مرفقة.',
@@ -631,6 +628,8 @@ const ar: Dictionary = {
   'perm.microphone': 'الميكروفون',
   'perm.allowed': 'مسموح',
   'perm.openSettings': 'افتح إعدادات النظام',
+  'perm.restart': 'أعد تشغيل لقطة',
+  'perm.restartHelp': 'بعد تفعيل لقطة في إعدادات النظام، أعد تشغيل لقطة ليطبّق macOS التغيير.',
   'perm.note':
     'الميكروفون اختياري. يمكنك دائماً كتابة طلبك. بعد السماح بتسجيل الشاشة، قد يطلب macOS إعادة تشغيل التطبيق.',
 

@@ -43,6 +43,7 @@ pnpm dev             # electron-vite dev (macOS: as Laqta.app, see below)
 pnpm build           # dev build (includes the direct provider)
 pnpm build:release && pnpm check:release   # release build, proves no ANTHROPIC_API_KEY in the bundle
 pnpm dist:win | pnpm dist:mac              # electron-builder (needs signing variables)
+pnpm dist:mac:unsigned | pnpm dist:win:unsigned   # unsigned test installers in app/dist-unsigned (Windows one must run on Windows)
 pnpm mock-jira       # standalone mock Jira on :4545 (token e2e-token)
 pnpm eval            # T-033 eval over fixtures/ (needs ANTHROPIC_API_KEY)
 pnpm spike:jira      # T-002 spike against a sandbox (JIRA_URL, JIRA_PAT, JIRA_PROJECT)
@@ -59,7 +60,7 @@ Version notes: TypeScript is pinned to 6.0.x because typescript-eslint supports 
 
 ## Running the app locally (macOS)
 
-- Start the built app: `pnpm start` (builds, then runs). On macOS, `pnpm dev` and `pnpm start` go through `tools/dev-bundle.cjs`, which runs a renamed copy of Electron.app (`app/.dev/Laqta.app`, git-ignored) so the Dock, the app menu and Cmd+Tab show "Laqta" with its icon. Development runs keep the Dock icon (clicking it acts like the tray click); release builds are menu-bar only (`LSUIElement`).
+- Start the built app: `pnpm start` (builds, then runs). On macOS, `pnpm dev` and `pnpm start` go through `tools/dev-bundle.cjs`, which runs a renamed copy of Electron.app (`app/.dev/Laqta.app`, git-ignored) so the Dock, the app menu and Cmd+Tab show "Laqta" with its icon. Development runs keep the Dock icon (clicking it acts like the tray click); release builds are menu-bar only (`LSUIElement`) but show the Dock icon while the workbench or Settings is open, so a report in progress can be reached from the Dock or Cmd+Tab. During capture, Esc is a temporary global shortcut so it cancels before the overlay has focus. After a Screen Recording permission restart (System Settings' Quit & Reopen or Settings' Restart button) Laqta opens Settings, because otherwise it comes back silently in the menu bar.
 - Single instance: launching again makes the running copy show Settings (or focus the active session), then the new copy exits. Settings also opens at start-up while Jira is not configured.
 - On notched Macs the tray icon is often hidden when the active app has long menus. Use the hotkey or relaunch instead.
 - Default capture hotkeys are `Control+Shift+J` and `Control+Shift+W` (⌘⇧J is Notion AI's global shortcut and does not show up as a registration conflict).

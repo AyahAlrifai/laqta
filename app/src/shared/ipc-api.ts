@@ -76,6 +76,8 @@ export interface LaqtaApi {
   appOpenLink(p: { url: string }): Promise<void>;
   appCopyText(p: { text: string }): Promise<void>;
   appOpenSettings(): Promise<void>;
+  /** Restarts Laqta (Settings only), so macOS applies a new Screen Recording grant. */
+  appRelaunch(): Promise<void>;
   permissionsGet(): Promise<PermissionStatus>;
   permissionsOpenSystemSettings(p: { kind: 'screen' | 'microphone' }): Promise<void>;
   permissionsRequestMicrophone(): Promise<boolean>;

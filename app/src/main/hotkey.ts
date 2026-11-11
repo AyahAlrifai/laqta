@@ -33,6 +33,26 @@ export function registerHotkeys(
   return conflicts;
 }
 
+const ESCAPE = 'Escape';
+
+/**
+ * While the capture overlay is up, Esc must cancel even before the user clicks: a menu-bar
+ * app is not always made key on macOS, so the overlay page may not receive keyboard events.
+ * A global shortcut does not depend on focus. It is removed as soon as the overlay closes.
+ */
+export function registerCaptureEscape(onEscape: () => void): void {
+  if (globalShortcut.isRegistered(ESCAPE)) return;
+  try {
+    globalShortcut.register(ESCAPE, onEscape);
+  } catch {
+    // The overlay's own key handler still works once it has focus.
+  }
+}
+
+export function unregisterCaptureEscape(): void {
+  if (globalShortcut.isRegistered(ESCAPE)) globalShortcut.unregister(ESCAPE);
+}
+
 export function unregisterHotkeys(): void {
   globalShortcut.unregisterAll();
 }

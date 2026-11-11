@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { resolveAssignee } from '../src/main/jira/assignee';
-import { JiraClient } from '../src/main/jira/client';
+import { JiraClient, logPath } from '../src/main/jira/client';
 import { createBug } from '../src/main/jira/create-bug';
 import { loadCreateMeta } from '../src/main/jira/create-meta';
 import { checkDuplicates } from '../src/main/jira/duplicates';
@@ -117,5 +117,25 @@ describe('Jira Cloud (spec section 8.2)', () => {
     ];
     const hits = await checkDuplicates(cloudClient(), 'PROJ', 'Invoice total shown twice');
     expect(hits.map((h) => h.key)).toEqual(['PROJ-9']);
+  });
+
+  it('sends the XSRF opt-out on every POST, so Cloud does not answer 403', async () => {
+    const plain = await fetch(`${baseUrl}${JIRA.search('cloud')}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from('tester@example.test:cloud-api-token').toString('base64')}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+    expect(plain.status).toBe(403);
+    await expect(checkDuplicates(cloudClient(), 'PROJ', 'Invoice total')).resolves.toBeDefined();
+  });
+
+  it('logs the endpoint without its query string', () => {
+    expect(logPath('/rest/api/2/user/assignable/search?project=PROJ&query=sara')).toBe(
+      '/rest/api/2/user/assignable/search',
+    );
+    expect(logPath('/rest/api/2/issue')).toBe('/rest/api/2/issue');
   });
 });

@@ -1,9 +1,10 @@
 import { join } from 'node:path';
-import { app } from 'electron';
+import { app, session } from 'electron';
 import { LaqtaApp } from './app';
 import type { DraftProvider } from './ai/provider';
 import { fileSink, log, setLogSink } from './log';
 import { showsDockIcon } from './tray-icon';
+import { installApiRequestHeaders } from './api-session';
 import { installSessionPolicy } from './windows';
 
 // App lifecycle (spec section 2): single-instance lock, tray, start-up and quit.
@@ -49,6 +50,7 @@ if (!app.requestSingleInstanceLock()) {
       app.dock?.hide();
     }
     installSessionPolicy();
+    installApiRequestHeaders(session.defaultSession);
     laqta = new LaqtaApp(await loadDevProvider());
     await laqta.start();
   });

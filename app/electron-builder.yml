@@ -4,7 +4,7 @@
 #            APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for notarization (notarytool)
 appId: com.laqta.app
 productName: Laqta
-copyright: Copyright © Laqta
+copyright: Copyright © 2026 Ayah Refai
 directories:
   output: dist
   buildResources: build

@@ -139,6 +139,13 @@ export class MockJira {
       json(res, 401, { errorMessages: ['unauthorized'] });
       return;
     }
+    // Jira Cloud runs its XSRF check on every POST from a browser-like client, which is what
+    // Electron's net.fetch looks like, so Cloud mode insists on the opt-out header everywhere.
+    if (cloud && method === 'POST' && req.headers['x-atlassian-token'] !== 'no-check') {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('XSRF check failed');
+      return;
+    }
     if (this.config.delayMs > 0) await sleep(this.config.delayMs);
 
     if (method === 'GET') {

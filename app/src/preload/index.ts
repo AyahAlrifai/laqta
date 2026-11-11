@@ -41,6 +41,7 @@ const api: LaqtaBridge = {
   appOpenLink: (p) => call(IPC.appOpenLink, p),
   appCopyText: (p) => call(IPC.appCopyText, p),
   appOpenSettings: () => call(IPC.appOpenSettings),
+  appRelaunch: () => call(IPC.appRelaunch),
   permissionsGet: () => call(IPC.permissionsGet),
   permissionsOpenSystemSettings: (p) => call(IPC.permissionsOpenSystemSettings, p),
   permissionsRequestMicrophone: () => call(IPC.permissionsRequestMicrophone),

@@ -17,6 +17,7 @@ import {
   systemPreferences,
   Tray,
   type IpcMainInvokeEvent,
+  type Rectangle,
 } from 'electron';
 import { join } from 'node:path';
 import type { z } from 'zod';
@@ -71,6 +72,7 @@ import type {
 } from '../shared/types';
 import { attachmentFileName } from '../shared/wiki';
 import { requestDraft } from './ai/draft-service';
+import { installApiRequestHeaders } from './api-session';
 import { FakeDraftProvider } from './ai/fake-provider';
 import { ClaudeCodeProvider, resolveClaudeCommand } from './ai/claude-code';
 import { GatewayProvider } from './ai/gateway-provider';
@@ -91,7 +93,9 @@ import { config } from './config';
 import { appError, AppFailure, setErrorLanguage } from './errors';
 import {
   displayAccelerator,
+  registerCaptureEscape,
   registerHotkeys,
+  unregisterCaptureEscape,
   unregisterHotkeys,
   type HotkeyBinding,
 } from './hotkey';
@@ -118,7 +122,8 @@ import { EncryptionUnavailableError, TokenStore, type Crypter } from './settings
 import { SettingsStore } from './settings/store';
 import { Telemetry } from './telemetry';
 import { buildTrayTemplate, type ConnectionStatus, type RecentIssue } from './tray-menu';
-import { trayIconFileName, resourcesDir } from './tray-icon';
+import { markPermissionRestart, takePermissionRestart } from './permission-restart';
+import { resourcesDir, showsDockIcon, trayIconFileName, wantsDockIcon } from './tray-icon';
 import { startAutoUpdates } from './updater';
 import { GatewayTranscriber, UnavailableTranscriber, type Transcriber } from './voice/transcriber';
 import {
@@ -174,8 +179,21 @@ const fetchViaNet: FetchLike = (input, init) => net.fetch(input, init);
  * fresh connection that Chromium will not silently resend. It still uses the system proxy
  * and certificate store.
  */
-const fetchOnFreshConnection: FetchLike = (input, init) =>
-  session.fromPartition(`laqta-create-${randomUUID()}`, { cache: false }).fetch(input, init);
+const fetchOnFreshConnection: FetchLike = (input, init) => {
+  const fresh = session.fromPartition(`laqta-create-${randomUUID()}`, { cache: false });
+  installApiRequestHeaders(fresh);
+  return fresh.fetch(input, init);
+};
+
+function displayUnderCursor(bounds: Rectangle): boolean {
+  const cursor = screen.getCursorScreenPoint();
+  return (
+    cursor.x >= bounds.x &&
+    cursor.x < bounds.x + bounds.width &&
+    cursor.y >= bounds.y &&
+    cursor.y < bounds.y + bounds.height
+  );
+}
 
 export class LaqtaApp {
   private readonly settings: SettingsStore;
@@ -323,7 +341,8 @@ export class LaqtaApp {
         state: () => this.state,
       };
     }
-    if (!this.isJiraConfigured()) this.openSettings();
+    const afterPermissionRestart = takePermissionRestart(app.getPath('userData'));
+    if (!this.isJiraConfigured() || afterPermissionRestart) this.openSettings();
   }
 
   shutdown(): void {
@@ -637,9 +656,18 @@ export class LaqtaApp {
       win.once('ready-to-show', () => {
         win.setBounds(frame.display.bounds);
         win.show();
+        // Activate Laqta itself, or the overlay is shown but the app in front keeps the
+        // keyboard and Esc does nothing until the user clicks.
+        if (process.platform === 'darwin' && displayUnderCursor(frame.display.bounds))
+          app.focus({ steal: true });
         win.focus();
       });
     }
+    registerCaptureEscape(() => {
+      if (this.state !== 'capturing') return;
+      log('capture.cancel', {});
+      this.dispatch({ type: 'capture:cancel' });
+    });
   }
 
   private overlayFrame(sender: SenderInfo): OverlayFrame {
@@ -649,12 +677,7 @@ export class LaqtaApp {
     const bounds = frame.display.bounds;
     const active = this.data?.activeWindow ?? null;
     const windowRect = active ? screenRectToDisplay(active.bounds, bounds) : null;
-    const cursor = screen.getCursorScreenPoint();
-    const underCursor =
-      cursor.x >= bounds.x &&
-      cursor.x < bounds.x + bounds.width &&
-      cursor.y >= bounds.y &&
-      cursor.y < bounds.y + bounds.height;
+    const underCursor = displayUnderCursor(bounds);
     return {
       displayId,
       jpeg: frame.image.toJPEG(90),
@@ -699,6 +722,7 @@ export class LaqtaApp {
   }
 
   private closeOverlays(): void {
+    unregisterCaptureEscape();
     for (const win of this.overlays.values()) this.closeWindow(win);
     this.overlays.clear();
     this.overlayDisplayByWc.clear();
@@ -760,8 +784,10 @@ export class LaqtaApp {
     win.on('closed', () => {
       this.closingProgrammatically.delete(win);
       if (this.workbench === win) this.workbench = null;
+      this.updateDock();
     });
     this.workbench = win;
+    this.updateDock();
   }
 
   private focusSession(): void {
@@ -784,6 +810,18 @@ export class LaqtaApp {
    * Laqta has no Dock icon, so macOS does not activate it when a window opens and the window
    * lands behind the app in front. Activate the app explicitly, then raise the window.
    */
+  /** Shows the Dock icon while the workbench or Settings is open (see `wantsDockIcon`). */
+  private updateDock(): void {
+    if (process.platform !== 'darwin' || this.e2e || app.dock === undefined) return;
+    const open = (w: BrowserWindow | null) => w !== null && !w.isDestroyed();
+    const show = wantsDockIcon(
+      showsDockIcon(process.platform, app.isPackaged, this.e2e),
+      open(this.workbench) || open(this.settingsWindow),
+    );
+    if (show) void app.dock.show();
+    else app.dock.hide();
+  }
+
   private bringToFront(win: BrowserWindow): void {
     if (process.platform === 'darwin') app.focus({ steal: true });
     win.show();
@@ -805,8 +843,10 @@ export class LaqtaApp {
     win.once('ready-to-show', () => this.bringToFront(win));
     win.on('closed', () => {
       if (this.settingsWindow === win) this.settingsWindow = null;
+      this.updateDock();
     });
     this.settingsWindow = win;
+    this.updateDock();
   }
 
   private openToast(): void {
@@ -1376,6 +1416,13 @@ export class LaqtaApp {
       await Promise.resolve(clipboard.writeText(p.text));
     });
     handle(IPC.appOpenSettings, null, () => this.openSettings());
+    handle(IPC.appRelaunch, null, (_p, sender) => {
+      // Only Settings offers this, after a permission change that macOS applies on restart.
+      onlyKind(sender, ['settings']);
+      markPermissionRestart(app.getPath('userData'));
+      app.relaunch();
+      app.quit();
+    });
     handle(IPC.permissionsGet, null, (): PermissionStatus => ({
       platform: process.platform,
       screen: this.e2e ? 'granted' : screenPermission(),
@@ -1383,6 +1430,7 @@ export class LaqtaApp {
     }));
     handle(IPC.permissionsOpenSystemSettings, PermissionKindSchema, (p) => {
       if (process.platform !== 'darwin') return;
+      if (p.kind === 'screen') markPermissionRestart(app.getPath('userData'));
       return shell.openExternal(
         p.kind === 'screen' ? MAC_SCREEN_SETTINGS_URL : MAC_MICROPHONE_SETTINGS_URL,
       );

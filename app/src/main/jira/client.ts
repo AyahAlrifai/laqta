@@ -93,13 +93,17 @@ export class JiraClient {
       Authorization: this.authorization,
       Accept: 'application/json',
     };
+    // Requests go out through Chromium (net.fetch), which by default sends a browser user
+    // agent. Jira Cloud then treats every POST as a browser form post and fails its XSRF check
+    // (403) even with the opt-out header, while GETs still work. Identifying as an API client
+    // avoids that; Sec-Fetch-* headers are removed for the same reason in api-session.ts.
+    headers['User-Agent'] = JIRA_USER_AGENT;
+    if (method === 'POST') headers['X-Atlassian-Token'] = 'no-check';
     let payload: string | FormData | undefined;
     if (body && 'json' in body) {
       headers['Content-Type'] = 'application/json';
       payload = JSON.stringify(body.json);
     } else if (body && 'form' in body) {
-      // Attachments need this header to pass Jira's XSRF check (spec section 8).
-      headers['X-Atlassian-Token'] = 'no-check';
       payload = body.form;
     }
     const started = Date.now();
@@ -121,7 +125,13 @@ export class JiraClient {
           parsed = null;
         }
       }
-      log('jira.response', { method, status: response.status, ms: Date.now() - started });
+      log('jira.response', {
+        method,
+        path: logPath(path),
+        status: response.status,
+        ms: Date.now() - started,
+        ...(response.status === 403 && /xsrf/i.test(text) ? { reason: 'xsrf' } : {}),
+      });
       return {
         kind: 'response',
         status: response.status,
@@ -132,6 +142,7 @@ export class JiraClient {
       const c = classifyNetworkError(error);
       log('jira.response', {
         method,
+        path: logPath(path),
         network: c.code,
         sent: String(c.sent),
         ms: Date.now() - started,
@@ -177,6 +188,18 @@ export class JiraClient {
       throw new AppFailure(mapStatus(status, body));
     }
   }
+}
+
+/**
+ * The endpoint without its query string, so a failing call can be told apart in the log.
+ * Queries are dropped because they can hold what the user typed (assignee search, JQL).
+ */
+/** Deliberately not browser-like; see the XSRF note in `raw()`. */
+export const JIRA_USER_AGENT = 'Laqta';
+
+export function logPath(path: string): string {
+  const q = path.indexOf('?');
+  return q === -1 ? path : path.slice(0, q);
 }
 
 export function failureOf(error: unknown): AppError {

@@ -68,6 +68,9 @@ export function scrubMeta(meta: LogMeta): LogMeta {
 
 /** Bearer headers and long opaque strings are dropped even under an innocent field name. */
 function looksLikeSecret(value: string): boolean {
+  // Jira REST paths (already stripped of their query) are long runs of the same characters
+  // as an opaque token, but are endpoint names, not secrets.
+  if (/^\/rest\/api\/[0-9]\/[A-Za-z0-9/_-]*$/.test(value)) return false;
   return (
     /bearer\s/i.test(value) ||
     /\bsk-[a-z0-9-_]{10,}/i.test(value) ||

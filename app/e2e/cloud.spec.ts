@@ -59,9 +59,10 @@ test('Jira Cloud: draft, pick assignee by accountId, create, attach', async () =
     await wb.getByLabel('What is wrong?').fill('The total is shown twice, assign Sara');
     await wb.getByLabel('Project').selectOption('PROJ');
     await wb.getByRole('button', { name: 'Generate draft' }).click();
-    const picker = wb.getByRole('dialog');
-    await picker.getByRole('radio', { name: /Sara K\./ }).check();
-    await picker.getByRole('button', { name: 'Use selected' }).click();
+    await wb
+      .getByRole('listbox', { name: 'Assignee' })
+      .getByRole('option', { name: /Sara K\./ })
+      .click();
     await wb.getByRole('button', { name: 'Create bug in PROJ' }).click();
 
     const toast = await windowFor('toast');

@@ -76,6 +76,30 @@ build-win:
   artifacts:
     paths: [app/dist/]
 
+# Unsigned test installers for sharing outside the company (not release artefacts):
+# no certificate, no notarization, no update feed. Started by hand from the pipeline page.
+build-win-unsigned:
+  extends: .desktop
+  stage: build
+  tags: [windows]
+  rules: [{ when: manual, allow_failure: true }]
+  script:
+    - pnpm dist:win:unsigned
+  artifacts:
+    expire_in: 2 weeks
+    paths: [app/dist-unsigned/*.exe]
+
+build-mac-unsigned:
+  extends: .desktop
+  stage: build
+  tags: [macos]
+  rules: [{ when: manual, allow_failure: true }]
+  script:
+    - pnpm dist:mac:unsigned
+  artifacts:
+    expire_in: 2 weeks
+    paths: [app/dist-unsigned/*.dmg]
+
 build-mac:
   extends: .desktop
   stage: build
