@@ -1,3 +1,6 @@
+/* Capture overlay (board 1, T-081). The chrome is dark glass in both themes: it floats over
+   an arbitrary screenshot and must stand out from whatever is under it. */
+
 .root {
   position: fixed;
   inset: 0;
@@ -17,31 +20,119 @@
 
 .shade {
   position: absolute;
-  background: rgba(var(--shadow-rgb), 0.45);
+  background: rgba(var(--shadow-rgb), 0.5);
   pointer-events: none;
 }
 
 .selection {
   position: absolute;
-  border: 2px solid var(--accent);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 0 1px var(--glass-border-strong);
   cursor: move;
 }
 
+/* Handles keep their 12 px hit area; what is drawn is the viewfinder: corner brackets, and
+   short bars on the edges. */
 .handle {
   position: absolute;
   width: 12px;
   height: 12px;
-  background: #fff;
-  border: 2px solid var(--accent);
-  cursor: pointer;
+  background: transparent;
+  filter: drop-shadow(0 1px 2px rgba(var(--shadow-rgb), 0.5));
+}
+
+.handle::before {
+  content: '';
+  position: absolute;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+.handle[data-handle='n']::before,
+.handle[data-handle='s']::before {
+  left: -4px;
+  top: 4px;
+  width: 20px;
+  height: 4px;
+}
+
+.handle[data-handle='e']::before,
+.handle[data-handle='w']::before {
+  left: 4px;
+  top: -4px;
+  width: 4px;
+  height: 20px;
+}
+
+.handle[data-corner='true']::before {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 0 solid #ffffff;
+  border-radius: 0;
+}
+
+.handle[data-handle='nw']::before {
+  left: 3px;
+  top: 3px;
+  border-left-width: 4px;
+  border-top-width: 4px;
+  border-top-left-radius: 5px;
+}
+
+.handle[data-handle='ne']::before {
+  right: 3px;
+  top: 3px;
+  border-right-width: 4px;
+  border-top-width: 4px;
+  border-top-right-radius: 5px;
+}
+
+.handle[data-handle='se']::before {
+  right: 3px;
+  bottom: 3px;
+  border-right-width: 4px;
+  border-bottom-width: 4px;
+  border-bottom-right-radius: 5px;
+}
+
+.handle[data-handle='sw']::before {
+  left: 3px;
+  bottom: 3px;
+  border-left-width: 4px;
+  border-bottom-width: 4px;
+  border-bottom-left-radius: 5px;
+}
+
+.handle[data-handle='nw'],
+.handle[data-handle='se'] {
+  cursor: nwse-resize;
+}
+
+.handle[data-handle='ne'],
+.handle[data-handle='sw'] {
+  cursor: nesw-resize;
+}
+
+.handle[data-handle='n'],
+.handle[data-handle='s'] {
+  cursor: ns-resize;
+}
+
+.handle[data-handle='e'],
+.handle[data-handle='w'] {
+  cursor: ew-resize;
 }
 
 .sizePill {
   position: absolute;
-  background: var(--inverse-bg);
-  color: var(--inverse-ink);
-  border-radius: 8px;
-  padding: 6px 12px;
+  background: var(--glass-bg);
+  color: var(--glass-ink);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px) saturate(1.4);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: var(--text-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
@@ -52,24 +143,51 @@
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: 999px;
-  padding: 10px 22px;
-  box-shadow: var(--shadow);
+  background: var(--glass-bg);
+  color: var(--glass-ink);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border-radius: var(--radius-pill);
+  padding: 8px 18px;
+  box-shadow: var(--elev-3);
   display: flex;
   align-items: center;
   gap: 10px;
   max-width: calc(100% - 48px);
+  font-size: var(--text-sm);
   pointer-events: none;
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--annotation);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--annotation) 30%, transparent);
   flex: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dot {
+    animation: rec 1.6s ease-in-out infinite;
+  }
+
+  .modeBar,
+  .statusPill {
+    animation: bar-in var(--dur-slow) var(--ease) both;
+  }
+}
+
+@keyframes rec {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .modeBar {
@@ -77,10 +195,13 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  background: var(--surface);
-  border-radius: 12px;
+  background: var(--glass-bg);
+  color: var(--glass-ink);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border-radius: var(--radius-lg);
   padding: 5px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--elev-3);
   cursor: grab;
   touch-action: none;
 }
@@ -89,11 +210,9 @@
   cursor: grabbing;
 }
 
-/* Once dragged, it stops following the selection; a soft outline shows it is pinned. */
+/* Once dragged, it stops following the selection; a lighter outline shows it is pinned. */
 .modeBarMoved {
-  box-shadow:
-    var(--shadow),
-    0 0 0 1px var(--hairline);
+  border-color: var(--glass-border-strong);
 }
 
 .grip {
@@ -103,15 +222,15 @@
   height: 36px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--faint);
+  color: var(--glass-muted);
   cursor: grab;
 }
 
 .grip:hover {
-  background: var(--surface-muted);
-  color: var(--muted);
+  background: var(--glass-hover);
+  color: var(--glass-ink);
 }
 
 .modes {
@@ -128,13 +247,14 @@
   height: 36px;
   padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--ink);
+  color: var(--glass-ink);
   font-size: var(--text-base);
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
 }
 
 .barBtn::after {
@@ -144,22 +264,28 @@
 }
 
 .barBtn:hover:not(:disabled) {
-  background: var(--surface-muted);
+  background: var(--glass-hover);
 }
 
 .barBtn svg {
-  color: var(--muted);
+  color: var(--glass-muted);
+}
+
+.barBtn kbd {
+  background: transparent;
+  border-color: var(--glass-border);
+  color: var(--glass-muted);
 }
 
 .modeActive,
 .modeActive:hover:not(:disabled) {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  background: var(--glass-active);
+  color: var(--glass-ink);
   font-weight: 600;
 }
 
 .modeActive svg {
-  color: var(--accent);
+  color: var(--glass-ink);
 }
 
 .primary,
@@ -169,27 +295,88 @@
   font-weight: 600;
 }
 
-.primary svg {
+.primary svg,
+.primary kbd {
   color: var(--on-accent);
+  border-color: currentColor;
 }
 
 .primary:disabled {
-  background: var(--surface-muted);
-  color: var(--faint);
+  background: var(--glass-hover);
+  color: var(--glass-muted);
   cursor: not-allowed;
 }
 
-.primary:disabled svg {
-  color: var(--faint);
+.primary:disabled svg,
+.primary:disabled kbd {
+  color: var(--glass-muted);
 }
 
 .divider {
   width: 1px;
   height: 22px;
-  background: var(--hairline);
+  background: var(--glass-border);
   margin: 0 var(--space-1);
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--glass-muted);
+}
+
+/* ---------------------------------------------------------------- loupe (T-081) */
+
+.loupe {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.loupeLens {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(var(--shadow-rgb), 0.35),
+    var(--elev-3);
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+
+/* Crosshair on the exact pixel under the pointer. */
+.loupeLens::before,
+.loupeLens::after {
+  content: '';
+  position: absolute;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.loupeLens::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.loupeLens::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.loupeCoords {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg);
+  color: var(--glass-ink);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }

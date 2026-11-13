@@ -58,6 +58,8 @@
   --glass-muted: #b4bac7;
   --glass-hover: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-strong: rgba(255, 255, 255, 0.32);
+  --glass-active: rgba(255, 255, 255, 0.16);
   --canvas-bg: #f4f5f9;
   --canvas-dot: #e1e4eb;
   --skeleton: #e6e9f0;
@@ -178,6 +180,8 @@
     --glass-muted: #b4bac7;
     --glass-hover: rgba(255, 255, 255, 0.1);
     --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-strong: rgba(255, 255, 255, 0.32);
+  --glass-active: rgba(255, 255, 255, 0.16);
     --canvas-bg: #0e1014;
     --canvas-dot: #1f232c;
     --skeleton: #252a35;
