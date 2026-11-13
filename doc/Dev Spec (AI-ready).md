@@ -533,7 +533,7 @@ On Cloud every POST (search, create and attach) also needs `X-Atlassian-Token: n
 
 ## 9. UI implementation map
 
-The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/artifact/3QSPxbpnD3FJJz3JXshHHo), five boards at 1280 by 800. Match layout, copy and states; replace the sample content with real data.
+The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/artifact/3QSPxbpnD3FJJz3JXshHHo), five boards at 1280 by 800. Match layout, copy and states; replace the sample content with real data. Since M8 (T-080 to T-090), the look is the as-built set in `doc/Laqta — UI (v0.2, as built)-png/` (light, dark and Arabic RTL, taken from the E2E run with `LAQTA_SHOTS`); where it differs from the v0.1 boards, v0.2 wins. The v0.1 boards still define the flow and the states.
 
 | Board                  | Window                   | Components to build                                                                                                                                                                                | Key behaviour                                                                                                                                                             |
 | ---------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
