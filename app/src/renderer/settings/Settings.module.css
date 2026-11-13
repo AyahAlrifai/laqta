@@ -377,9 +377,16 @@
 
 /* ---------------------------------------------------------------- segmented control */
 
+/*
+ * Equal columns (1fr) that are never narrower than their longest label: a grid track's
+ * minimum is its content, so a long selected label ("✓ Company server") widens the whole
+ * control instead of spilling over its neighbour. Rows still line up at the usual width.
+ */
 .segmented {
-  display: flex;
-  width: var(--row-control-width);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  min-width: var(--row-control-width);
   padding: 3px;
   gap: 2px;
   border-radius: var(--radius);
@@ -390,9 +397,6 @@
 .segment {
   position: relative;
   display: flex;
-  /* Equal halves, whatever the label length. */
-  flex: 1 1 0;
-  min-width: 0;
 }
 
 .segment input {

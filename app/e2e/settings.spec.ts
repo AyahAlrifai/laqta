@@ -118,6 +118,59 @@ test('first run: the welcome card keeps its full height in a short window', asyn
   await expect(page.getByRole('listitem').filter({ hasText: en('welcome.step3') })).toBeVisible();
 });
 
+// Measures every segmented control on the current tab with each option selected in turn
+// (only the radio's checked state, no change event, so nothing is saved): each label stays
+// inside its own segment, segments never overlap and the control stays inside its card.
+const SEGMENTED_PROBLEMS = `(() => {
+  const problems = [];
+  const inside = (a, b) => a.left >= b.left - 0.5 && a.right <= b.right + 0.5;
+  for (const group of document.querySelectorAll('[role=radiogroup]')) {
+    const radios = [...group.querySelectorAll('input[type=radio]')];
+    const was = radios.map((r) => r.checked);
+    const card = (group.closest('section') ?? document.body).getBoundingClientRect();
+    for (const radio of radios) {
+      radio.checked = true;
+      const segments = [...group.children];
+      segments.forEach((seg, i) => {
+        const label = seg.querySelector('label');
+        const s = seg.getBoundingClientRect();
+        if (label && !inside(label.getBoundingClientRect(), s)) {
+          problems.push('label spills: ' + label.textContent + ' (' + radio.value + ' on)');
+        }
+        const next = segments[i + 1]?.getBoundingClientRect();
+        if (next && Math.min(s.right, next.right) - Math.max(s.left, next.left) > 0.5) {
+          problems.push('overlap: ' + group.textContent + ' (' + radio.value + ' on)');
+        }
+      });
+      if (!inside(group.getBoundingClientRect(), card)) {
+        problems.push('outside its card: ' + group.textContent);
+      }
+    }
+    radios.forEach((r, i) => (r.checked = was[i]));
+  }
+  return problems;
+})()`;
+
+for (const lang of ['en', 'ar'] as const) {
+  test(`segmented controls fit their labels on every tab (${lang})`, async () => {
+    if (lang === 'ar')
+      writeFileSync(join(userData, 'settings.json'), JSON.stringify({ uiLanguage: 'ar' }));
+    const page = await launchSettings();
+    const tabs = page.getByRole('tab');
+    await expect(tabs.first()).toBeVisible();
+    const problems: string[] = [];
+    let groups = 0;
+    for (let i = 0; i < (await tabs.count()); i++) {
+      await tabs.nth(i).click();
+      await expect(tabs.nth(i)).toHaveAttribute('aria-selected', 'true');
+      groups += await page.getByRole('radiogroup').count();
+      problems.push(...(await page.evaluate<string[]>(SEGMENTED_PROBLEMS)));
+    }
+    expect(groups).toBeGreaterThan(0);
+    expect(problems).toEqual([]);
+  });
+}
+
 test('test connection lists the projects; the saved choice survives a reload', async () => {
   const page = await launchSettings();
   await connect(page);
