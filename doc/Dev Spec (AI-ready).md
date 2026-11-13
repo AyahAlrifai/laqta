@@ -23,17 +23,17 @@ Read this section before every ticket. It is the equivalent of a CLAUDE.md or AG
 
 The MVP turns a screenshot and a sentence into a reviewed Jira Data Center bug with the image attached. Everything else waits.
 
-| In the MVP | Out of the MVP (later phases) |
-| --- | --- |
-| Windows and macOS desktop app in the system tray | Linux builds |
-| Global hotkey, area, window and full-screen capture | Browser extension, page URL and console capture |
-| Annotate (box, arrow, text) and redact (opaque fill or pixelation) | Automatic detection of secrets in the image |
-| Typed prompt in Arabic or English | Voice input (Phase 2, behind a feature flag) |
-| AI draft (summary, description, type, priority, assignee query, labels) | Multiple Jira instances at once |
-| Preview, edit, duplicate warning, assignee resolution | Editing or commenting on existing bugs |
-| Create bug and attach screenshot through Jira REST API v2 | Epics, sprints, links between issues |
-| Settings: Jira URL, token, default project, bug language, hotkey | Team-wide central config server (Phase 3) |
-| Local draft kept when Jira is unreachable | Sync across devices |
+| In the MVP                                                              | Out of the MVP (later phases)                   |
+| ----------------------------------------------------------------------- | ----------------------------------------------- |
+| Windows and macOS desktop app in the system tray                        | Linux builds                                    |
+| Global hotkey, area, window and full-screen capture                     | Browser extension, page URL and console capture |
+| Annotate (box, arrow, text) and redact (opaque fill or pixelation)      | Automatic detection of secrets in the image     |
+| Typed prompt in Arabic or English                                       | Voice input (Phase 2, behind a feature flag)    |
+| AI draft (summary, description, type, priority, assignee query, labels) | Multiple Jira instances at once                 |
+| Preview, edit, duplicate warning, assignee resolution                   | Editing or commenting on existing bugs          |
+| Create bug and attach screenshot through Jira REST API v2               | Epics, sprints, links between issues            |
+| Settings: Jira URL, token, default project, bug language, hotkey        | Team-wide central config server (Phase 3)       |
+| Local draft kept when Jira is unreachable                               | Sync across devices                             |
 
 **Primary user story:** as an employee I press a hotkey, select part of my screen, say or type what is wrong, check the draft, click Create bug, and get a link to a Jira bug that has the screenshot, a clear description and the right assignee.
 
@@ -41,21 +41,21 @@ The MVP turns a screenshot and a sentence into a reviewed Jira Data Center bug w
 
 ## 2. Tech stack and repository layout
 
-| Concern | Choice | Notes |
-| --- | --- | --- |
-| Desktop shell | Electron with TypeScript | Current stable at repo creation, pinned in the lockfile |
-| Build tooling | electron-vite, pnpm | One workspace, two packages: `app` and `gateway-contract` |
-| UI | React, TypeScript, plain CSS modules | No UI kit. Components follow the design boards in section 9 |
-| Renderer state | Zustand | Only UI state. The flow state lives in the main process |
-| Validation | Zod | Single source of truth for every external payload |
-| HTTP | Electron `net.fetch` in the main process | Uses the system proxy and trusted certificates, which corporate networks need |
-| Image work | Canvas in the renderer | No native image library, so no native build issues |
-| Secrets | Electron `safeStorage` | Encrypted blob in the user data folder |
-| Updates | electron-updater | Internal HTTPS update feed |
-| Packaging | electron-builder | NSIS installer for Windows, signed dmg and zip for macOS |
-| Tests | Vitest, Playwright for Electron, a mock Jira server | See section 12 |
-| Lint and format | ESLint, Prettier, TypeScript strict | Run in CI |
-| AI gateway (Phase 3) | Small Spring Boot service, Java | Fits the team's skills. Holds the Claude key and the speech-to-text key |
+| Concern              | Choice                                              | Notes                                                                         |
+| -------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Desktop shell        | Electron with TypeScript                            | Current stable at repo creation, pinned in the lockfile                       |
+| Build tooling        | electron-vite, pnpm                                 | One workspace, two packages: `app` and `gateway-contract`                     |
+| UI                   | React, TypeScript, plain CSS modules                | No UI kit. Components follow the design boards in section 9                   |
+| Renderer state       | Zustand                                             | Only UI state. The flow state lives in the main process                       |
+| Validation           | Zod                                                 | Single source of truth for every external payload                             |
+| HTTP                 | Electron `net.fetch` in the main process            | Uses the system proxy and trusted certificates, which corporate networks need |
+| Image work           | Canvas in the renderer                              | No native image library, so no native build issues                            |
+| Secrets              | Electron `safeStorage`                              | Encrypted blob in the user data folder                                        |
+| Updates              | electron-updater                                    | Internal HTTPS update feed                                                    |
+| Packaging            | electron-builder                                    | NSIS installer for Windows, signed dmg and zip for macOS                      |
+| Tests                | Vitest, Playwright for Electron, a mock Jira server | See section 12                                                                |
+| Lint and format      | ESLint, Prettier, TypeScript strict                 | Run in CI                                                                     |
+| AI gateway (Phase 3) | Small Spring Boot service, Java                     | Fits the team's skills. Holds the Claude key and the speech-to-text key       |
 
 **Repository layout**
 
@@ -111,45 +111,45 @@ The gateway is built last. Until then the app talks to the model through a `Draf
 
 **IPC channels** (names are constants in `src/shared/ipc-channels.ts`; every payload is validated with Zod in `ipc.ts` before use)
 
-| Channel | Direction | Payload | Returns |
-| --- | --- | --- | --- |
-| `capture:start` | tray, hotkey to main | `{ mode: 'area' \| 'window' \| 'screen' }` | none |
-| `capture:complete` | overlay to main | `{ displayId, rect, mode }` | none |
-| `capture:cancel` | overlay to main | none | none |
-| `session:get` | workbench to main | none | `Session` snapshot |
-| `session:setRedactedImage` | workbench to main | `{ png: Uint8Array, width, height }` | none |
-| `draft:request` | workbench to main | `{ prompt: string, projectKey: string, bugLanguage: 'en' \| 'ar' }` | `DraftResult` |
-| `draft:cancel` | workbench to main | none | none |
-| `voice:transcribe` | workbench to main | `{ audio: Uint8Array, mime: string, language: 'ar-JO' \| 'en' \| 'auto' }` | `{ text: string }` |
-| `jira:searchAssignees` | workbench to main | `{ projectKey, query }` | `AssigneeCandidate[]` |
-| `jira:checkDuplicates` | workbench to main | `{ projectKey, summary }` | `DuplicateHit[]` |
-| `jira:loadCreateMeta` | workbench to main | `{ projectKey }` | `CreateMeta` |
-| `jira:createBug` | workbench to main | `ApprovedBug` | `CreateResult` |
-| `jira:retryAttachment` | workbench to main | `{ issueKey, requestId }` | `CreateResult` |
-| `settings:get` / `settings:set` | settings to main | `Settings` (token never returned) | `Settings` |
-| `settings:testConnection` | settings to main | `{ baseUrl, token }` | `{ ok, userDisplayName?, projects?, error? }` |
-| `session:discard` | any to main | none | none (deletes the temporary image) |
+| Channel                         | Direction            | Payload                                                                    | Returns                                       |
+| ------------------------------- | -------------------- | -------------------------------------------------------------------------- | --------------------------------------------- |
+| `capture:start`                 | tray, hotkey to main | `{ mode: 'area' \| 'window' \| 'screen' }`                                 | none                                          |
+| `capture:complete`              | overlay to main      | `{ displayId, rect, mode }`                                                | none                                          |
+| `capture:cancel`                | overlay to main      | none                                                                       | none                                          |
+| `session:get`                   | workbench to main    | none                                                                       | `Session` snapshot                            |
+| `session:setRedactedImage`      | workbench to main    | `{ png: Uint8Array, width, height }`                                       | none                                          |
+| `draft:request`                 | workbench to main    | `{ prompt: string, projectKey: string, bugLanguage: 'en' \| 'ar' }`        | `DraftResult`                                 |
+| `draft:cancel`                  | workbench to main    | none                                                                       | none                                          |
+| `voice:transcribe`              | workbench to main    | `{ audio: Uint8Array, mime: string, language: 'ar-JO' \| 'en' \| 'auto' }` | `{ text: string }`                            |
+| `jira:searchAssignees`          | workbench to main    | `{ projectKey, query }`                                                    | `AssigneeCandidate[]`                         |
+| `jira:checkDuplicates`          | workbench to main    | `{ projectKey, summary }`                                                  | `DuplicateHit[]`                              |
+| `jira:loadCreateMeta`           | workbench to main    | `{ projectKey }`                                                           | `CreateMeta`                                  |
+| `jira:createBug`                | workbench to main    | `ApprovedBug`                                                              | `CreateResult`                                |
+| `jira:retryAttachment`          | workbench to main    | `{ issueKey, requestId }`                                                  | `CreateResult`                                |
+| `settings:get` / `settings:set` | settings to main     | `Settings` (token never returned)                                          | `Settings`                                    |
+| `settings:testConnection`       | settings to main     | `{ baseUrl, token }`                                                       | `{ ok, userDisplayName?, projects?, error? }` |
+| `session:discard`               | any to main          | none                                                                       | none (deletes the temporary image)            |
 
 **Orchestrator state machine** (one active session at a time; a second hotkey press while a session is active focuses the existing window)
 
-| State | Event | Next state | Side effects |
-| --- | --- | --- | --- |
-| `idle` | `capture:start` | `capturing` | Check permissions, grab frozen frames, open overlays |
-| `capturing` | `capture:complete` | `editing` | Crop the frame, close overlays, open workbench |
-| `capturing` | `capture:cancel`, Esc | `idle` | Close overlays, drop frames |
-| `editing` | `draft:request` | `drafting` | Check redaction confirm, call the provider |
-| `drafting` | provider success | `reviewing` | Store the validated, sanitized draft |
-| `drafting` | provider failure | `editing` | Show the error with Try again |
-| `drafting` | `draft:cancel` | `editing` | Abort the request |
-| `reviewing` | back | `editing` | Keep prompt and image |
-| `reviewing` | `jira:createBug` | `submitting` | Disable the button, create the issue |
-| `submitting` | issue created and attachment uploaded | `done` | Show the toast, delete the temporary image |
-| `submitting` | issue created, attachment failed | `partial` | Keep the image, offer Retry upload |
-| `submitting` | create failed, safe to retry | `reviewing` | Show the error, keep the draft |
-| `submitting` | create outcome unknown | `verifying` | Search Jira for the request label before any retry |
-| `verifying` | issue found | `submitting` | Continue with the attachment only |
-| `verifying` | issue not found | `reviewing` | Allow Create again |
-| any | `session:discard`, window closed | `idle` | Confirm if there are unsaved edits, then delete the image |
+| State        | Event                                 | Next state   | Side effects                                              |
+| ------------ | ------------------------------------- | ------------ | --------------------------------------------------------- |
+| `idle`       | `capture:start`                       | `capturing`  | Check permissions, grab frozen frames, open overlays      |
+| `capturing`  | `capture:complete`                    | `editing`    | Crop the frame, close overlays, open workbench            |
+| `capturing`  | `capture:cancel`, Esc                 | `idle`       | Close overlays, drop frames                               |
+| `editing`    | `draft:request`                       | `drafting`   | Check redaction confirm, call the provider                |
+| `drafting`   | provider success                      | `reviewing`  | Store the validated, sanitized draft                      |
+| `drafting`   | provider failure                      | `editing`    | Show the error with Try again                             |
+| `drafting`   | `draft:cancel`                        | `editing`    | Abort the request                                         |
+| `reviewing`  | back                                  | `editing`    | Keep prompt and image                                     |
+| `reviewing`  | `jira:createBug`                      | `submitting` | Disable the button, create the issue                      |
+| `submitting` | issue created and attachment uploaded | `done`       | Show the toast, delete the temporary image                |
+| `submitting` | issue created, attachment failed      | `partial`    | Keep the image, offer Retry upload                        |
+| `submitting` | create failed, safe to retry          | `reviewing`  | Show the error, keep the draft                            |
+| `submitting` | create outcome unknown                | `verifying`  | Search Jira for the request label before any retry        |
+| `verifying`  | issue found                           | `submitting` | Continue with the attachment only                         |
+| `verifying`  | issue not found                       | `reviewing`  | Allow Create again                                        |
+| any          | `session:discard`, window closed      | `idle`       | Confirm if there are unsaved edits, then delete the image |
 
 The orchestrator is a pure function `(state, event) => { state, effects }` plus an effect runner, so every transition can be unit tested without Electron.
 
@@ -157,23 +157,23 @@ The orchestrator is a pure function `(state, event) => { state, effects }` plus 
 
 Every handler answers `{ ok: true, value } | { ok: false, error: AppError }`; the preload returns this envelope and `renderer/shared/api.ts` unwraps it, because errors thrown across `contextBridge` lose their fields.
 
-| Channel | Direction | Payload | Returns |
-| --- | --- | --- | --- |
-| `overlay:getFrame` | overlay to main | none (main knows the sender's display) | `OverlayFrame` |
-| `session:getImage` | workbench to main | none | `SessionImage` (the redacted image once exported) |
-| `session:back` | workbench to main | none | none (the `back` event) |
-| `session:getReview` | workbench to main | none | `ReviewState \| null` (a restored offline draft) |
-| `session:changed` | main to workbench and toast | `Session \| null` | push event |
-| `jira:resolveAssignee` | workbench to main | `{ projectKey, query, transliteration }` | `AssigneeResolution` |
-| `jira:listProjects` | workbench, settings to main | none | `JiraProject[]` |
-| `draft:keepForLater` | workbench to main | `ReviewState` | `{ saved }` |
-| `toast:get` / `toast:close` | toast to main | none | `ToastData \| null` / none |
-| `toast:resize` | toast to main | `{ height }` (CSS pixels, 80 to 800) | none (main fits the window to the card, keeping its bottom edge) |
-| `app:openLink` | any to main | `{ url }` (Jira host only) | none |
-| `app:copyText`, `app:openSettings`, `window:close` | any to main | `{ text }` / none | none |
-| `app:relaunch` | settings to main | none | none (restarts Laqta so macOS applies a new Screen Recording grant; the next start opens Settings) |
-| `theme:preview` | settings to main | `{ theme: 'system' \| 'light' \| 'dark' }` | none (applies the theme to every window before Save; closing Settings without saving restores `Settings.theme`) |
-| `permissions:get`, `permissions:openSystemSettings`, `permissions:requestMicrophone` | settings, workbench to main | none / `{ kind }` | `PermissionStatus` / none / `boolean` |
+| Channel                                                                              | Direction                   | Payload                                    | Returns                                                                                                         |
+| ------------------------------------------------------------------------------------ | --------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `overlay:getFrame`                                                                   | overlay to main             | none (main knows the sender's display)     | `OverlayFrame`                                                                                                  |
+| `session:getImage`                                                                   | workbench to main           | none                                       | `SessionImage` (the redacted image once exported)                                                               |
+| `session:back`                                                                       | workbench to main           | none                                       | none (the `back` event)                                                                                         |
+| `session:getReview`                                                                  | workbench to main           | none                                       | `ReviewState \| null` (a restored offline draft)                                                                |
+| `session:changed`                                                                    | main to workbench and toast | `Session \| null`                          | push event                                                                                                      |
+| `jira:resolveAssignee`                                                               | workbench to main           | `{ projectKey, query, transliteration }`   | `AssigneeResolution`                                                                                            |
+| `jira:listProjects`                                                                  | workbench, settings to main | none                                       | `JiraProject[]`                                                                                                 |
+| `draft:keepForLater`                                                                 | workbench to main           | `ReviewState`                              | `{ saved }`                                                                                                     |
+| `toast:get` / `toast:close`                                                          | toast to main               | none                                       | `ToastData \| null` / none                                                                                      |
+| `toast:resize`                                                                       | toast to main               | `{ height }` (CSS pixels, 80 to 800)       | none (main fits the window to the card, keeping its bottom edge)                                                |
+| `app:openLink`                                                                       | any to main                 | `{ url }` (Jira host only)                 | none                                                                                                            |
+| `app:copyText`, `app:openSettings`, `window:close`                                   | any to main                 | `{ text }` / none                          | none                                                                                                            |
+| `app:relaunch`                                                                       | settings to main            | none                                       | none (restarts Laqta so macOS applies a new Screen Recording grant; the next start opens Settings)              |
+| `theme:preview`                                                                      | settings to main            | `{ theme: 'system' \| 'light' \| 'dark' }` | none (applies the theme to every window before Save; closing Settings without saving restores `Settings.theme`) |
+| `permissions:get`, `permissions:openSystemSettings`, `permissions:requestMicrophone` | settings, workbench to main | none / `{ kind }`                          | `PermissionStatus` / none / `boolean`                                                                           |
 
 `settings:get` returns `SettingsView` and `settings:set` takes `SettingsSetRequest` (the token is write-only) and returns `SettingsSetResult` (with hotkey conflicts). `settings:testConnection` takes an optional token; empty means the stored one. On success it also returns the projects visible with those details (omitted if that call fails), so Settings can offer the Default project dropdown before the details are saved. The Default project is only chosen from that list: while there is no working connection the field is disabled and says to connect first. If the list cannot be loaded while connected, the user may type the key instead. Jira URLs must be https; the only exception is E2E runs of unpackaged builds (`LAQTA_E2E=1`), where `settings:testConnection`, `settings:set` and the settings store also accept `http://127.0.0.1` so the Settings flow can be tested against the mock Jira. `jira:loadCreateMeta` takes an optional `issueTypeName` so the review form can reload required fields when the type changes.
 
@@ -192,46 +192,54 @@ export type Priority = 'Highest' | 'High' | 'Medium' | 'Low' | 'Lowest';
 
 /** What the AI returns. Everything is untrusted until validated and sanitized. */
 export interface BugDraft {
-  summary: string;            // 1..120 chars, one line, no wiki markup
-  environment: string;        // short text, may be 'Not provided'
+  summary: string; // 1..120 chars, one line, no wiki markup
+  environment: string; // short text, may be 'Not provided'
   stepsToReproduce: string[]; // empty array means 'Not provided'
   actualResult: string;
   expectedResult: string;
-  issueType: string;          // must be one of CreateMeta.issueTypes[].name
-  priority: Priority | null;  // null when the AI is unsure
+  issueType: string; // must be one of CreateMeta.issueTypes[].name
+  priority: Priority | null; // null when the AI is unsure
   assigneeQuery: string | null; // name as the user said it, never an account id
   assigneeTransliteration: string | null; // English spelling of that name, if the query was Arabic
-  labels: string[];           // extra labels, lower-case, [a-z0-9-], max 5
-  missingInfo: string[];      // questions the AI could not answer from the inputs, max 5
+  labels: string[]; // extra labels, lower-case, [a-z0-9-], max 5
+  missingInfo: string[]; // questions the AI could not answer from the inputs, max 5
 }
 
 export interface Session {
-  id: string;                 // uuid v4, also used for the idempotency label
+  id: string; // uuid v4, also used for the idempotency label
   state: FlowState;
   captureMode: CaptureMode;
   sourceApp: { name: string; windowTitle: string } | null;
   os: { platform: 'win32' | 'darwin'; release: string };
-  imagePath: string | null;   // temp file with the redacted PNG, deleted on done or discard
+  imagePath: string | null; // temp file with the redacted PNG, deleted on done or discard
   width: number;
   height: number;
-  capturedAt: string;         // ISO 8601
+  capturedAt: string; // ISO 8601
 }
 
 export type FlowState =
-  | 'idle' | 'capturing' | 'editing' | 'drafting' | 'reviewing'
-  | 'submitting' | 'verifying' | 'partial' | 'done';
+  | 'idle'
+  | 'capturing'
+  | 'editing'
+  | 'drafting'
+  | 'reviewing'
+  | 'submitting'
+  | 'verifying'
+  | 'partial'
+  | 'done';
 
-export interface ApprovedBug {   // sent only after the user clicks Create bug
-  requestId: string;           // session id
+export interface ApprovedBug {
+  // sent only after the user clicks Create bug
+  requestId: string; // session id
   projectKey: string;
   issueType: string;
   summary: string;
-  descriptionWiki: string;     // built by the app from the approved fields, see section 8
+  descriptionWiki: string; // built by the app from the approved fields, see section 8
   priority: Priority | null;
   assigneeUsername: string | null;
-  labels: string[];            // always includes 'laqta' and 'laqta-' + requestId
+  labels: string[]; // always includes 'laqta' and 'laqta-' + requestId
   extraFields: Record<string, unknown>; // required custom fields from CreateMeta
-  attachmentFileName: string;  // 'laqta-' + requestId + '.png'
+  attachmentFileName: string; // 'laqta-' + requestId + '.png'
 }
 
 export type CreateResult =
@@ -239,40 +247,71 @@ export type CreateResult =
   | { kind: 'partial'; issueKey: string; browseUrl: string; attachmentError: AppError }
   | { kind: 'failed'; error: AppError; retryable: boolean };
 
-export interface AssigneeCandidate { username: string; /* Data Center user name, or Cloud accountId (8.2) */ displayName: string; email: string | null; avatarUrl: string | null }
-export interface DuplicateHit { key: string; summary: string; status: string; browseUrl: string }
+export interface AssigneeCandidate {
+  username: string;
+  /* Data Center user name, or Cloud accountId (8.2) */ displayName: string;
+  email: string | null;
+  avatarUrl: string | null;
+}
+export interface DuplicateHit {
+  key: string;
+  summary: string;
+  status: string;
+  browseUrl: string;
+}
 export interface CreateMeta {
   issueTypes: { id: string; name: string }[];
-  requiredFields: { id: string; name: string; schemaType: string; allowedValues?: { id: string; label: string }[] }[];
+  requiredFields: {
+    id: string;
+    name: string;
+    schemaType: string;
+    allowedValues?: { id: string; label: string }[];
+  }[];
   priorities: Priority[];
 }
 
 export interface Settings {
-  jiraBaseUrl: string;         // https only
+  jiraBaseUrl: string; // https only
   jiraDeployment: 'datacenter' | 'cloud'; // section 8.2, default 'datacenter'
-  jiraEmail: string;           // Atlassian account email, used only with 'cloud'
+  jiraEmail: string; // Atlassian account email, used only with 'cloud'
   defaultProjectKey: string;
-  bugLanguage: BugLanguage;    // default 'en'
+  bugLanguage: BugLanguage; // default 'en'
   uiLanguage: 'en' | 'ar';
-  hotkeyArea: string;          // Electron accelerator, default 'Control+Shift+J' (⌃⇧J on Mac, as on board 4; ⌘⇧J is Notion AI's shortcut)
+  hotkeyArea: string; // Electron accelerator, default 'Control+Shift+J' (⌃⇧J on Mac, as on board 4; ⌘⇧J is Notion AI's shortcut)
   // hotkeyWindow default: 'Control+Shift+W' (⌘⇧W closes windows in many Mac apps)
   hotkeyWindow: string;
-  voiceEnabled: boolean;       // default false in the MVP
+  voiceEnabled: boolean; // default false in the MVP
   voiceLanguage: 'ar-JO' | 'en' | 'auto';
   telemetryEnabled: boolean;
-  confirmNoBlur: boolean;      // section 5, no-redaction confirm; default true
+  confirmNoBlur: boolean; // section 5, no-redaction confirm; default true
   aiProvider: 'gateway' | 'claude-code'; // section 7; default 'gateway'
-  theme: 'system' | 'light' | 'dark';    // section 9, appearance; default 'system'
-  soundsEnabled: boolean;                // section 9, sounds; default true
+  theme: 'system' | 'light' | 'dark'; // section 9, appearance; default 'system'
+  soundsEnabled: boolean; // section 9, sounds; default true
 }
 
 export type AppErrorCode =
-  | 'AUTH_INVALID' | 'AUTH_EXPIRED' | 'FORBIDDEN' | 'NOT_FOUND' | 'FIELD_ERROR'
-  | 'NETWORK_UNREACHABLE' | 'TLS_ERROR' | 'RATE_LIMITED' | 'SERVER_ERROR'
-  | 'ATTACHMENT_TOO_LARGE' | 'AI_UNAVAILABLE' | 'AI_INVALID_OUTPUT' | 'PERMISSION_DENIED'
-  | 'CANCELLED' | 'UNKNOWN';
+  | 'AUTH_INVALID'
+  | 'AUTH_EXPIRED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'FIELD_ERROR'
+  | 'NETWORK_UNREACHABLE'
+  | 'TLS_ERROR'
+  | 'RATE_LIMITED'
+  | 'SERVER_ERROR'
+  | 'ATTACHMENT_TOO_LARGE'
+  | 'AI_UNAVAILABLE'
+  | 'AI_INVALID_OUTPUT'
+  | 'PERMISSION_DENIED'
+  | 'CANCELLED'
+  | 'UNKNOWN';
 
-export interface AppError { code: AppErrorCode; userMessage: string; detail?: string; fieldErrors?: Record<string, string> }
+export interface AppError {
+  code: AppErrorCode;
+  userMessage: string;
+  detail?: string;
+  fieldErrors?: Record<string, string>;
+}
 ```
 
 `detail` is for the redacting logger only and must never contain tokens, image data or description text. `userMessage` comes from `strings.ts`.
@@ -313,7 +352,12 @@ Voice is built behind an interface so the speech service can be chosen late. Do 
 
 ```ts
 export interface Transcriber {
-  transcribe(audio: Uint8Array, mime: string, language: 'ar-JO' | 'en' | 'auto', signal: AbortSignal): Promise<string>;
+  transcribe(
+    audio: Uint8Array,
+    mime: string,
+    language: 'ar-JO' | 'en' | 'auto',
+    signal: AbortSignal,
+  ): Promise<string>;
 }
 ```
 
@@ -328,8 +372,8 @@ export interface Transcriber {
 
 ```ts
 export interface DraftInput {
-  imagePng: Uint8Array;        // redacted, downscaled copy
-  prompt: string;              // typed or transcribed, max 2000 chars
+  imagePng: Uint8Array; // redacted, downscaled copy
+  prompt: string; // typed or transcribed, max 2000 chars
   context: { appName: string | null; windowTitle: string | null; os: string };
   bugLanguage: 'en' | 'ar';
   allowed: { issueTypes: string[]; priorities: string[] };
@@ -388,17 +432,17 @@ The user text block is built as: the allowed values, the bug language, then the 
 
 All calls use `net.fetch` from the main process with `Authorization: Bearer <PAT>` and `Accept: application/json`. The base URL must be https. Every response is validated with Zod before use. The endpoint details below come from general knowledge of the Data Center REST API v2 and are confirmed in the spike (section 14) before they are relied on.
 
-| Purpose | Call | Notes |
-| --- | --- | --- |
-| Test connection | `GET /rest/api/2/myself` | Returns the display name. 401 means the token is invalid or expired |
-| List projects | `GET /rest/api/2/project` | For the settings dropdown |
-| Issue types and fields | `GET /rest/api/2/issue/createmeta/{projectKey}/issuetypes`, then `GET /rest/api/2/issue/createmeta/{projectKey}/issuetypes/{issueTypeId}` | Paginated. Gives required fields, custom fields and allowed values. Do not use the legacy un-scoped createmeta |
-| Priorities | `GET /rest/api/2/priority` | Map to the `Priority` type by name |
-| Assignee search | `GET /rest/api/2/user/assignable/search?project={key}&username={text}&maxResults=10` | Parameter names to confirm on our version |
-| Duplicate search | `POST /rest/api/2/search` with `{ jql, fields: ['summary','status'], maxResults: 5 }` | Warning only |
-| Create | `POST /rest/api/2/issue` | Body below |
-| Attach | `POST /rest/api/2/issue/{key}/attachments` | Header `X-Atlassian-Token: no-check`, multipart field named `file` |
-| Verify after unknown result | `POST /rest/api/2/search` with `labels = "laqta-{requestId}"` | See the create algorithm |
+| Purpose                     | Call                                                                                                                                      | Notes                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Test connection             | `GET /rest/api/2/myself`                                                                                                                  | Returns the display name. 401 means the token is invalid or expired                                            |
+| List projects               | `GET /rest/api/2/project`                                                                                                                 | For the settings dropdown                                                                                      |
+| Issue types and fields      | `GET /rest/api/2/issue/createmeta/{projectKey}/issuetypes`, then `GET /rest/api/2/issue/createmeta/{projectKey}/issuetypes/{issueTypeId}` | Paginated. Gives required fields, custom fields and allowed values. Do not use the legacy un-scoped createmeta |
+| Priorities                  | `GET /rest/api/2/priority`                                                                                                                | Map to the `Priority` type by name                                                                             |
+| Assignee search             | `GET /rest/api/2/user/assignable/search?project={key}&username={text}&maxResults=10`                                                      | Parameter names to confirm on our version                                                                      |
+| Duplicate search            | `POST /rest/api/2/search` with `{ jql, fields: ['summary','status'], maxResults: 5 }`                                                     | Warning only                                                                                                   |
+| Create                      | `POST /rest/api/2/issue`                                                                                                                  | Body below                                                                                                     |
+| Attach                      | `POST /rest/api/2/issue/{key}/attachments`                                                                                                | Header `X-Atlassian-Token: no-check`, multipart field named `file`                                             |
+| Verify after unknown result | `POST /rest/api/2/search` with `labels = "laqta-{requestId}"`                                                                             | See the create algorithm                                                                                       |
 
 **Create body**
 
@@ -449,31 +493,31 @@ _Created with Laqta from <appName>. Draft written by AI, reviewed and approved b
 
 **Error mapping**
 
-| Condition | `AppErrorCode` | Behaviour |
-| --- | --- | --- |
-| 401 | `AUTH_INVALID` | Ask the user to update the token in Settings |
-| 403 | `FORBIDDEN` | Explain the missing permission, no retry |
-| 404 on project or issue | `NOT_FOUND` | Ask the user to check the project |
-| 400 | `FIELD_ERROR` | Show `errors` per field in the preview |
-| 413 or attachment over the limit | `ATTACHMENT_TOO_LARGE` | Downscale and retry once automatically |
-| 429 | `RATE_LIMITED` | Honour `Retry-After`, then offer Try again |
-| 5xx | `SERVER_ERROR` | Backoff for idempotent calls only |
-| DNS, refused, timeout | `NETWORK_UNREACHABLE` | Offer Try again and Keep draft for later (design board 5, card 3) |
-| Certificate failure | `TLS_ERROR` | Explain that the company certificate may be missing |
+| Condition                        | `AppErrorCode`         | Behaviour                                                         |
+| -------------------------------- | ---------------------- | ----------------------------------------------------------------- |
+| 401                              | `AUTH_INVALID`         | Ask the user to update the token in Settings                      |
+| 403                              | `FORBIDDEN`            | Explain the missing permission, no retry                          |
+| 404 on project or issue          | `NOT_FOUND`            | Ask the user to check the project                                 |
+| 400                              | `FIELD_ERROR`          | Show `errors` per field in the preview                            |
+| 413 or attachment over the limit | `ATTACHMENT_TOO_LARGE` | Downscale and retry once automatically                            |
+| 429                              | `RATE_LIMITED`         | Honour `Retry-After`, then offer Try again                        |
+| 5xx                              | `SERVER_ERROR`         | Backoff for idempotent calls only                                 |
+| DNS, refused, timeout            | `NETWORK_UNREACHABLE`  | Offer Try again and Keep draft for later (design board 5, card 3) |
+| Certificate failure              | `TLS_ERROR`            | Explain that the company certificate may be missing               |
 
 ### 8.2 Jira Cloud (added at the product owner's request)
 
 The same flow also works against Jira Cloud (`*.atlassian.net`), chosen by `Settings.jiraDeployment`. The Settings form picks Cloud automatically when the address ends in `.atlassian.net`, and the user can change it. Verified against a real Cloud site on 2026-11-09 (project list, scoped createmeta shapes and the user-search parameter); everything else is still covered by the mock server only.
 
-| Concern | Data Center | Cloud |
-| --- | --- | --- |
-| Authentication | `Authorization: Bearer <PAT>` | `Authorization: Basic base64(email:apiToken)`; the email is a setting, the API token is stored like the PAT |
-| Scoped createmeta | list under `values` | list under `issueTypes` (issue types) and `fields` (fields); subtask types are skipped in both |
-| Assignee search | `.../user/assignable/search?project=K&username=text` | `...&query=text`; users are identified by `accountId`; non-human accounts (`accountType` other than `atlassian`) are skipped |
-| Assignee in the create body | `{ "name": "<username>" }` | `{ "id": "<accountId>" }` |
-| Search (duplicates and verify) | `POST /rest/api/2/search` | `POST /rest/api/3/search/jql`, same `jql`, `fields`, `maxResults` and `issues[]` answer |
-| Myself | `name`, `displayName` | `accountId`, `displayName` |
-| Create, attach, priorities, projects, description | unchanged: REST v2 with wiki markup, `X-Atlassian-Token: no-check`, field `file` | same |
+| Concern                                           | Data Center                                                                      | Cloud                                                                                                                        |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Authentication                                    | `Authorization: Bearer <PAT>`                                                    | `Authorization: Basic base64(email:apiToken)`; the email is a setting, the API token is stored like the PAT                  |
+| Scoped createmeta                                 | list under `values`                                                              | list under `issueTypes` (issue types) and `fields` (fields); subtask types are skipped in both                               |
+| Assignee search                                   | `.../user/assignable/search?project=K&username=text`                             | `...&query=text`; users are identified by `accountId`; non-human accounts (`accountType` other than `atlassian`) are skipped |
+| Assignee in the create body                       | `{ "name": "<username>" }`                                                       | `{ "id": "<accountId>" }`                                                                                                    |
+| Search (duplicates and verify)                    | `POST /rest/api/2/search`                                                        | `POST /rest/api/3/search/jql`, same `jql`, `fields`, `maxResults` and `issues[]` answer                                      |
+| Myself                                            | `name`, `displayName`                                                            | `accountId`, `displayName`                                                                                                   |
+| Create, attach, priorities, projects, description | unchanged: REST v2 with wiki markup, `X-Atlassian-Token: no-check`, field `file` | same                                                                                                                         |
 
 On Cloud every POST (search, create and attach) also needs `X-Atlassian-Token: no-check`. Requests go out through Chromium, so Jira Cloud sees a browser user agent and applies its XSRF check to all POSTs: without the header they get 403 while GETs still work. The app sends the header on every POST for both deployments.
 
@@ -491,13 +535,13 @@ On Cloud every POST (search, create and attach) also needs `X-Atlassian-Token: n
 
 The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/artifact/3QSPxbpnD3FJJz3JXshHHo), five boards at 1280 by 800. Match layout, copy and states; replace the sample content with real data.
 
-| Board | Window | Components to build | Key behaviour |
-| --- | --- | --- | --- |
-| 1 Capture | Overlay, one per display | `SelectionBox`, `SizePill`, `ModeBar`, `StatusPill` | Drag, 8 handles, arrow-key nudge, Shift resizes, Enter continues, Esc cancels. The mode bar flips above the selection near the screen bottom |
-| 2 Annotate and ask | Workbench step 1 | `Toolbar`, `AnnotationCanvas`, `PromptBox`, `MicButton` (Phase 2), `QuickStartChips`, `ProjectSelect`, `LanguageSelect`, `PrivacyNote` | The request box has `dir="auto"` and a font stack that includes an Arabic font. Quick start chips insert starter text. Generate draft runs the no-redaction confirm first |
-| 3 Review | Workbench step 2 | `AiBanner`, `DuplicateBanner`, `SummaryInput`, `DescriptionEditor`, `StepsInput`, `FieldTile`, `AssigneeTile` with Change, `AttachmentCard`, footer with write notice | Every field is editable. The footer states that nothing is written until Create bug. Missing information is highlighted and asks for input |
-| 4 Result and states | Toast, picker, tray | `ResultToast`, `AssigneeField` (combobox, see section 8; nothing preselected when ambiguous, Create disabled until a choice), `PartialFailureCard`, `TrayMenu` (menu roles, connection status row) | Retry upload only uploads the image. The tray shows Connected or Offline |
-| 5 First run and errors | Settings and dialogs | `SignInForm`, `PermissionGuide` (macOS), `OfflineCard`, `ConfirmDialog` | Test connection before saving. Tokens are shown masked. Offline keeps the draft encrypted for a short, configurable period |
+| Board                  | Window                   | Components to build                                                                                                                                                                                | Key behaviour                                                                                                                                                             |
+| ---------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 Capture              | Overlay, one per display | `SelectionBox`, `SizePill`, `ModeBar`, `StatusPill`                                                                                                                                                | Drag, 8 handles, arrow-key nudge, Shift resizes, Enter continues, Esc cancels. The mode bar flips above the selection near the screen bottom                              |
+| 2 Annotate and ask     | Workbench step 1         | `Toolbar`, `AnnotationCanvas`, `PromptBox`, `MicButton` (Phase 2), `QuickStartChips`, `ProjectSelect`, `LanguageSelect`, `PrivacyNote`                                                             | The request box has `dir="auto"` and a font stack that includes an Arabic font. Quick start chips insert starter text. Generate draft runs the no-redaction confirm first |
+| 3 Review               | Workbench step 2         | `AiBanner`, `DuplicateBanner`, `SummaryInput`, `DescriptionEditor`, `StepsInput`, `FieldTile`, `AssigneeTile` with Change, `AttachmentCard`, footer with write notice                              | Every field is editable. The footer states that nothing is written until Create bug. Missing information is highlighted and asks for input                                |
+| 4 Result and states    | Toast, picker, tray      | `ResultToast`, `AssigneeField` (combobox, see section 8; nothing preselected when ambiguous, Create disabled until a choice), `PartialFailureCard`, `TrayMenu` (menu roles, connection status row) | Retry upload only uploads the image. The tray shows Connected or Offline                                                                                                  |
+| 5 First run and errors | Settings and dialogs     | `SignInForm`, `PermissionGuide` (macOS), `OfflineCard`, `ConfirmDialog`                                                                                                                            | Test connection before saving. Tokens are shown masked. Offline keeps the draft encrypted for a short, configurable period                                                |
 
 **Shared rules**
 
@@ -515,13 +559,13 @@ The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/art
 
 **Where things are stored**
 
-| Item | Location | Rule |
-| --- | --- | --- |
-| Settings (non-secret) | JSON file in `app.getPath('userData')` | Validated with Zod on load; corrupt file resets to defaults |
-| Jira token (PAT) | Encrypted with `safeStorage.encryptString`, blob in `userData` | Never logged, never sent to the renderer, never sent to the gateway |
-| Temporary screenshot | `app.getPath('temp')/laqta/<sessionId>.png` | Owner-only permissions, deleted on done, discard or app quit, and on start-up for leftovers older than one hour |
-| Offline draft | Encrypted blob in `userData` | Image and fields, deleted after a configurable period (default 24 hours) or after success |
-| Developer AI key | Environment variable only | Never in the repo, never in a release build |
+| Item                  | Location                                                       | Rule                                                                                                            |
+| --------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Settings (non-secret) | JSON file in `app.getPath('userData')`                         | Validated with Zod on load; corrupt file resets to defaults                                                     |
+| Jira token (PAT)      | Encrypted with `safeStorage.encryptString`, blob in `userData` | Never logged, never sent to the renderer, never sent to the gateway                                             |
+| Temporary screenshot  | `app.getPath('temp')/laqta/<sessionId>.png`                    | Owner-only permissions, deleted on done, discard or app quit, and on start-up for leftovers older than one hour |
+| Offline draft         | Encrypted blob in `userData`                                   | Image and fields, deleted after a configurable period (default 24 hours) or after success                       |
+| Developer AI key      | Environment variable only                                      | Never in the repo, never in a release build                                                                     |
 
 If `safeStorage.isEncryptionAvailable()` is false, refuse to store the token and tell the user. Do not fall back to plain text.
 
@@ -572,17 +616,17 @@ webPreferences: {
 
 ```yaml
 stages: [verify, test, build, sign, publish]
-verify:   # lint, typecheck, audit on a Linux runner
+verify: # lint, typecheck, audit on a Linux runner
   script: [pnpm install --frozen-lockfile, pnpm lint, pnpm typecheck, pnpm audit --prod]
-test:     # unit and integration tests, mock Jira server
+test: # unit and integration tests, mock Jira server
   script: [pnpm test]
-e2e:      # Playwright for Electron on Windows and macOS runners
+e2e: # Playwright for Electron on Windows and macOS runners
   script: [pnpm test:e2e]
-build-win:  # Windows runner
+build-win: # Windows runner
   script: [pnpm build, pnpm dist:win]
-build-mac:  # macOS runner
+build-mac: # macOS runner
   script: [pnpm build, pnpm dist:mac]
-publish:  # tags only, uploads installers and the update feed to the internal server
+publish: # tags only, uploads installers and the update feed to the internal server
   rules: [{ if: '$CI_COMMIT_TAG' }]
 ```
 
@@ -590,14 +634,14 @@ Builds that include the direct provider are marked `dev` and fail the `publish` 
 
 ## 12. Testing strategy and the evaluation harness
 
-| Layer | What | Tooling |
-| --- | --- | --- |
-| Unit | Orchestrator transitions, Zod schemas, sanitizer, wiki builder, assignee ranking, duplicate JQL escaping, redaction pixels, settings migration, logger redaction | Vitest |
-| Integration | Jira client against a mock Jira server that implements the endpoints in section 8 and can inject failures: timeout after create, 401, 403, 400 with field errors, 413, 429, 5xx, attachment failure | Vitest with a small local HTTP server |
-| Provider | `DirectAnthropicProvider` parsing with recorded responses, invalid-output retry, cancel | Vitest |
-| End to end | Golden path with a fake draft provider and the mock Jira: capture, annotate, redact, draft, review, create, attach, toast. Plus partial failure and unknown-result verify | Playwright for Electron, `LAQTA_E2E=1` swaps in the fake provider |
-| Accessibility | Keyboard-only run through every board, focus order, contrast check on tokens | Playwright plus a manual checklist |
-| Security | Renderer cannot reach Node, CSP blocks remote loads, IPC rejects bad payloads, no secrets in logs, wiki sanitizer cases | Vitest and Playwright |
+| Layer         | What                                                                                                                                                                                                | Tooling                                                           |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Unit          | Orchestrator transitions, Zod schemas, sanitizer, wiki builder, assignee ranking, duplicate JQL escaping, redaction pixels, settings migration, logger redaction                                    | Vitest                                                            |
+| Integration   | Jira client against a mock Jira server that implements the endpoints in section 8 and can inject failures: timeout after create, 401, 403, 400 with field errors, 413, 429, 5xx, attachment failure | Vitest with a small local HTTP server                             |
+| Provider      | `DirectAnthropicProvider` parsing with recorded responses, invalid-output retry, cancel                                                                                                             | Vitest                                                            |
+| End to end    | Golden path with a fake draft provider and the mock Jira: capture, annotate, redact, draft, review, create, attach, toast. Plus partial failure and unknown-result verify                           | Playwright for Electron, `LAQTA_E2E=1` swaps in the fake provider |
+| Accessibility | Keyboard-only run through every board, focus order, contrast check on tokens                                                                                                                        | Playwright plus a manual checklist                                |
+| Security      | Renderer cannot reach Node, CSP blocks remote loads, IPC rejects bad payloads, no secrets in logs, wiki sanitizer cases                                                                             | Vitest and Playwright                                             |
 
 **Manual test matrix:** Windows 10 and 11, current and previous macOS; one and two monitors; 100 percent and 150 percent or higher scaling; Retina; full-screen app underneath; Arabic and English prompts; protected window (expect a clear message); VPN off; expired token.
 
@@ -618,127 +662,127 @@ When finished: list the files you changed, show the test output, and list anythi
 
 **M0, Spike and foundation**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-001 | Bootstrap the repo: pnpm workspace, electron-vite app, TypeScript strict, ESLint, Prettier, Vitest, `AGENTS.md` from section 0, `.gitlab-ci.yml` skeleton | none | `pnpm lint`, `typecheck` and `test` pass on an empty app; the app starts and shows a tray icon |
+| ID    | Ticket                                                                                                                                                     | Needs | Acceptance criteria                                                                                                       |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------- |
+| T-001 | Bootstrap the repo: pnpm workspace, electron-vite app, TypeScript strict, ESLint, Prettier, Vitest, `AGENTS.md` from section 0, `.gitlab-ci.yml` skeleton  | none  | `pnpm lint`, `typecheck` and `test` pass on an empty app; the app starts and shows a tray icon                            |
 | T-002 | Jira spike script in `tools/spike/jira.ts` against a sandbox project: myself, createmeta, assignee search, create, attach, label search, wiki image render | T-001 | A committed `docs/spike-jira.md` lists each endpoint as confirmed or different, with real response shapes (token removed) |
-| T-003 | AI spike: `DirectAnthropicProvider`, prompt and schema, 20 synthetic fixtures | T-001 | `docs/spike-ai.md` with eval results, latency and cost per request, and the chosen model |
-| T-004 | Capture spike on Windows and macOS: high-DPI, two monitors, full-screen app underneath | T-001 | `docs/spike-capture.md` with a pass or fail per case and screenshots without sensitive data |
+| T-003 | AI spike: `DirectAnthropicProvider`, prompt and schema, 20 synthetic fixtures                                                                              | T-001 | `docs/spike-ai.md` with eval results, latency and cost per request, and the chosen model                                  |
+| T-004 | Capture spike on Windows and macOS: high-DPI, two monitors, full-screen app underneath                                                                     | T-001 | `docs/spike-capture.md` with a pass or fail per case and screenshots without sensitive data                               |
 
 **M1, Foundation**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-010 | Main process skeleton: single instance lock, tray menu, hardened window factory, `strings.ts`, redacting logger | T-001 | Section 10 hardening settings are covered by tests; logger test proves secrets are dropped |
-| T-011 | Settings store, `safeStorage` token handling, Settings window with Test connection | T-010, T-002 | Token never appears in logs or renderer; invalid token shows the mapped error |
-| T-012 | IPC layer: channel constants, Zod validation, preload API, sender checks | T-010 | Invalid payloads are rejected with a typed error; a renderer cannot call a channel with a wrong shape |
-| T-013 | Orchestrator as a pure function plus effect runner | T-012 | Every row of the section 3 state table has a unit test, including `verifying` and `partial` |
+| ID    | Ticket                                                                                                          | Needs        | Acceptance criteria                                                                                   |
+| ----- | --------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
+| T-010 | Main process skeleton: single instance lock, tray menu, hardened window factory, `strings.ts`, redacting logger | T-001        | Section 10 hardening settings are covered by tests; logger test proves secrets are dropped            |
+| T-011 | Settings store, `safeStorage` token handling, Settings window with Test connection                              | T-010, T-002 | Token never appears in logs or renderer; invalid token shows the mapped error                         |
+| T-012 | IPC layer: channel constants, Zod validation, preload API, sender checks                                        | T-010        | Invalid payloads are rejected with a typed error; a renderer cannot call a channel with a wrong shape |
+| T-013 | Orchestrator as a pure function plus effect runner                                                              | T-012        | Every row of the section 3 state table has a unit test, including `verifying` and `partial`           |
 
 **M2, Capture and edit**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-020 | Hotkey and tray triggers, conflict reporting, macOS permission guide | T-013, T-004 | A conflicting hotkey shows a message; denied Screen Recording shows the guide |
-| T-021 | Overlay capture for area and full screen with frozen frames, all displays | T-020 | Selection pixels equal the source pixels on 100 percent and 150 percent scaling; Esc cancels cleanly |
-| T-022 | Window mode through `active-win` (hidden when unavailable) | T-021 | Cropped bounds match the foreground window within 2 px in the manual matrix |
-| T-023 | Annotation canvas: box, arrow, text, select, undo, redo, keyboard operation | T-021 | All tools work by keyboard and pointer; canvas has an accessible label |
-| T-024 | Redaction tools and `renderFinalPng`, original bytes discarded, no-redaction confirm | T-023 | Pixel test passes; after Generate draft the original cannot be recovered through any API |
-| T-025 | Temp file lifecycle and start-up cleanup | T-021 | No leftover files after done, discard, crash restart |
+| ID    | Ticket                                                                               | Needs        | Acceptance criteria                                                                                  |
+| ----- | ------------------------------------------------------------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------- |
+| T-020 | Hotkey and tray triggers, conflict reporting, macOS permission guide                 | T-013, T-004 | A conflicting hotkey shows a message; denied Screen Recording shows the guide                        |
+| T-021 | Overlay capture for area and full screen with frozen frames, all displays            | T-020        | Selection pixels equal the source pixels on 100 percent and 150 percent scaling; Esc cancels cleanly |
+| T-022 | Window mode through `active-win` (hidden when unavailable)                           | T-021        | Cropped bounds match the foreground window within 2 px in the manual matrix                          |
+| T-023 | Annotation canvas: box, arrow, text, select, undo, redo, keyboard operation          | T-021        | All tools work by keyboard and pointer; canvas has an accessible label                               |
+| T-024 | Redaction tools and `renderFinalPng`, original bytes discarded, no-redaction confirm | T-023        | Pixel test passes; after Generate draft the original cannot be recovered through any API             |
+| T-025 | Temp file lifecycle and start-up cleanup                                             | T-021        | No leftover files after done, discard, crash restart                                                 |
 
 **M3, AI draft**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-030 | Zod schemas for section 4 and the sanitizer | T-012 | Table-driven tests for every sanitizer rule, including macros, image embeds, links, headings |
-| T-031 | `DraftProvider`, `DirectAnthropicProvider`, prompt, forced tool call, retry once, cancel | T-030, T-003 | Fake-response tests for success, invalid output, timeout, cancel |
-| T-032 | Prompt box UI, Generate draft, drafting and error states | T-024, T-031 | Board 2 matches the design; Try again works; Cancel returns to editing |
-| T-033 | `tools/eval` and 20 fixtures | T-031 | Script prints the table and exits non-zero below the configured threshold |
+| ID    | Ticket                                                                                   | Needs        | Acceptance criteria                                                                          |
+| ----- | ---------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------- |
+| T-030 | Zod schemas for section 4 and the sanitizer                                              | T-012        | Table-driven tests for every sanitizer rule, including macros, image embeds, links, headings |
+| T-031 | `DraftProvider`, `DirectAnthropicProvider`, prompt, forced tool call, retry once, cancel | T-030, T-003 | Fake-response tests for success, invalid output, timeout, cancel                             |
+| T-032 | Prompt box UI, Generate draft, drafting and error states                                 | T-024, T-031 | Board 2 matches the design; Try again works; Cancel returns to editing                       |
+| T-033 | `tools/eval` and 20 fixtures                                                             | T-031        | Script prints the table and exits non-zero below the configured threshold                    |
 
 **M4, Jira**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-040 | Jira client base with error mapping and the mock Jira server | T-011 | Every row of the error mapping table has an integration test |
-| T-041 | Projects, `CreateMeta`, priorities, required custom fields in the review form | T-040 | A project with a required custom field blocks Create until it is filled |
-| T-042 | Assignee resolution and the picker | T-040 | Zero, one and many candidates behave as in section 8; many forces a choice |
-| T-043 | Duplicate check | T-040 | Hits show as a warning; special characters in the summary cannot break the query |
-| T-044 | Wiki builder and the create algorithm with verify and partial paths | T-040 | Unknown-result test creates exactly one bug; attachment failure gives `partial` and retry uploads only |
-| T-045 | Complete Review screen, result toast, partial-failure card | T-032, T-041, T-042, T-043, T-044 | Boards 3 and 4 match the design; Create is disabled while in flight |
+| ID    | Ticket                                                                        | Needs                             | Acceptance criteria                                                                                    |
+| ----- | ----------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| T-040 | Jira client base with error mapping and the mock Jira server                  | T-011                             | Every row of the error mapping table has an integration test                                           |
+| T-041 | Projects, `CreateMeta`, priorities, required custom fields in the review form | T-040                             | A project with a required custom field blocks Create until it is filled                                |
+| T-042 | Assignee resolution and the picker                                            | T-040                             | Zero, one and many candidates behave as in section 8; many forces a choice                             |
+| T-043 | Duplicate check                                                               | T-040                             | Hits show as a warning; special characters in the summary cannot break the query                       |
+| T-044 | Wiki builder and the create algorithm with verify and partial paths           | T-040                             | Unknown-result test creates exactly one bug; attachment failure gives `partial` and retry uploads only |
+| T-045 | Complete Review screen, result toast, partial-failure card                    | T-032, T-041, T-042, T-043, T-044 | Boards 3 and 4 match the design; Create is disabled while in flight                                    |
 
 **M5, Hardening and release**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-050 | Offline draft kept encrypted and Try again | T-045 | Draft survives restart and is deleted after success or expiry |
-| T-051 | Accessibility and RTL pass on every board | T-045 | Keyboard-only run passes; Arabic UI mirrors; contrast checks pass |
-| T-052 | Opt-in telemetry and log redaction audit | T-045 | No content fields in any event; opt-out works |
+| ID    | Ticket                                                          | Needs | Acceptance criteria                                                                              |
+| ----- | --------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| T-050 | Offline draft kept encrypted and Try again                      | T-045 | Draft survives restart and is deleted after success or expiry                                    |
+| T-051 | Accessibility and RTL pass on every board                       | T-045 | Keyboard-only run passes; Arabic UI mirrors; contrast checks pass                                |
+| T-052 | Opt-in telemetry and log redaction audit                        | T-045 | No content fields in any event; opt-out works                                                    |
 | T-053 | Packaging, signing, notarization, auto-update, release pipeline | T-045 | A signed Windows installer and a notarized macOS build install and update from the internal feed |
-| T-054 | Playwright end-to-end suite | T-045 | Golden path, partial failure and unknown-result scenarios pass in CI |
+| T-054 | Playwright end-to-end suite                                     | T-045 | Golden path, partial failure and unknown-result scenarios pass in CI                             |
 
 **M6, Voice (Phase 2)**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-060 | Recording UI with toggle, language selector, live region, microphone permission | T-045 | Works by keyboard; denied permission falls back to typing |
-| T-061 | `Transcriber` interface and gateway provider stub | T-060 | Transcript fills the prompt box and stays editable |
-| T-062 | Word error rate measurement on 50 clips | T-061 | Report committed; the pilot threshold is decided with the product owner |
+| ID    | Ticket                                                                          | Needs | Acceptance criteria                                                     |
+| ----- | ------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------- |
+| T-060 | Recording UI with toggle, language selector, live region, microphone permission | T-045 | Works by keyboard; denied permission falls back to typing               |
+| T-061 | `Transcriber` interface and gateway provider stub                               | T-060 | Transcript fills the prompt box and stays editable                      |
+| T-062 | Word error rate measurement on 50 clips                                         | T-061 | Report committed; the pilot threshold is decided with the product owner |
 
 **M7, Gateway (Phase 3)**
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-070 | Spring Boot gateway: `POST /v1/draft`, key held server-side, request size limits | T-053 | Matches the provider contract in section 7; no image content in logs |
-| T-071 | Employee authentication, per-user rate limits and monthly cost caps | T-070 | Over-limit requests return a clear code; decision D-AUTH from section 14 is recorded |
-| T-072 | `GatewayProvider` and removal of the direct provider from release builds | T-070 | The release check for the API key string passes |
-| T-073 | `POST /v1/transcribe` and the production speech service | T-061, T-070 | WER at or above the agreed threshold on the clip set |
+| ID    | Ticket                                                                           | Needs        | Acceptance criteria                                                                  |
+| ----- | -------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------ |
+| T-070 | Spring Boot gateway: `POST /v1/draft`, key held server-side, request size limits | T-053        | Matches the provider contract in section 7; no image content in logs                 |
+| T-071 | Employee authentication, per-user rate limits and monthly cost caps              | T-070        | Over-limit requests return a clear code; decision D-AUTH from section 14 is recorded |
+| T-072 | `GatewayProvider` and removal of the direct provider from release builds         | T-070        | The release check for the API key string passes                                      |
+| T-073 | `POST /v1/transcribe` and the production speech service                          | T-061, T-070 | WER at or above the agreed threshold on the clip set                                 |
 
 **M8, UI overhaul (added at the product owner's request, from the UI/UX review "Laqta UI overhaul")**
 
 Change IDs in brackets refer to that review. Behaviour contracts (§3, §4, §8) and the invariants do not change; these tickets change layout, styling and copy only, except where noted.
 
-| ID | Ticket | Needs | Acceptance criteria |
-| --- | --- | --- | --- |
-| T-080 | Design foundation: brand accent, bundled fonts, type scale, elevation and motion tokens, dark surfaces, one icon set [F-02 to F-07] | T-051 | Every module uses tokens for type, shadow and motion; contrast tests pass in both themes; fonts load from the bundle |
-| T-081 | Capture overlay: dark toolbar with key hints, corner-bracket selection, magnifier loupe [C-01 to C-03] | T-080 | Same keyboard behaviour as board 1; loupe hidden with reduced motion off-screen; E2E capture passes |
-| T-082 | Describe step: no scrolling at the default size, fit and zoom, contextual tool options, fewer hint chips, redaction status pill, mic in the text box [E-01 to E-07] | T-080 | Project and language are in the footer; the zero-redaction confirm still runs; Ctrl+Enter generates |
-| T-083 | Drafting skeleton in the Review layout [D-01] | T-082 | No fake progress stages; Cancel works |
-| T-084 | Review step: bug shown as a document, Jira fields as a side panel, questions next to their field, reason next to a disabled Create, attachment card, type and priority icons, compact duplicate row [R-01 to R-07] | T-082 | Every field stays a labelled control; Create rules unchanged; ambiguous assignee still forces a pick |
-| T-085 | Result toast: slide-in, check mark, key chip, thumbnail, auto-close bar, Report another, unified partial and failure layout [T-01 to T-03] | T-080 | Polite live region kept; retry still uploads only the image |
-| T-086 | Settings: one status language, lighter banners, setup checklist, auto-save for Appearance, Sounds and Language, app version [S-01 to S-04, N-02] | T-080 | Jira, AI and Capture keep explicit Save; Appearance, Sounds and Language save on change |
-| T-087 | Native window materials: Mica on Windows 11, vibrancy on macOS, solid fallback [X-01] | T-080 | `windows.ts` security settings unchanged; window-policy tests pass |
-| T-088 | Welcome panel inside Settings on first run: Connect Jira, Try the hotkey, Done [N-01] | T-086 | No new window or IPC channel; shows only while Jira is not configured |
-| T-089 | Polish: shortcuts sheet, microinteractions, empty and error illustrations, copy pass, window size check [X-03 to X-07] | T-084, T-085 | All motion respects reduced motion; every string in `strings.ts` in both languages |
-| T-090 | Arabic and RTL pass on the new screens, design boards v0.2 [X-02, F-01] | T-089 | Arabic E2E screenshots for every step; boards updated |
+| ID    | Ticket                                                                                                                                                                                                             | Needs        | Acceptance criteria                                                                                                  |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------- |
+| T-080 | Design foundation: brand accent, bundled fonts, type scale, elevation and motion tokens, dark surfaces, one icon set [F-02 to F-07]                                                                                | T-051        | Every module uses tokens for type, shadow and motion; contrast tests pass in both themes; fonts load from the bundle |
+| T-081 | Capture overlay: dark toolbar with key hints, corner-bracket selection, magnifier loupe [C-01 to C-03]                                                                                                             | T-080        | Same keyboard behaviour as board 1; the loupe shows only while drawing or resizing and is hidden from screen readers; E2E capture passes                  |
+| T-082 | Describe step: no scrolling at the default size, fit and zoom, contextual tool options, fewer hint chips, redaction status pill, mic in the text box [E-01 to E-07]                                                | T-080        | Project and language sit above the request, so nothing scrolls at the default size; the zero-redaction confirm still runs; Ctrl+Enter generates                  |
+| T-083 | Drafting skeleton in the Review layout [D-01]                                                                                                                                                                      | T-082        | No fake progress stages; Cancel works                                                                                |
+| T-084 | Review step: bug shown as a document, Jira fields as a side panel, questions next to their field, reason next to a disabled Create, attachment card, type and priority icons, compact duplicate row [R-01 to R-07] | T-082        | Every field stays a labelled control; Create rules unchanged; ambiguous assignee still forces a pick                 |
+| T-085 | Result toast: slide-in, check mark, key chip, thumbnail, auto-close bar, Report another, unified partial and failure layout [T-01 to T-03]                                                                         | T-080        | Polite live region kept; retry still uploads only the image                                                          |
+| T-086 | Settings: one status language, lighter banners, setup checklist, auto-save for Appearance, Sounds and Language, app version [S-01 to S-04, N-02]                                                                   | T-080        | Jira, AI and Capture keep explicit Save; Appearance, Sounds and Language save on change                              |
+| T-087 | Native window materials: Mica on Windows 11, vibrancy on macOS, solid fallback [X-01]                                                                                                                              | T-080        | `windows.ts` security settings unchanged; window-policy tests pass                                                   |
+| T-088 | Welcome panel inside Settings on first run: Connect Jira, Try the hotkey, Done [N-01]                                                                                                                              | T-086        | No new window or IPC channel; shows only while Jira is not configured                                                |
+| T-089 | Polish: shortcuts sheet, microinteractions, empty and error illustrations, copy pass, window size check [X-03 to X-07]                                                                                             | T-084, T-085 | All motion respects reduced motion; every string in `strings.ts` in both languages                                   |
+| T-090 | Arabic and RTL pass on the new screens, design boards v0.2 [X-02, F-01]                                                                                                                                            | T-089        | Arabic E2E screenshots for every step; boards updated                                                                |
 
 ## 14. Spike checklist: assumptions to verify
 
 Nothing below may be treated as fact until the spike tickets (T-002 to T-004) confirm it. Record each result in the matching `docs/spike-*.md` file and update the spec if reality differs.
 
-| # | Assumption | How to verify | If wrong |
-| --- | --- | --- | --- |
-| 1 | Our Jira Data Center version supports Personal Access Tokens as Bearer tokens | `GET /rest/api/2/myself` with a PAT | Use another supported auth method and redesign onboarding |
-| 2 | The scoped createmeta endpoints return required fields and allowed values | Call them for the pilot project and one with custom required fields | Adapt `CreateMeta` loading |
-| 3 | Assignable-user search takes `project` and `username` and matches display names | Query with partial names, English and transliterated | Change the resolution strategy |
-| 4 | Attachments upload with header `X-Atlassian-Token: no-check` and multipart field `file`; the size limit is known | Upload a PNG and a large PNG | Adjust size handling and `maxAttachmentBytes` |
-| 5 | `net.fetch` in Electron can send `FormData` with a binary file | Upload through the app's own client, not a script | Build the multipart body manually |
-| 6 | A wiki image reference `!file.png!` renders once the attachment exists, even if the attachment is uploaded after create | View the created bug | Add a description update call after the upload |
-| 7 | `desktopCapturer` returns full-pixel frames on high-DPI and multi-monitor setups | Compare pixel sizes to display size times scale factor | Use a different capture method per OS |
-| 8 | The overlay can sit above full-screen apps on macOS and on Windows | Manual matrix | Change window level settings or use a native helper |
-| 9 | `active-win` bounds and titles work on both OSes with the granted permissions | Manual matrix | Hide window mode |
-| 10 | The chosen Claude model returns valid forced-tool output for Arabic and English prompts, and the image size guidance in section 5 is right | Eval run on the fixtures; read the current vision documentation | Change the model, size or prompt |
-| 11 | `safeStorage` is available on every supported machine | Run on Windows and macOS test machines | Define a supported fallback with Security |
-| 12 | The corporate proxy and root certificate work through `net.fetch` | Test on the company network and VPN | Add certificate or proxy settings |
-| 13 | We have the Windows signing certificate and Apple Developer ID and a macOS CI runner | Ask DevOps | Delay M5 or buy or provision them |
-| 14 | Creates are never resent by the network stack (the app sends them on a fresh connection, see 8.1) | Create bugs through the corporate proxy and VPN while resetting connections | Add a post-create label search that reports more than one issue |
+| #   | Assumption                                                                                                                                 | How to verify                                                               | If wrong                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 1   | Our Jira Data Center version supports Personal Access Tokens as Bearer tokens                                                              | `GET /rest/api/2/myself` with a PAT                                         | Use another supported auth method and redesign onboarding       |
+| 2   | The scoped createmeta endpoints return required fields and allowed values                                                                  | Call them for the pilot project and one with custom required fields         | Adapt `CreateMeta` loading                                      |
+| 3   | Assignable-user search takes `project` and `username` and matches display names                                                            | Query with partial names, English and transliterated                        | Change the resolution strategy                                  |
+| 4   | Attachments upload with header `X-Atlassian-Token: no-check` and multipart field `file`; the size limit is known                           | Upload a PNG and a large PNG                                                | Adjust size handling and `maxAttachmentBytes`                   |
+| 5   | `net.fetch` in Electron can send `FormData` with a binary file                                                                             | Upload through the app's own client, not a script                           | Build the multipart body manually                               |
+| 6   | A wiki image reference `!file.png!` renders once the attachment exists, even if the attachment is uploaded after create                    | View the created bug                                                        | Add a description update call after the upload                  |
+| 7   | `desktopCapturer` returns full-pixel frames on high-DPI and multi-monitor setups                                                           | Compare pixel sizes to display size times scale factor                      | Use a different capture method per OS                           |
+| 8   | The overlay can sit above full-screen apps on macOS and on Windows                                                                         | Manual matrix                                                               | Change window level settings or use a native helper             |
+| 9   | `active-win` bounds and titles work on both OSes with the granted permissions                                                              | Manual matrix                                                               | Hide window mode                                                |
+| 10  | The chosen Claude model returns valid forced-tool output for Arabic and English prompts, and the image size guidance in section 5 is right | Eval run on the fixtures; read the current vision documentation             | Change the model, size or prompt                                |
+| 11  | `safeStorage` is available on every supported machine                                                                                      | Run on Windows and macOS test machines                                      | Define a supported fallback with Security                       |
+| 12  | The corporate proxy and root certificate work through `net.fetch`                                                                          | Test on the company network and VPN                                         | Add certificate or proxy settings                               |
+| 13  | We have the Windows signing certificate and Apple Developer ID and a macOS CI runner                                                       | Ask DevOps                                                                  | Delay M5 or buy or provision them                               |
+| 14  | Creates are never resent by the network stack (the app sends them on a fresh connection, see 8.1)                                          | Create bugs through the corporate proxy and VPN while resetting connections | Add a post-create label search that reports more than one issue |
 
 ## 15. Decisions that must be made by people
 
-| ID | Decision | Owner | Needed before |
-| --- | --- | --- | --- |
-| D-LICENSE | Claude licensing model and data-retention terms for all employees | Security, Legal, management | Pilot (M5 end) |
-| D-AUTH | How the gateway authenticates an employee (company identity provider is the preferred direction) | Security, DevOps | T-071 |
-| D-STT | Speech-to-text service, cloud or on-premise | Security, product owner | T-061 |
-| D-LANG | Default bug language, proposed English and configurable | Product owner | T-032 |
-| D-FW | Electron or Tauri, proposed Electron | Frontend senior | T-001 |
-| D-OWNER | Named product owner, support channel and maintainers | Management | Pilot |
-| D-PROJECTS | First projects and their required fields | Team leads | T-041 |
+| ID         | Decision                                                                                         | Owner                       | Needed before  |
+| ---------- | ------------------------------------------------------------------------------------------------ | --------------------------- | -------------- |
+| D-LICENSE  | Claude licensing model and data-retention terms for all employees                                | Security, Legal, management | Pilot (M5 end) |
+| D-AUTH     | How the gateway authenticates an employee (company identity provider is the preferred direction) | Security, DevOps            | T-071          |
+| D-STT      | Speech-to-text service, cloud or on-premise                                                      | Security, product owner     | T-061          |
+| D-LANG     | Default bug language, proposed English and configurable                                          | Product owner               | T-032          |
+| D-FW       | Electron or Tauri, proposed Electron                                                             | Frontend senior             | T-001          |
+| D-OWNER    | Named product owner, support channel and maintainers                                             | Management                  | Pilot          |
+| D-PROJECTS | First projects and their required fields                                                         | Team leads                  | T-041          |

@@ -72,3 +72,19 @@ export function TrashIcon() {
     </svg>
   );
 }
+
+export function MinusIcon() {
+  return (
+    <svg {...common}>
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+export function PlusZoomIcon() {
+  return (
+    <svg {...common}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}

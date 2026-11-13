@@ -1,24 +1,25 @@
-/* Describe step (board 2): the image with its tools on the start side, the request in cards
-   on the end side. Same card language as Settings: muted body, white rounded cards. */
+/* Describe step (board 2, T-082): the image on a sunken stage with one toolbar above it on the
+   start side; where the bug goes and what is wrong on the end side. Fits the default window
+   without scrolling. */
 
 .columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr);
   width: 100%;
   min-height: 0;
 }
 
 .left {
-  padding: var(--space-5) var(--space-4) var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-3) var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
 }
 
 .right {
-  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4) var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -26,11 +27,11 @@
 }
 
 [dir='rtl'] .left {
-  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4) var(--space-3);
 }
 
 [dir='rtl'] .right {
-  padding: var(--space-5) var(--space-4) var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-3) var(--space-4) var(--space-6);
 }
 
 /* ---------------------------------------------------------------- toolbar */
@@ -48,10 +49,10 @@
   gap: 2px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 12px;
-  padding: 3px;
+  border-radius: var(--radius-lg);
+  padding: 4px;
   align-self: flex-start;
-  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.05);
+  box-shadow: var(--elev-1);
 }
 
 /* Compact controls (34 px). Each one keeps a 44 px tall hit area through ::after. */
@@ -74,18 +75,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--ink);
   font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
   transition:
-    background-color 120ms ease,
-    color 120ms ease;
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
 }
 
 .tool {
@@ -103,7 +104,7 @@
 
 .tool:hover,
 .iconTool:hover:not(:disabled) {
-  background: var(--surface-muted);
+  background: var(--hover-tint);
   color: var(--ink);
 }
 
@@ -120,7 +121,7 @@
 
 /* Blur is the privacy tool: it keeps a hint of the warning colour when not selected. */
 .toolBlur:not([aria-pressed='true']) svg {
-  color: var(--warning-text);
+  color: var(--warning-icon);
 }
 
 .iconTool:disabled {
@@ -141,6 +142,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  padding: 0 2px;
 }
 
 .swatches[aria-disabled='true'] {
@@ -148,15 +150,18 @@
 }
 
 .swatch {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: 2px solid transparent;
   border-radius: 50%;
-  background: var(--surface);
+  background: transparent;
   cursor: pointer;
   display: grid;
   place-items: center;
+  transition:
+    border-color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease);
 }
 
 .swatch::before {
@@ -169,11 +174,17 @@
 }
 
 .swatch:hover:not(:disabled) {
-  border-color: var(--hairline);
+  border-color: var(--hairline-strong);
 }
 
 .swatch[aria-checked='true'] {
   border-color: var(--ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .swatch:hover:not(:disabled) {
+    transform: scale(1.08);
+  }
 }
 
 .swatch:disabled {
@@ -186,24 +197,12 @@
   color: var(--muted);
 }
 
-.subtools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 36px;
-}
-
 .subLabel {
   margin: 0;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--muted);
   white-space: nowrap;
-}
-
-.subInput {
-  background: var(--surface);
 }
 
 /* ---------------------------------------------------------------- segmented (radio group) */
@@ -213,13 +212,12 @@
   padding: 3px;
   gap: 2px;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--surface-muted);
   border: 1px solid var(--hairline);
 }
 
 .segmentedFull {
   display: flex;
-  background: var(--surface-muted);
 }
 
 .segment {
@@ -242,25 +240,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  min-width: 88px;
+  min-height: 36px;
+  min-width: 80px;
   padding: 0 var(--space-3);
   border-radius: 7px;
   font-weight: 500;
   color: var(--muted);
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
 }
 
 .segment input:checked + label {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  font-weight: 600;
-}
-
-.segmentedFull .segment input:checked + label {
   background: var(--surface);
   color: var(--ink);
+  font-weight: 600;
   box-shadow:
     0 1px 3px rgba(var(--shadow-rgb), 0.12),
     0 0 0 1px rgba(var(--shadow-rgb), 0.04);
@@ -271,53 +267,70 @@
   outline-offset: var(--focus-offset);
 }
 
+/* The blur style switch sits inside the compact toolbar. */
+.toolSegmented {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.toolSegmented .segment label {
+  min-height: 30px;
+  min-width: 68px;
+  font-size: var(--text-sm);
+}
+
+.toolSegmented .segment input:checked + label {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  box-shadow: none;
+}
+
 /* ---------------------------------------------------------------- image */
 
 .canvasWrap {
   flex: 1;
   min-height: 0;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04);
-  padding: var(--space-3);
   display: flex;
 }
 
-/* A soft dotted stage, so the edges of the screenshot are always visible. */
+/* A sunken dotted stage, so the screenshot is the brightest thing in the window and its edges
+   always show. The zoom bar floats in its corner. */
 .stage {
+  position: relative;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
   background-color: var(--canvas-bg);
   background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px);
-  background-size: 14px 14px;
+  background-size: 16px 16px;
+  overflow: hidden;
 }
 
 .canvasBox {
   position: relative;
-  width: 100%;
-  height: 100%;
+  flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /* safe: when zoomed past the stage the image starts at the edge instead of being cut off. */
+  align-items: safe center;
+  justify-content: safe center;
+  padding: var(--space-6);
 }
 
 .canvas {
-  max-width: 100%;
-  max-height: 56vh;
-  object-fit: contain;
+  flex: none;
   cursor: crosshair;
   touch-action: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   box-shadow:
     0 0 0 1px rgba(var(--shadow-rgb), 0.08),
-    0 8px 24px rgba(var(--shadow-rgb), 0.14);
+    var(--elev-3);
 }
 
 .selectCursor {
@@ -326,6 +339,74 @@
 
 .textCursor {
   cursor: text;
+}
+
+.zoomBar {
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--elev-2);
+}
+
+.zoomButton,
+.zoomFit {
+  position: relative;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+
+.zoomButton::after,
+.zoomFit::after {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+.zoomButton {
+  width: 30px;
+}
+
+.zoomFit {
+  padding: 0 10px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.zoomButton:hover:not(:disabled),
+.zoomFit:hover {
+  background: var(--hover-tint);
+}
+
+.zoomButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.zoomFit[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.zoomLevel {
+  min-width: 48px;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
 }
 
 /* The label being typed sits on the image, in the label's own colour and size. */
@@ -350,15 +431,15 @@
   opacity: 0.7;
 }
 
-/* Delete sits on the selected shape's corner, not in the toolbar. */
+/* Delete sits just outside the selected shape's corner, not in the toolbar. */
 .shapeDelete {
   position: absolute;
   z-index: 2;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   /* Physical, like the left/top it is placed with: the image is never mirrored. */
-  margin-left: -15px;
-  margin-top: -15px;
+  margin-left: -13px;
+  margin-top: -13px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -367,17 +448,40 @@
   background: var(--danger);
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.3);
+  box-shadow: var(--elev-2);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.shapeDelete svg {
+  width: 14px;
+  height: 14px;
 }
 
 .shapeDelete::after {
   content: '';
   position: absolute;
-  inset: -7px;
+  inset: -9px;
 }
 
 .shapeDelete:hover {
   background: var(--danger-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shapeDelete {
+    animation: pop-in var(--dur) var(--ease);
+  }
+
+  .shapeDelete:hover {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 
 .caption {
@@ -387,13 +491,45 @@
   padding: 0 var(--space-1);
 }
 
-/* ---------------------------------------------------------------- cards */
+/* ---------------------------------------------------------------- where the bug goes */
+
+.destination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldProject {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-weight: 600;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field :global(.select) {
+  background: var(--surface);
+}
+
+/* ---------------------------------------------------------------- request card */
 
 .card {
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04);
+  box-shadow: var(--elev-1);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
@@ -404,6 +540,7 @@
   margin: 0;
   font-size: var(--text-lg);
   font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .promptBox {
@@ -411,10 +548,11 @@
 }
 
 .prompt {
-  min-height: 132px;
+  min-height: 140px;
   line-height: 1.6;
-  padding-bottom: var(--space-6);
+  padding: var(--space-3) var(--space-4) var(--space-6);
   background: var(--surface);
+  font-size: var(--text-md);
 }
 
 .count {
@@ -422,7 +560,7 @@
   inset-inline-end: var(--space-3);
   bottom: var(--space-2);
   font-size: var(--text-xs);
-  color: var(--muted);
+  color: var(--warning-text);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }
@@ -440,32 +578,30 @@
 }
 
 .chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 var(--space-3);
   border: 1px solid var(--hairline);
-  border-radius: 999px;
-  background: var(--surface-muted);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
   color: var(--ink);
   font-weight: 500;
   font-size: var(--text-sm);
   cursor: pointer;
   transition:
-    background-color 120ms ease,
-    border-color 120ms ease;
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
 }
 
-/* The chips are 34 px tall; this keeps the hit area at 44 px. */
-.chip {
-  position: relative;
-}
-
+/* The chips are 32 px tall; this keeps the hit area at 44 px. */
 .chip::after {
   content: '';
   position: absolute;
-  inset: -5px 0;
+  inset: -6px 0;
 }
 
 .chip svg {
@@ -488,25 +624,15 @@
   color: var(--success);
 }
 
+.chipMore {
+  border-style: dashed;
+  color: var(--muted);
+}
+
 .chipsHint {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--muted);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.fieldLabel {
-  font-weight: 500;
-  font-size: var(--text-base);
-}
-
-.field :global(.select) {
-  background: var(--surface);
 }
 
 /* ---------------------------------------------------------------- voice */
@@ -550,20 +676,83 @@
   font-size: var(--text-sm);
 }
 
-.privacy svg,
-.footerNote svg {
+.privacy svg {
   flex: none;
   margin-top: 2px;
 }
 
-.footerNote {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-start;
-  color: var(--warning-text);
-  margin: 0;
+/* ---------------------------------------------------------------- footer: redaction status */
+
+.footerStart {
   flex: 1;
-  font-size: var(--text-base);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.redaction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  margin: 0;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.redactionDone {
+  background: var(--success-soft);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.redactionNone {
+  position: relative;
+  background: var(--warning-soft);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
+}
+
+/* 36 px tall pill, 44 px hit area. */
+.redactionNone::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.redactionNone:hover {
+  background: var(--warning-hover);
+}
+
+.redactionAction {
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.redactionNote {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 980px) {
+  .redactionNote {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip: rect(0 0 0 0);
+  }
 }
 
 /* ---------------------------------------------------------------- no-blur dialog */
@@ -582,11 +771,4 @@
   height: 20px;
   margin: 0;
   accent-color: var(--accent);
-}
-
-/* The blur style switch matches the compact toolbar above it. */
-.subtools .segment label {
-  min-height: 30px;
-  min-width: 72px;
-  font-size: var(--text-sm);
 }

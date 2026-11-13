@@ -26,8 +26,9 @@ const COLOR_NAMES: Record<(typeof ANNOTATION_COLORS)[number], StringKey> = {
 };
 
 /**
- * Board 2 toolbar: Select, Box, Arrow, Text, Blur (n), Undo, Redo, then the colour for the
- * current tool or the selected shape. Deleting a shape is on the shape itself.
+ * Board 2 toolbar, one row (T-082): Select, Box, Arrow, Text, Blur (n), Undo, Redo, then only
+ * the options for what is about to be drawn or is selected: the colour, and for Blur its
+ * style. Deleting a shape is on the shape itself.
  */
 export default function Toolbar() {
   const { t, f } = useI18n();
@@ -116,46 +117,41 @@ export default function Toolbar() {
         >
           <RedoIcon />
         </button>
-      </div>
-      <div className={styles.subtools}>
-        <span className={styles.subLabel} aria-hidden="true">
-          {t('editor.color')}
-        </span>
-        <div
-          role="radiogroup"
-          aria-label={t('editor.color')}
-          aria-disabled={colorsDisabled}
-          className={styles.swatches}
-          title={
-            colorKind === null
-              ? t('editor.colorHint')
-              : pixelated
-                ? t('editor.colorPixelate')
-                : t('editor.color')
-          }
-        >
-          {ANNOTATION_COLORS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              role="radio"
-              aria-checked={currentColor === color}
-              aria-label={t(COLOR_NAMES[color])}
-              title={t(COLOR_NAMES[color])}
-              className={styles.swatch}
-              style={{ '--swatch': color } as CSSProperties}
-              disabled={colorsDisabled}
-              onClick={() => pickColor(color)}
-            />
-          ))}
-        </div>
+        {colorKind !== null && (
+          <>
+            <span className={styles.divider} aria-hidden="true" />
+            <div
+              role="radiogroup"
+              aria-label={t('editor.color')}
+              aria-disabled={colorsDisabled}
+              className={styles.swatches}
+              title={pixelated ? t('editor.colorPixelate') : t('editor.color')}
+            >
+              {ANNOTATION_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  role="radio"
+                  aria-checked={currentColor === color}
+                  aria-label={t(COLOR_NAMES[color])}
+                  title={t(COLOR_NAMES[color])}
+                  className={styles.swatch}
+                  style={{ '--swatch': color } as CSSProperties}
+                  disabled={colorsDisabled}
+                  onClick={() => pickColor(color)}
+                />
+              ))}
+            </div>
+          </>
+        )}
         {s.tool === 'redact' && (
           <>
             <span className={styles.divider} aria-hidden="true" />
-            <span className={styles.subLabel} id="blur-mode-label">
-              {t('editor.blurMode')}
-            </span>
-            <div className={styles.segmented} role="radiogroup" aria-labelledby="blur-mode-label">
+            <div
+              className={`${styles.segmented} ${styles.toolSegmented}`}
+              role="radiogroup"
+              aria-label={t('editor.blurMode')}
+            >
               {(['fill', 'pixelate'] as const).map((mode) => (
                 <span key={mode} className={styles.segment}>
                   <input

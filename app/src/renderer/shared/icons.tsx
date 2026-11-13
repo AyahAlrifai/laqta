@@ -154,3 +154,32 @@ export function CheckSmallIcon() {
     </svg>
   );
 }
+
+/** A magnifier over the screenshot thumbnail: it opens the full-size view. */
+export function ZoomImageIcon() {
+  return (
+    <svg {...iconBase} width={16} height={16}>
+      <circle cx="11" cy="11" r="6" />
+      <path d="m20 20-4.5-4.5M11 8.5v5M8.5 11h5" />
+    </svg>
+  );
+}
+
+const PRIORITY_LOOK: Record<string, { path: string; color: string }> = {
+  Highest: { path: 'M6 13l6-6 6 6M6 19l6-6 6 6', color: 'var(--danger-text)' },
+  High: { path: 'M6 15l6-6 6 6', color: 'var(--danger-text)' },
+  Medium: { path: 'M6 10h12M6 15h12', color: 'var(--warning-icon)' },
+  Low: { path: 'M6 9l6 6 6-6', color: 'var(--accent)' },
+  Lowest: { path: 'M6 5l6 6 6-6M6 11l6 6 6-6', color: 'var(--accent)' },
+};
+
+/** Jira-style priority mark, so the value is recognised at a glance; the text stays next to it. */
+export function PriorityIcon({ priority }: { priority: string | null }) {
+  const look = priority === null ? undefined : PRIORITY_LOOK[priority];
+  if (look === undefined) return null;
+  return (
+    <svg {...iconBase} width={16} height={16} strokeWidth={2.25} style={{ color: look.color }}>
+      <path d={look.path} />
+    </svg>
+  );
+}

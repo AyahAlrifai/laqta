@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MAX_PROMPT_CHARS } from '../../shared/schemas';
 import type { StringKey } from '../../shared/strings';
 import { unescapeWiki } from '../../shared/wiki';
@@ -49,6 +49,12 @@ const DETAILS: { label: StringKey; text: StringKey; question: StringKey }[] = [
   },
 ];
 
+/** How many detail chips show before "More" (T-082): the four that help the draft most. */
+const DETAILS_SHOWN = 4;
+
+/** The character counter appears only near the limit, where it is useful. */
+const COUNT_FROM = Math.round(MAX_PROMPT_CHARS * 0.8);
+
 /** The line's label, up to its colon: how a detail already in the prompt is recognised. */
 const detailKey = (text: string) => text.slice(0, text.indexOf(':') + 1).trim();
 
@@ -71,11 +77,19 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
   const [dontAskAgain, setDontAskAgain] = useState(false);
   const [busy, setBusy] = useState(false);
   const [validation, setValidation] = useState<string | null>(null);
+  const [moreDetails, setMoreDetails] = useState(false);
   const drafting = s.session?.state === 'drafting';
+  // Ctrl+Enter generates from anywhere in the window; the ref always holds the latest closure.
+  const generateRef = useRef<(skipConfirm: boolean) => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (busy || drafting) return;
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.repeat) {
+        event.preventDefault();
+        void generateRef.current(false);
+        return;
+      }
       if (handleEditorKey(event, useWorkbench.getState(), base)) event.preventDefault();
     };
     window.addEventListener('keydown', onKey);
@@ -84,6 +98,7 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
 
   const blurCount = counts(s.history.present).blurs;
   const session = s.session;
+  const isMac = session?.os.platform === 'darwin';
   const osName = session?.os.platform === 'win32' ? 'Windows' : 'macOS';
   const caption = session?.sourceApp
     ? f('editor.captured', {
@@ -147,6 +162,8 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
     }
   }
 
+  generateRef.current = generate;
+
   /**
    * Saves confirmNoBlur = false. Read fresh settings first so a change made meanwhile in the
    * Settings window is not overwritten. A failure only means the dialog shows again next time.
@@ -198,10 +215,30 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
       step={1}
       footer={
         <>
-          <p className={styles.footerNote}>
-            <ShieldSmallIcon />
-            <span>{t('editor.footerWarning')}</span>
-          </p>
+          {/* The redaction state, visible at a glance (T-082). With nothing blurred it offers
+              the Blur tool; the no-redaction confirm still runs on Generate. */}
+          <div className={styles.footerStart}>
+            {blurCount > 0 ? (
+              <p className={`${styles.redaction} ${styles.redactionDone}`}>
+                <CheckSmallIcon />
+                <span>{f('editor.redactionCount', { count: blurCount })}</span>
+              </p>
+            ) : (
+              <button
+                type="button"
+                className={`${styles.redaction} ${styles.redactionNone}`}
+                onClick={() => s.set({ tool: 'redact' })}
+                aria-describedby="redaction-note"
+              >
+                <ShieldSmallIcon />
+                <span>{t('editor.redactionNone')}</span>
+                <span className={styles.redactionAction}>{t('editor.redactionNoneAction')}</span>
+              </button>
+            )}
+            <span id="redaction-note" className={styles.redactionNote}>
+              {t('editor.redactionNote')}
+            </span>
+          </div>
           <button type="button" className="btn" onClick={onDiscard}>
             {t('editor.cancel')}
           </button>
@@ -210,8 +247,10 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
             className="btn btn-primary"
             onClick={() => void generate(false)}
             disabled={busy || drafting}
+            aria-keyshortcuts="Control+Enter Meta+Enter"
           >
             {t('editor.generate')}
+            <kbd aria-hidden="true">{isMac ? '⌘↵' : 'Ctrl ↵'}</kbd>
           </button>
         </>
       }
@@ -234,70 +273,8 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
               {f('editor.aiOff', { message: s.settingsView.aiDisabledMessage })}
             </Banner>
           )}
-          <div className={styles.card}>
-            <label id="prompt-label" htmlFor="prompt" className={styles.cardTitle}>
-              {t('editor.whatIsWrong')}
-            </label>
-            <div className={styles.promptBox}>
-              <textarea
-                id="prompt"
-                className={`textarea ${styles.prompt}`}
-                dir="auto"
-                maxLength={MAX_PROMPT_CHARS}
-                placeholder={t('editor.promptPlaceholder')}
-                value={s.prompt}
-                onChange={(e) => s.set({ prompt: e.target.value })}
-                aria-describedby={validation ? 'editor-validation' : 'prompt-count'}
-              />
-              <span id="prompt-count" className={styles.count}>
-                {f('editor.charCount', { count: s.prompt.length, max: MAX_PROMPT_CHARS })}
-              </span>
-            </div>
-            {voiceEnabled && (
-              <MicButton
-                language={s.voiceLanguage}
-                onLanguage={(voiceLanguage) => s.set({ voiceLanguage })}
-                onTranscript={(text) =>
-                  s.set({
-                    prompt: (s.prompt.trim() === '' ? text : `${s.prompt} ${text}`).slice(
-                      0,
-                      MAX_PROMPT_CHARS,
-                    ),
-                  })
-                }
-              />
-            )}
-            <div className={styles.quickStart}>
-              <p className={styles.subLabel} id="chips-label">
-                {t('editor.helpAi')}
-              </p>
-              <p className={styles.chipsHint}>{t('editor.helpAiHint')}</p>
-              <div className={styles.chips} role="group" aria-labelledby="chips-label">
-                {DETAILS.map((d) => {
-                  const added = s.prompt.includes(detailKey(t(d.text)));
-                  return (
-                    <button
-                      key={d.label}
-                      type="button"
-                      className={`${styles.chip} ${added ? styles.chipAdded : ''}`}
-                      title={t(d.question)}
-                      onClick={() => insertDetail(t(d.text))}
-                    >
-                      {added ? <CheckSmallIcon /> : <PlusIcon />}
-                      {t(d.label)}
-                      {added && <span className="visually-hidden">{t('editor.detailAdded')}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <section className={styles.card} aria-labelledby="details-title">
-            <h2 id="details-title" className={styles.cardTitle}>
-              {t('editor.details')}
-            </h2>
-            <div className={styles.field}>
+          <section className={styles.destination} aria-label={t('editor.destination')}>
+            <div className={`${styles.field} ${styles.fieldProject}`}>
               <label className={styles.fieldLabel} htmlFor="project">
                 {t('editor.project')}
               </label>
@@ -341,6 +318,75 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
               </div>
             </div>
           </section>
+          <div className={styles.card}>
+            <label id="prompt-label" htmlFor="prompt" className={styles.cardTitle}>
+              {t('editor.whatIsWrong')}
+            </label>
+            <div className={styles.promptBox}>
+              <textarea
+                id="prompt"
+                className={`textarea ${styles.prompt}`}
+                dir="auto"
+                maxLength={MAX_PROMPT_CHARS}
+                placeholder={t('editor.promptPlaceholder')}
+                value={s.prompt}
+                onChange={(e) => s.set({ prompt: e.target.value })}
+                aria-describedby={validation ? 'editor-validation' : 'prompt-count'}
+              />
+              <span
+                id="prompt-count"
+                className={`${styles.count} ${s.prompt.length < COUNT_FROM ? 'visually-hidden' : ''}`}
+              >
+                {f('editor.charCount', { count: s.prompt.length, max: MAX_PROMPT_CHARS })}
+              </span>
+            </div>
+            {voiceEnabled && (
+              <MicButton
+                language={s.voiceLanguage}
+                onLanguage={(voiceLanguage) => s.set({ voiceLanguage })}
+                onTranscript={(text) =>
+                  s.set({
+                    prompt: (s.prompt.trim() === '' ? text : `${s.prompt} ${text}`).slice(
+                      0,
+                      MAX_PROMPT_CHARS,
+                    ),
+                  })
+                }
+              />
+            )}
+            <div className={styles.quickStart}>
+              <p className={styles.subLabel} id="chips-label">
+                {t('editor.helpAi')}
+              </p>
+              <p className={styles.chipsHint}>{t('editor.helpAiHint')}</p>
+              <div className={styles.chips} role="group" aria-labelledby="chips-label">
+                {(moreDetails ? DETAILS : DETAILS.slice(0, DETAILS_SHOWN)).map((d) => {
+                  const added = s.prompt.includes(detailKey(t(d.text)));
+                  return (
+                    <button
+                      key={d.label}
+                      type="button"
+                      className={`${styles.chip} ${added ? styles.chipAdded : ''}`}
+                      title={t(d.question)}
+                      onClick={() => insertDetail(t(d.text))}
+                    >
+                      {added ? <CheckSmallIcon /> : <PlusIcon />}
+                      {t(d.label)}
+                      {added && <span className="visually-hidden">{t('editor.detailAdded')}</span>}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  className={`${styles.chip} ${styles.chipMore}`}
+                  aria-expanded={moreDetails}
+                  onClick={() => setMoreDetails((v) => !v)}
+                >
+                  {moreDetails ? t('editor.fewerDetails') : t('editor.moreDetails')}
+                </button>
+              </div>
+            </div>
+          </div>
 
           {validation !== null && (
             <div id="editor-validation">
@@ -369,22 +415,16 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
         </section>
       </div>
 
-      {(drafting || busy) && (
+      {/* Only the short preparing stage: while drafting, the Workbench shows DraftingStep. */}
+      {busy && !drafting && (
         <BusyOverlay
           title={t('editor.drafting')}
           detail={t('editor.draftingDetail')}
           steps={[
-            { label: t('editor.stepPrepare'), state: drafting ? 'done' : 'current' },
-            { label: t('editor.stepRead'), state: drafting ? 'current' : 'next' },
+            { label: t('editor.stepPrepare'), state: 'current' },
+            { label: t('editor.stepRead'), state: 'next' },
             { label: t('editor.stepReview'), state: 'next' },
           ]}
-          action={
-            drafting ? (
-              <button type="button" className="btn" onClick={() => void laqta.draftCancel()}>
-                {t('editor.cancelDraft')}
-              </button>
-            ) : undefined
-          }
         />
       )}
 

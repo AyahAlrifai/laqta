@@ -21,7 +21,7 @@ const en = {
   'tray.aiDisabled': 'AI drafting is turned off: {message}',
 
   // capture overlay (board 1)
-  'capture.status': 'Capture mode. Drag to adjust, or use arrow keys to nudge and Shift to resize.',
+  'capture.status': 'Drag to adjust. Arrow keys nudge, Shift+arrows resize.',
   'capture.modeArea': 'Area',
   'capture.modeWindow': 'Window',
   'capture.modeScreen': 'Full screen',
@@ -412,6 +412,37 @@ const en = {
   'workbench.windowTitle': 'Laqta',
   'settings.windowTitle': 'Laqta settings',
   'overlay.windowTitle': 'Laqta capture',
+  // workbench step 1 redesign (T-082)
+  'editor.redactionNone': 'Nothing blurred yet',
+  'editor.redactionNoneAction': 'Blur an area',
+  'editor.redactionCount': 'Blurred areas: {count}',
+  'editor.redactionNote': 'Blurred areas are permanently removed from the sent image.',
+  'editor.moreDetails': 'More',
+  'editor.fewerDetails': 'Fewer',
+  'editor.zoomControls': 'Zoom',
+  'editor.zoomIn': 'Zoom in',
+  'editor.zoomOut': 'Zoom out',
+  'editor.zoomFit': 'Fit',
+  'editor.zoomFitLabel': 'Fit the image to the window',
+  'editor.zoomLevel': '{percent}%',
+  'editor.destination': 'Where this bug goes',
+  'editor.captureSize': '{width} × {height}',
+  // workbench step 2 redesign and drafting skeleton (T-083, T-084)
+  'review.toCheck': 'To check: {count}',
+  'review.toCheckJump': 'Go to the questions the AI could not answer',
+  'review.reasonAssignee': 'Pick an assignee to continue.',
+  'review.reasonSummary': 'Add a summary to continue.',
+  'review.reasonRequired': 'Fill in the required fields to continue.',
+  'review.attachmentMeta': '{width} × {height} · PNG',
+  'review.viewImage': 'View the screenshot full size',
+  'review.imageTitle': 'Screenshot that will be attached',
+  'review.duplicateShort': 'Possible duplicate:',
+  'review.summaryPlaceholder': 'One line that says what is wrong',
+  'review.request': 'Your request',
+  'drafting.elapsed': '{seconds} s',
+  'drafting.title': 'Writing the draft',
+  // capture overlay (T-081)
+  'capture.cancel': 'Cancel',
 } as const;
 
 export type StringKey = keyof typeof en;
@@ -432,7 +463,7 @@ const ar: Dictionary = {
   'tray.quit': 'إنهاء لقطة',
   'tray.aiDisabled': 'كتابة المسودات بالذكاء الاصطناعي متوقفة: {message}',
 
-  'capture.status': 'وضع الالتقاط. اسحب للتعديل، أو استخدم الأسهم للتحريك و Shift لتغيير الحجم.',
+  'capture.status': 'اسحب للتعديل. الأسهم للتحريك، و Shift مع الأسهم لتغيير الحجم.',
   'capture.modeArea': 'منطقة',
   'capture.modeWindow': 'نافذة',
   'capture.modeScreen': 'الشاشة كاملة',
@@ -798,6 +829,37 @@ const ar: Dictionary = {
   'workbench.windowTitle': 'لقطة',
   'settings.windowTitle': 'إعدادات لقطة',
   'overlay.windowTitle': 'التقاط لقطة',
+  // workbench step 1 redesign (T-082)
+  'editor.redactionNone': 'لم تُخفِ شيئاً بعد',
+  'editor.redactionNoneAction': 'أخفِ منطقة',
+  'editor.redactionCount': 'المناطق المخفية: {count}',
+  'editor.redactionNote': 'تُحذف المناطق المخفية نهائياً من الصورة المرسلة.',
+  'editor.moreDetails': 'المزيد',
+  'editor.fewerDetails': 'أقل',
+  'editor.zoomControls': 'التكبير',
+  'editor.zoomIn': 'تكبير',
+  'editor.zoomOut': 'تصغير',
+  'editor.zoomFit': 'ملاءمة',
+  'editor.zoomFitLabel': 'ملاءمة الصورة للنافذة',
+  'editor.zoomLevel': '{percent}٪',
+  'editor.destination': 'وجهة الخطأ',
+  'editor.captureSize': '{width} × {height}',
+  // workbench step 2 redesign and drafting skeleton (T-083, T-084)
+  'review.toCheck': 'للتحقق: {count}',
+  'review.toCheckJump': 'انتقل إلى الأسئلة التي لم يستطع الذكاء الاصطناعي الإجابة عنها',
+  'review.reasonAssignee': 'اختر المكلَّف للمتابعة.',
+  'review.reasonSummary': 'أضف ملخصاً للمتابعة.',
+  'review.reasonRequired': 'املأ الحقول المطلوبة للمتابعة.',
+  'review.attachmentMeta': '{width} × {height} · PNG',
+  'review.viewImage': 'اعرض لقطة الشاشة بالحجم الكامل',
+  'review.imageTitle': 'لقطة الشاشة التي ستُرفق',
+  'review.duplicateShort': 'تكرار محتمل:',
+  'review.summaryPlaceholder': 'سطر واحد يقول ما المشكلة',
+  'review.request': 'طلبك',
+  'drafting.elapsed': '{seconds} ث',
+  'drafting.title': 'كتابة المسودة',
+  // capture overlay (T-081)
+  'capture.cancel': 'إلغاء',
 };
 
 export type UiLanguage = 'en' | 'ar';
