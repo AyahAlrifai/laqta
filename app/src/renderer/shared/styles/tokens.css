@@ -52,14 +52,22 @@
   --knob: #ffffff;
   --inverse-bg: #12151d;
   --inverse-ink: #ffffff;
-  /* The capture overlay toolbar is dark glass in both themes: it sits on a screenshot. */
-  --glass-bg: rgba(18, 21, 29, 0.82);
-  --glass-ink: #f2f4f8;
-  --glass-muted: #b4bac7;
-  --glass-hover: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --glass-border-strong: rgba(255, 255, 255, 0.32);
-  --glass-active: rgba(255, 255, 255, 0.16);
+  /*
+   * Capture overlay chrome (bars, pills): glass that follows the theme. It sits on an
+   * arbitrary screenshot, so the light set is nearly opaque and carries a darker outline and
+   * a two-layer shadow that separate it from white or busy content. Even over pure black
+   * (worst case) ink is 14.6:1 and muted 5.0:1 on the glass.
+   */
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-ink: #12151d;
+  --glass-muted: #586174;
+  --glass-hover: rgba(18, 21, 29, 0.06);
+  --glass-border: rgba(18, 21, 29, 0.16);
+  --glass-border-strong: rgba(18, 21, 29, 0.4);
+  --glass-active: rgba(18, 21, 29, 0.09);
+  --glass-shadow:
+    0 0 0 0.5px rgba(18, 21, 29, 0.12), 0 2px 6px rgba(18, 21, 29, 0.14),
+    0 14px 36px rgba(18, 21, 29, 0.22);
   --canvas-bg: #f4f5f9;
   --canvas-dot: #e1e4eb;
   --skeleton: #e6e9f0;
@@ -182,6 +190,7 @@
     --glass-border: rgba(255, 255, 255, 0.14);
     --glass-border-strong: rgba(255, 255, 255, 0.32);
     --glass-active: rgba(255, 255, 255, 0.16);
+    --glass-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 44px rgba(0, 0, 0, 0.55);
     --canvas-bg: #0e1014;
     --canvas-dot: #1f232c;
     --skeleton: #252a35;
