@@ -51,7 +51,7 @@
   border-radius: 12px;
   padding: 3px;
   align-self: flex-start;
-  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.05);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.05);
 }
 
 /* Compact controls (34 px). Each one keeps a 44 px tall hit area through ::after. */
@@ -109,13 +109,13 @@
 
 .tool[aria-pressed='true'] {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(29, 63, 184, 0.35);
 }
 
 .tool[aria-pressed='true'] svg {
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 /* Blur is the privacy tool: it keeps a hint of the warning colour when not selected. */
@@ -165,7 +165,7 @@
   height: 16px;
   border-radius: 50%;
   background: var(--swatch);
-  box-shadow: inset 0 0 0 1px rgba(20, 23, 31, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(var(--shadow-rgb), 0.18);
 }
 
 .swatch:hover:not(:disabled) {
@@ -262,8 +262,8 @@
   background: var(--surface);
   color: var(--ink);
   box-shadow:
-    0 1px 3px rgba(20, 23, 31, 0.12),
-    0 0 0 1px rgba(20, 23, 31, 0.04);
+    0 1px 3px rgba(var(--shadow-rgb), 0.12),
+    0 0 0 1px rgba(var(--shadow-rgb), 0.04);
 }
 
 .segment input:focus-visible + label {
@@ -279,7 +279,7 @@
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.04);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04);
   padding: var(--space-3);
   display: flex;
 }
@@ -293,8 +293,8 @@
   justify-content: center;
   border-radius: var(--radius);
   padding: var(--space-4);
-  background-color: #f7f8fa;
-  background-image: radial-gradient(#d9dde5 1px, transparent 1px);
+  background-color: var(--canvas-bg);
+  background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px);
   background-size: 14px 14px;
 }
 
@@ -316,8 +316,8 @@
   touch-action: none;
   border-radius: 6px;
   box-shadow:
-    0 0 0 1px rgba(20, 23, 31, 0.08),
-    0 8px 24px rgba(20, 23, 31, 0.14);
+    0 0 0 1px rgba(var(--shadow-rgb), 0.08),
+    0 8px 24px rgba(var(--shadow-rgb), 0.14);
 }
 
 .selectCursor {
@@ -341,7 +341,7 @@
   box-shadow:
     0 0 0 2px #ffffff,
     0 0 0 4px var(--accent),
-    0 4px 14px rgba(20, 23, 31, 0.25);
+    0 4px 14px rgba(var(--shadow-rgb), 0.25);
   outline: none;
 }
 
@@ -367,7 +367,7 @@
   background: var(--danger);
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(20, 23, 31, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.3);
 }
 
 .shapeDelete::after {
@@ -393,7 +393,7 @@
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.04);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
@@ -474,13 +474,13 @@
 
 .chip:hover {
   background: var(--accent-soft);
-  border-color: #c6d3fb;
+  border-color: var(--accent-border);
 }
 
 /* Already in the request: the chip stays clickable and jumps to that line. */
 .chipAdded {
   background: var(--success-soft);
-  border-color: #b5dcc5;
+  border-color: var(--success-border);
   color: var(--success);
 }
 

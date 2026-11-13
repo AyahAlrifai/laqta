@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useI18n } from '../shared/i18n';
-import { AppMark, CloseIcon } from '../shared/icons';
+import { AppMark } from '../shared/icons';
 import styles from './Workbench.module.css';
 
 interface Props {
@@ -8,12 +8,15 @@ interface Props {
   badge?: string;
   /** Which step of the workbench this is: 1 Describe, 2 Review. */
   step: 1 | 2;
-  onClose: () => void;
   children: ReactNode;
   footer: ReactNode;
 }
 
-export default function Shell({ title, badge, step, onClose, children, footer }: Props) {
+/**
+ * No close button in the header: the window frame's own close and the footer's Cancel already
+ * end the report (spec section 9), and a third control only repeated them.
+ */
+export default function Shell({ title, badge, step, children, footer }: Props) {
   const { t } = useI18n();
   const steps = [t('workbench.stepDescribe'), t('workbench.stepReview')];
   return (
@@ -42,14 +45,6 @@ export default function Shell({ title, badge, step, onClose, children, footer }:
             );
           })}
         </ol>
-        <button
-          type="button"
-          className={`btn btn-ghost ${styles.close}`}
-          aria-label={t('editor.close')}
-          onClick={onClose}
-        >
-          <CloseIcon />
-        </button>
       </header>
       <main className={styles.main}>{children}</main>
       <footer className={styles.footer}>{footer}</footer>

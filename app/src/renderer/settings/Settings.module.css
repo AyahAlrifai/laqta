@@ -5,6 +5,8 @@
   /* Every control at the end of a row has this width, so the rows line up. */
   --row-control-width: 264px;
   display: grid;
+  /* A preferences window, so denser than the workbench; controls keep 44 px (spec section 9). */
+  font-size: 14px;
   grid-template-columns: 216px 1fr;
   height: 100%;
   background: var(--surface-muted);
@@ -81,7 +83,7 @@
 }
 
 .tab:hover {
-  background: rgba(20, 23, 31, 0.05);
+  background: var(--hover-tint);
 }
 
 .tab[aria-selected='true'] {
@@ -89,7 +91,7 @@
   color: var(--accent-ink);
   font-weight: 600;
   box-shadow:
-    0 1px 2px rgba(20, 23, 31, 0.06),
+    0 1px 2px rgba(var(--shadow-rgb), 0.06),
     0 0 0 1px var(--hairline);
 }
 
@@ -122,11 +124,11 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #9aa1ae;
+  background: var(--faint);
 }
 
 .sideStatus[data-tone='ok'] .sideStatusDot {
-  background: #1f9d55;
+  background: var(--success-dot);
   box-shadow: 0 0 0 3px var(--success-soft);
 }
 
@@ -148,10 +150,10 @@
 .panel {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-6) var(--space-8) var(--space-8);
+  padding: var(--space-5) var(--space-6) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   outline: none;
 }
 
@@ -161,14 +163,15 @@
 
 .title {
   margin: 0;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .intro {
-  margin: var(--space-1) 0 0;
+  margin: 2px 0 0;
   color: var(--muted);
+  font-size: 13px;
 }
 
 /* A group is an inset card of rows and fields, like a native preferences pane. */
@@ -176,7 +179,7 @@
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.04);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04);
   padding: var(--space-1) var(--space-5);
 }
 
@@ -203,8 +206,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: 60px;
-  padding: var(--space-3) 0;
+  min-height: 52px;
+  padding: var(--space-2) 0;
 }
 
 .row + .row,
@@ -231,7 +234,7 @@
 
 .rowHelp {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .rowControl {
@@ -241,19 +244,19 @@
 }
 
 .field {
-  padding: var(--space-4) 0;
+  padding: var(--space-3) 0;
 }
 
 .fieldLabel {
   display: block;
   font-weight: 500;
-  margin-bottom: var(--space-2);
+  margin-bottom: 6px;
 }
 
 .fieldHelp {
-  margin: var(--space-2) 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .field :global(.input),
@@ -281,40 +284,35 @@
 
 /* ---------------------------------------------------------------- connection status */
 
-.statusCard {
+/*
+ * The last strip of the connection card: the result and the Test button sit right under the
+ * fields they check, so the user never scrolls back up to test.
+ */
+.testBar {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.04);
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-1));
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--hairline);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--surface-muted);
 }
 
-.statusCard[data-tone='ok'] {
-  border-color: #b9e0c9;
-  background: linear-gradient(0deg, var(--surface), var(--surface)) padding-box;
-  box-shadow: inset 4px 0 0 #1f9d55;
+.testBar[data-tone='ok'] {
+  background: var(--success-soft);
+  border-top-color: var(--success-border);
 }
 
-.statusCard[data-tone='error'] {
-  border-color: #f0c2bd;
-  box-shadow: inset 4px 0 0 var(--danger);
-}
-
-[dir='rtl'] .statusCard[data-tone='ok'] {
-  box-shadow: inset -4px 0 0 #1f9d55;
-}
-
-[dir='rtl'] .statusCard[data-tone='error'] {
-  box-shadow: inset -4px 0 0 var(--danger);
+.testBar[data-tone='error'] {
+  background: var(--danger-soft);
+  border-top-color: var(--danger-border);
 }
 
 .statusIcon {
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -322,12 +320,14 @@
   color: var(--accent);
 }
 
-.statusCard[data-tone='ok'] .statusIcon {
-  background: var(--success-soft);
+.testBar[data-tone='ok'] .statusIcon {
+  background: var(--surface);
+  color: var(--success);
 }
 
-.statusCard[data-tone='error'] .statusIcon {
-  background: var(--danger-soft);
+.testBar[data-tone='error'] .statusIcon {
+  background: var(--surface);
+  color: var(--danger-text);
 }
 
 .statusText {
@@ -338,9 +338,13 @@
   gap: 2px;
 }
 
+.statusText strong {
+  font-size: 14px;
+}
+
 .statusText span {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 
@@ -410,13 +414,33 @@
     color 120ms ease;
 }
 
-.segment input:checked + label {
-  background: var(--surface);
+.segment input:hover:not(:checked) + label {
+  background: var(--hover-tint);
   color: var(--ink);
+}
+
+/*
+ * Selected: a solid accent fill (white on accent is 5:1 in both themes) plus a check mark,
+ * so the choice never depends on a subtle shade or on colour alone (spec section 9).
+ */
+.segment input:checked + label {
+  gap: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 600;
-  box-shadow:
-    0 1px 3px rgba(20, 23, 31, 0.12),
-    0 0 0 1px rgba(20, 23, 31, 0.04);
+  box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.18);
+}
+
+.segment input:checked + label::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 5px;
+  margin-top: -3px;
+  /* Physical sides on purpose: a check mark is not mirrored in RTL. */
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
 }
 
 .segment input:focus-visible + label {
@@ -434,7 +458,7 @@
   height: 26px;
   margin: 0;
   border-radius: 13px;
-  background: #b8bec9;
+  background: var(--switch-off);
   cursor: pointer;
   transition: background-color 150ms ease;
 }
@@ -447,8 +471,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(20, 23, 31, 0.3);
+  background: var(--knob);
+  box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.3);
   transition: inset-inline-start 150ms ease;
 }
 
@@ -533,7 +557,7 @@
 .shortcutHint {
   min-height: 0;
   font-size: 12px;
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .shortcutHint:empty {
@@ -565,9 +589,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-3) var(--space-8);
+  padding: var(--space-3) var(--space-6);
   border-top: 1px solid var(--hairline);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--surface-translucent);
 }
 
 .footerMessage {
@@ -588,7 +612,7 @@
 }
 
 .footerError {
-  color: #7a1d16;
+  color: var(--danger-strong-text);
 }
 
 .footerDirty {
@@ -624,4 +648,264 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   justify-content: flex-end;
+}
+
+/* ---------------------------------------------------------------- appearance (ThemePicker) */
+
+.themeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04);
+}
+
+.themeLabel {
+  font-weight: 600;
+}
+
+.themeNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.themePicker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.themeOption {
+  position: relative;
+  display: flex;
+}
+
+/* The real radio stays in the tab order and the accessibility tree; the card is its label. */
+.themeOption input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.themeCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  border: 2px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.themeOption input:hover + .themeCard {
+  border-color: var(--control-border);
+}
+
+.themeOption input:checked + .themeCard {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.themeOption input:focus-visible + .themeCard {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.themePreview {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+}
+
+/*
+ * Preview art: a miniature window in each theme's own colours. These are literal on purpose:
+ * the Light card must look light while the app is dark, and the other way round.
+ */
+.themeArt {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.themeArt[data-variant='light'] {
+  --art-bar: #e8eaef;
+  --art-side: #f3f4f7;
+  --art-surface: #ffffff;
+  --art-line: #dde1e8;
+  --art-ink: #b9bfca;
+  --art-accent: #2f5bea;
+}
+
+.themeArt[data-variant='dark'] {
+  --art-bar: #0f1116;
+  --art-side: #13151b;
+  --art-surface: #1b1e26;
+  --art-line: #2e333f;
+  --art-ink: #4a5162;
+  --art-accent: #3d63e6;
+}
+
+.artBar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 14%;
+  padding: 0 6px;
+  background: var(--art-bar);
+}
+
+.artDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--art-line);
+}
+
+.artBody {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.artSide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 30%;
+  padding: 10px 7px;
+  background: var(--art-side);
+}
+
+.artNav,
+.artNavActive {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--art-line);
+}
+
+.artNavActive {
+  width: 85%;
+  background: var(--art-accent);
+}
+
+.artMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--art-surface);
+}
+
+.artTitle {
+  width: 55%;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--art-ink);
+}
+
+.artLine,
+.artLineShort {
+  width: 85%;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--art-line);
+}
+
+.artLineShort {
+  width: 60%;
+}
+
+.artButton {
+  align-self: flex-end;
+  width: 34%;
+  height: 10px;
+  margin-top: auto;
+  border-radius: 4px;
+  background: var(--art-accent);
+}
+
+/* System: light and dark side by side, split on a diagonal. */
+.systemHalf {
+  position: absolute;
+  inset: 0;
+}
+
+.systemHalf[data-half='light'] {
+  clip-path: polygon(0 0, 62% 0, 38% 100%, 0 100%);
+}
+
+.systemHalf[data-half='dark'] {
+  clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%);
+}
+
+.themeCheck {
+  position: absolute;
+  top: 6px;
+  inset-inline-end: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 0 0 2px var(--surface);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.themeOption input:checked + .themeCard .themeCheck {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.themeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-1);
+}
+
+.themeName {
+  font-weight: 600;
+}
+
+.themeHelp {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .themeCard,
+  .themeCheck {
+    transition: none;
+  }
+}
+
+/* Play a sound: a small secondary action, not a full-width control. */
+.rowControl > :global(.btn).playButton {
+  width: auto;
+  min-width: 96px;
+  padding: 0 var(--space-4);
+  gap: 6px;
 }

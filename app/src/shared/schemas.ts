@@ -83,6 +83,8 @@ export const DEFAULT_SETTINGS: Settings = {
   telemetryEnabled: false,
   confirmNoBlur: true,
   aiProvider: 'gateway',
+  theme: 'system',
+  soundsEnabled: true,
 };
 
 /**
@@ -127,6 +129,8 @@ export function isAllowedJiraUrl(value: string, allowLocalHttp: boolean): boolea
   return isHttpsUrl(value) || (allowLocalHttp && isLocalTestHttpUrl(value));
 }
 
+export const ThemeSchema = z.enum(['system', 'light', 'dark']);
+
 const accelerator = z
   .string()
   .max(60)
@@ -147,6 +151,8 @@ function settingsSchema(allowLocalHttp: boolean): z.ZodType<Settings> {
     telemetryEnabled: z.boolean(),
     confirmNoBlur: z.boolean(),
     aiProvider: z.enum(['gateway', 'claude-code']),
+    theme: ThemeSchema,
+    soundsEnabled: z.boolean(),
   });
 }
 
@@ -379,5 +385,7 @@ export const StatusFileSchema = z.object({
     .optional(),
 });
 export type StatusFile = z.infer<typeof StatusFileSchema>;
+
+export const ThemePreviewSchema = z.object({ theme: ThemeSchema });
 
 export const PermissionKindSchema = z.object({ kind: z.enum(['screen', 'microphone']) });

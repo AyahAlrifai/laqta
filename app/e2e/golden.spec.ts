@@ -210,7 +210,7 @@ test('no-blur confirm: asks by default, and "Don’t ask me again" is saved', as
     )
     .toBe(false);
   // End the session so the app can close (an open draft asks before closing).
-  await wb.getByRole('button', { name: 'Close' }).click();
+  await wb.getByRole('button', { name: 'Cancel', exact: true }).click();
   await wb.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
 });
 
@@ -226,6 +226,38 @@ test('text tool: click on the image, type, and Enter adds the label', async () =
   await expect(label).toHaveValue('Wrong total');
   await wb.keyboard.press('Enter');
   await expect(wb.getByRole('img', { name: /1 text labels/ })).toBeVisible();
-  await wb.getByRole('button', { name: 'Close' }).click();
+  await wb.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await wb.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
+});
+
+/** Counts audio contexts in a page and records their state: a suspended one is silent. */
+const AUDIO_SPY = `(() => {
+  const Real = window.AudioContext;
+  window.__cues = [];
+  window.AudioContext = class extends Real {
+    constructor() { super(); window.__cues.push(this.state); }
+  };
+})()`;
+
+test('sounds: the draft-ready cue plays when step 1 finishes, and not once turned off', async () => {
+  const wb = await captureToEditor(true);
+  await wb.evaluate(AUDIO_SPY);
+  await wb.getByLabel('What is wrong?').fill('The total is shown twice');
+  await pick(wb.getByRole('combobox', { name: 'Project' }), 'PROJ');
+  await wb.getByRole('button', { name: 'Generate draft' }).click();
+  await expect(wb.getByRole('heading', { name: 'Review the draft' })).toBeVisible();
+  await expect.poll(() => wb.evaluate<string[]>('window.__cues')).toEqual(['running']);
+
+  // Turned off while the Workbench is open: the setting is read fresh, so the next draft is quiet.
+  await wb.evaluate(`window.laqta.settingsGet().then((r) =>
+    window.laqta.settingsSet({ settings: { ...r.value.settings, soundsEnabled: false } }))`);
+  await wb.getByRole('button', { name: 'Back to request' }).click();
+  await wb.getByRole('button', { name: 'Generate draft' }).click();
+  // The redaction is already flattened into the image, so the no-blur confirm asks again.
+  await wb.getByRole('alertdialog').getByRole('button', { name: 'Send as is' }).click();
+  await expect(wb.getByRole('heading', { name: 'Review the draft' })).toBeVisible();
+  await wb.waitForTimeout(500);
+  expect(await wb.evaluate<string[]>('window.__cues')).toEqual(['running']);
+  await wb.getByRole('button', { name: 'Cancel', exact: true }).click();
   await wb.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
 });

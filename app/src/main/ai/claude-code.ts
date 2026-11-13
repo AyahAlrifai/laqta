@@ -149,12 +149,17 @@ export function resolveClaudeCommand(
   exists: (path: string) => boolean = existsSync,
   home: string = homedir(),
   platform: NodeJS.Platform = process.platform,
+  appData: string = process.env.APPDATA ?? join(home, 'AppData', 'Roaming'),
 ): string {
   if (explicit !== undefined && explicit !== '') return explicit;
   if (platform === 'win32') {
-    // The native installer puts claude.exe here; spawn without a shell cannot run .cmd shims.
-    const exe = join(home, '.local', 'bin', 'claude.exe');
-    return exists(exe) ? exe : 'claude.exe';
+    // spawn without a shell cannot run the npm .cmd shim, so point at the claude.exe it wraps.
+    // Native installer first, then `npm install -g @anthropic-ai/claude-code`.
+    const candidates = [
+      join(home, '.local', 'bin', 'claude.exe'),
+      join(appData, 'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe'),
+    ];
+    return candidates.find((path) => exists(path)) ?? 'claude.exe';
   }
   const candidates = [
     join(home, '.local', 'bin', 'claude'),

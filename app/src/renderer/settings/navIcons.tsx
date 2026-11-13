@@ -64,3 +64,20 @@ export function LockIcon() {
     </svg>
   );
 }
+
+export function ContrastIcon() {
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function PlayIcon() {
+  return (
+    <svg {...common} width={14} height={14}>
+      <path d="M7 4.5v15l12-7.5z" fill="currentColor" />
+    </svg>
+  );
+}

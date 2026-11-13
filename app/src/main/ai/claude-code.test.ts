@@ -213,4 +213,20 @@ describe('resolveClaudeCommand', () => {
     expect(resolveClaudeCommand(undefined, (p) => p === exe, 'C:/Users/u', 'win32')).toBe(exe);
     expect(resolveClaudeCommand(undefined, () => false, 'C:/Users/u', 'win32')).toBe('claude.exe');
   });
+
+  it('finds the claude.exe behind the npm global shim on Windows', () => {
+    const appData = join('C:/Users/u', 'AppData', 'Roaming');
+    const exe = join(
+      appData,
+      'npm',
+      'node_modules',
+      '@anthropic-ai',
+      'claude-code',
+      'bin',
+      'claude.exe',
+    );
+    expect(resolveClaudeCommand(undefined, (p) => p === exe, 'C:/Users/u', 'win32', appData)).toBe(
+      exe,
+    );
+  });
 });

@@ -172,6 +172,7 @@ Every handler answers `{ ok: true, value } | { ok: false, error: AppError }`; th
 | `app:openLink` | any to main | `{ url }` (Jira host only) | none |
 | `app:copyText`, `app:openSettings`, `window:close` | any to main | `{ text }` / none | none |
 | `app:relaunch` | settings to main | none | none (restarts Laqta so macOS applies a new Screen Recording grant; the next start opens Settings) |
+| `theme:preview` | settings to main | `{ theme: 'system' \| 'light' \| 'dark' }` | none (applies the theme to every window before Save; closing Settings without saving restores `Settings.theme`) |
 | `permissions:get`, `permissions:openSystemSettings`, `permissions:requestMicrophone` | settings, workbench to main | none / `{ kind }` | `PermissionStatus` / none / `boolean` |
 
 `settings:get` returns `SettingsView` and `settings:set` takes `SettingsSetRequest` (the token is write-only) and returns `SettingsSetResult` (with hotkey conflicts). `settings:testConnection` takes an optional token; empty means the stored one. On success it also returns the projects visible with those details (omitted if that call fails), so Settings can offer the Default project dropdown before the details are saved. The Default project is only chosen from that list: while there is no working connection the field is disabled and says to connect first. If the list cannot be loaded while connected, the user may type the key instead. Jira URLs must be https; the only exception is E2E runs of unpackaged builds (`LAQTA_E2E=1`), where `settings:testConnection`, `settings:set` and the settings store also accept `http://127.0.0.1` so the Settings flow can be tested against the mock Jira. `jira:loadCreateMeta` takes an optional `issueTypeName` so the review form can reload required fields when the type changes.
@@ -261,6 +262,8 @@ export interface Settings {
   telemetryEnabled: boolean;
   confirmNoBlur: boolean;      // section 5, no-redaction confirm; default true
   aiProvider: 'gateway' | 'claude-code'; // section 7; default 'gateway'
+  theme: 'system' | 'light' | 'dark';    // section 9, appearance; default 'system'
+  soundsEnabled: boolean;                // section 9, sounds; default true
 }
 
 export type AppErrorCode =
@@ -499,10 +502,13 @@ The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/art
 **Shared rules**
 
 - Colour tokens and spacing are defined once in `shared/styles/tokens.css` using the values in the design: ink `#14171F`, muted `#5B6372`, accent `#2F5BEA`, danger `#C2362B`, success `#14683D`, warning text `#6B4600`, control border `#7A8396`.
+- Appearance (added at the product owner's request): `Settings.theme` is Light, Dark or System (the default, which follows the OS). Main sets Electron's `nativeTheme.themeSource`, so every renderer sees it as `prefers-color-scheme` and `tokens.css` swaps to the dark token set in one place; components use tokens, never literal UI colours. Settings › Appearance shows three preview cards; picking one previews it live through `theme:preview`, and Save keeps it. Annotation colours and the redacted image are content and do not change with the theme. Dark tokens meet the same 4.5:1 text contrast.
 - All text meets 4.5:1 contrast; every control is at least 44 px high; focus ring is a 3 px outline in the accent colour with a 2 px offset.
 - Information is never shown by colour alone: warnings and errors carry an icon and a text lead-in.
 - The UI language follows `uiLanguage`; when it is Arabic the window uses `dir="rtl"` and mirrored layout, while the bug text areas keep `dir="auto"`.
 - Every string is in `strings.ts` under a stable key. No concatenated sentences.
+- Sounds (added at the product owner's request): with `Settings.soundsEnabled` (default true) the app plays a short cue when the draft is ready (end of step 1, in the Workbench) and when the bug is created (end of step 2, in the result toast); a partial result plays a different, falling cue. Cues are synthesised with Web Audio in `renderer/shared/sounds.ts` (no audio files, no network), are quiet and under 1.5 s, and a missing audio device never breaks the flow. Settings › Appearance has the switch and a Play button for each cue.
+- The Workbench header has no close button (changed at the product owner's request): the boards draw a frameless window, but the app keeps the OS window frame, so its close control and the footer's Cancel end the report (both ask before discarding work). A header ✕ only repeated them.
 - Dialogs trap focus, restore focus on close, and are announced to screen readers. The result toast uses a polite live region and errors use an alert role.
 
 ## 10. Config, secrets and security implementation

@@ -10,6 +10,7 @@ import Dialog from '../shared/Dialog';
 import { useI18n } from '../shared/i18n';
 import { CheckSmallIcon, LockSmallIcon, PlusIcon, ShieldSmallIcon } from '../shared/icons';
 import Select from '../shared/Select';
+import { playCueIfEnabled } from '../shared/sounds-setting';
 import Shell from '../workbench/Shell';
 import { useWorkbench } from '../workbench/store';
 import AnnotationCanvas from './AnnotationCanvas';
@@ -127,6 +128,8 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
         bugLanguage: s.bugLanguage,
       });
       if (result.kind === 'ok') {
+        // End of step 1: the user may have switched apps while the model worked.
+        playCueIfEnabled('draftReady');
         s.resetReview();
         s.set({ aiDraft: result.draft, draft: forDisplay(result.draft) });
       } else if (result.error.code !== 'CANCELLED') {
@@ -193,7 +196,6 @@ export default function EditorStep({ base, onImageReplaced, onDiscard }: Props) 
     <Shell
       title={t('editor.title')}
       step={1}
-      onClose={onDiscard}
       footer={
         <>
           <p className={styles.footerNote}>

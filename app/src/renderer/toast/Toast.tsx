@@ -3,6 +3,7 @@ import type { ToastData } from '../../shared/types';
 import { laqta } from '../shared/api';
 import { useI18n } from '../shared/i18n';
 import { CloseIcon, ErrorIcon, SuccessIcon } from '../shared/icons';
+import { playCueIfEnabled } from '../shared/sounds-setting';
 import styles from './Toast.module.css';
 
 /** The result closes itself after this long, unless the pointer or focus is on it. */
@@ -40,6 +41,13 @@ export default function Toast() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasData]);
+
+  // End of step 2 (spec section 9, sounds): each new result, including one from Retry upload,
+  // gets its cue. A partial result needs the user, so it sounds different from success.
+  useEffect(() => {
+    if (data === null) return;
+    playCueIfEnabled(data.kind === 'partial' ? 'needsAction' : 'bugCreated');
+  }, [data]);
 
   // New content (first show, or the result of Retry upload) also restarts the time.
   useEffect(() => {

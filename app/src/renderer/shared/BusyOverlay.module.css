@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-6);
-  background: rgba(20, 23, 31, 0.38);
+  background: rgba(var(--shadow-rgb), 0.38);
   backdrop-filter: blur(3px);
   animation: fade-in 150ms ease-out;
 }
@@ -119,9 +119,9 @@
 }
 
 .step[data-state='done'] .stepMark {
-  border-color: var(--success);
-  background: var(--success);
-  color: #ffffff;
+  border-color: var(--success-fill);
+  background: var(--success-fill);
+  color: var(--on-accent);
 }
 
 @keyframes spin {

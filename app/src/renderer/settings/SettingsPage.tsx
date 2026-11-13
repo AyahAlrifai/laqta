@@ -7,8 +7,18 @@ import Banner from '../shared/Banner';
 import { AppMark, ErrorIcon, SuccessIcon } from '../shared/icons';
 import { useI18n } from '../shared/i18n';
 import Select from '../shared/Select';
-import { Row, Segmented, ShortcutRecorder, SwitchRow } from './controls';
-import { CaptureIcon, GlobeIcon, LinkIcon, LockIcon, ShieldIcon, SparkIcon } from './navIcons';
+import { playCue, type CueName } from '../shared/sounds';
+import { Row, Segmented, ShortcutRecorder, SwitchRow, ThemePicker } from './controls';
+import {
+  CaptureIcon,
+  ContrastIcon,
+  GlobeIcon,
+  LinkIcon,
+  LockIcon,
+  PlayIcon,
+  ShieldIcon,
+  SparkIcon,
+} from './navIcons';
 import {
   connectionKeyOf,
   isLatestRequest,
@@ -26,12 +36,18 @@ import styles from './Settings.module.css';
 /** A successful test is kept in `tested` (tagged with its details), not here. */
 type TestState = { kind: 'idle' } | { kind: 'testing' } | { kind: 'error'; message: string };
 
-type Section = 'jira' | 'ai' | 'capture' | 'language' | 'privacy' | 'permissions';
+type Section = 'jira' | 'ai' | 'capture' | 'appearance' | 'language' | 'privacy' | 'permissions';
 
 const SECTIONS: { id: Section; nav: StringKey; title: StringKey; icon: () => ReactNode }[] = [
   { id: 'jira', nav: 'settings.nav.jira', title: 'settings.connect', icon: LinkIcon },
   { id: 'ai', nav: 'settings.nav.ai', title: 'settings.aiTitle', icon: SparkIcon },
   { id: 'capture', nav: 'settings.nav.capture', title: 'settings.nav.capture', icon: CaptureIcon },
+  {
+    id: 'appearance',
+    nav: 'settings.nav.appearance',
+    title: 'settings.nav.appearance',
+    icon: ContrastIcon,
+  },
   {
     id: 'language',
     nav: 'settings.nav.language',
@@ -42,10 +58,18 @@ const SECTIONS: { id: Section; nav: StringKey; title: StringKey; icon: () => Rea
   { id: 'permissions', nav: 'settings.nav.permissions', title: 'perm.title', icon: LockIcon },
 ];
 
+/** Each cue can be heard here, even with sounds off, so the choice is an informed one. */
+const SOUND_ROWS: { cue: CueName; label: StringKey }[] = [
+  { cue: 'draftReady', label: 'settings.soundDraftReady' },
+  { cue: 'bugCreated', label: 'settings.soundBugCreated' },
+  { cue: 'needsAction', label: 'settings.soundNeedsAction' },
+];
+
 const INTRO: Record<Section, StringKey> = {
   jira: 'settings.jiraIntro',
   ai: 'settings.aiIntro',
   capture: 'settings.captureIntro',
+  appearance: 'settings.appearanceIntro',
   language: 'settings.languageIntro',
   privacy: 'settings.privacyIntro',
   permissions: 'perm.body',
@@ -110,7 +134,9 @@ export default function SettingsPage() {
       if (isLatestRequest(request, savedRequest.current)) retrySettled();
     };
     void laqta.jiraListProjects().then(
-      (list) => settle({ ok: true, list }),
+      (list) => {
+        settle({ ok: true, list });
+      },
       () => settle({ ok: false }),
     );
   }
@@ -362,37 +388,6 @@ export default function SettingsPage() {
                 </Banner>
               )}
 
-              <div className={styles.statusCard} data-tone={status.tone} aria-live="polite">
-                <span className={styles.statusIcon} aria-hidden="true">
-                  {status.tone === 'ok' ? (
-                    <SuccessIcon />
-                  ) : status.tone === 'error' ? (
-                    <ErrorIcon />
-                  ) : (
-                    <LinkIcon />
-                  )}
-                </span>
-                <span className={styles.statusText}>
-                  <strong>{status.title}</strong>
-                  <span dir="auto">{status.detail}</span>
-                </span>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => void runTest()}
-                  disabled={!urlUsable || emailMissing || test.kind === 'testing'}
-                >
-                  {test.kind === 'testing' ? (
-                    <>
-                      <span className={styles.spinner} aria-hidden="true" />
-                      {t('settings.testing')}
-                    </>
-                  ) : (
-                    t('settings.testConnection')
-                  )}
-                </button>
-              </div>
-
               <section className={styles.group}>
                 <Row labelId="deployment-label" label={t('settings.deployment')}>
                   <Segmented
@@ -488,6 +483,36 @@ export default function SettingsPage() {
                     )}
                     {cloud ? t('settings.tokenHelpCloud') : t('settings.tokenHelp')}
                   </p>
+                </div>
+                <div className={styles.testBar} data-tone={status.tone}>
+                  <span className={styles.statusIcon} aria-hidden="true">
+                    {status.tone === 'ok' ? (
+                      <SuccessIcon />
+                    ) : status.tone === 'error' ? (
+                      <ErrorIcon />
+                    ) : (
+                      <LinkIcon />
+                    )}
+                  </span>
+                  <span className={styles.statusText} aria-live="polite">
+                    <strong>{status.title}</strong>
+                    <span dir="auto">{status.detail}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => void runTest()}
+                    disabled={!urlUsable || emailMissing || test.kind === 'testing'}
+                  >
+                    {test.kind === 'testing' ? (
+                      <>
+                        <span className={styles.spinner} aria-hidden="true" />
+                        {t('settings.testing')}
+                      </>
+                    ) : (
+                      t('settings.testConnection')
+                    )}
+                  </button>
                 </div>
               </section>
 
@@ -677,6 +702,52 @@ export default function SettingsPage() {
             </>
           )}
 
+          {current.id === 'appearance' && (
+            <section className={styles.themeGroup}>
+              <span id="theme-label" className={styles.themeLabel}>
+                {t('settings.theme')}
+              </span>
+              <ThemePicker
+                labelledBy="theme-label"
+                value={form.theme}
+                onChange={(theme) => {
+                  set({ theme });
+                  // Live preview in every window; Save keeps it, closing Settings drops it.
+                  void laqta.themePreview({ theme }).catch(() => undefined);
+                }}
+              />
+              <p className={styles.themeNote}>{t('settings.themeNote')}</p>
+            </section>
+          )}
+
+          {current.id === 'appearance' && (
+            <section className={styles.group} aria-labelledby="sounds-title">
+              <h3 id="sounds-title" className={styles.groupTitle}>
+                {t('settings.sounds')}
+              </h3>
+              <SwitchRow
+                id="sounds-enabled"
+                label={t('settings.soundsEnabled')}
+                help={t('settings.soundsHelp')}
+                checked={form.soundsEnabled}
+                onChange={(v) => set({ soundsEnabled: v })}
+              />
+              {SOUND_ROWS.map(({ cue, label }) => (
+                <Row key={cue} label={t(label)}>
+                  <button
+                    type="button"
+                    className={`btn ${styles.playButton}`}
+                    aria-label={f('settings.soundPlayLabel', { name: t(label) })}
+                    onClick={() => playCue(cue)}
+                  >
+                    <PlayIcon />
+                    {t('settings.soundPlay')}
+                  </button>
+                </Row>
+              ))}
+            </section>
+          )}
+
           {current.id === 'language' && (
             <section className={styles.group}>
               <Row labelId="ui-language-label" label={t('settings.uiLanguage')}>
@@ -801,7 +872,7 @@ export default function SettingsPage() {
             onClick={() => void save()}
             disabled={!urlValid || (configured && !dirty)}
           >
-            {configured ? t('settings.save') : t('settings.saveContinue')}
+            {t('settings.save')}
           </button>
         </footer>
       </div>

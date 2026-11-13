@@ -148,7 +148,6 @@ export default function ReviewStep({ imageUrl, onDiscard }: Props) {
       title={t('review.title')}
       badge={t('review.draftedByAi')}
       step={2}
-      onClose={onDiscard}
       footer={
         <>
           <button

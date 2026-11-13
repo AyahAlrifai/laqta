@@ -20,6 +20,7 @@ import type {
   SettingsSetResult,
   SettingsView,
   TestConnectionResult,
+  ThemePreference,
   ToastData,
   VoiceLanguage,
 } from './types';
@@ -80,6 +81,8 @@ export interface LaqtaApi {
   appOpenSettings(): Promise<void>;
   /** Restarts Laqta (Settings only), so macOS applies a new Screen Recording grant. */
   appRelaunch(): Promise<void>;
+  /** Settings only: shows a theme in every window until Save, or until Settings closes. */
+  themePreview(p: { theme: ThemePreference }): Promise<void>;
   permissionsGet(): Promise<PermissionStatus>;
   permissionsOpenSystemSettings(p: { kind: 'screen' | 'microphone' }): Promise<void>;
   permissionsRequestMicrophone(): Promise<boolean>;

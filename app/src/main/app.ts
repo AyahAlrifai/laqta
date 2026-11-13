@@ -36,6 +36,7 @@ import {
   JiraProjectListSchema,
   OpenLinkSchema,
   PermissionKindSchema,
+  ThemePreviewSchema,
   PRIORITIES,
   ResolveAssigneeSchema,
   RetryAttachmentSchema,
@@ -128,7 +129,9 @@ import { resourcesDir, showsDockIcon, trayIconFileName, wantsDockIcon } from './
 import { startAutoUpdates } from './updater';
 import { GatewayTranscriber, UnavailableTranscriber, type Transcriber } from './voice/transcriber';
 import {
+  applyTheme,
   createAppWindow,
+  followNativeTheme,
   isOwnRendererUrl,
   openValidatedExternal,
   setVoicePermission,
@@ -299,6 +302,8 @@ export class LaqtaApp {
   // ---------------------------------------------------------------- start-up
 
   async start(): Promise<void> {
+    applyTheme(this.settings.get().theme);
+    followNativeTheme();
     setErrorLanguage(this.lang());
     setVoicePermission(this.settings.get().voiceEnabled);
     this.temp.cleanup(LEFTOVER_MAX_AGE_MS);
@@ -844,6 +849,9 @@ export class LaqtaApp {
     win.once('ready-to-show', () => this.bringToFront(win));
     win.on('closed', () => {
       if (this.settingsWindow === win) this.settingsWindow = null;
+      // Drops an unsaved theme preview (theme:preview); a saved one is already the setting.
+      // Next tick: changing nativeTheme while this window is being torn down crashes Electron.
+      setImmediate(() => applyTheme(this.settings.get().theme));
       this.updateDock();
     });
     this.settingsWindow = win;
@@ -1196,6 +1204,7 @@ export class LaqtaApp {
     const saved = this.settings.set(next);
     setErrorLanguage(saved.uiLanguage);
     setVoicePermission(saved.voiceEnabled);
+    applyTheme(saved.theme);
     if (
       before.jiraBaseUrl !== saved.jiraBaseUrl ||
       before.jiraDeployment !== saved.jiraDeployment
@@ -1446,6 +1455,10 @@ export class LaqtaApp {
       markPermissionRestart(app.getPath('userData'));
       app.relaunch();
       app.quit();
+    });
+    handle(IPC.themePreview, ThemePreviewSchema, (p, sender) => {
+      onlyKind(sender, ['settings']);
+      applyTheme(p.theme);
     });
     handle(IPC.permissionsGet, null, (): PermissionStatus => ({
       platform: process.platform,

@@ -18,7 +18,7 @@
 
 .error {
   background: var(--danger-soft);
-  color: #7a1d16;
+  color: var(--danger-strong-text);
 }
 
 .info {

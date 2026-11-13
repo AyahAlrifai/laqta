@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from 'react';
+import type { StringKey } from '../../shared/strings';
+import type { ThemePreference } from '../../shared/types';
 import { useI18n } from '../shared/i18n';
 import { acceleratorKeycaps, recordAccelerator } from './accelerator';
 import styles from './Settings.module.css';
@@ -170,5 +172,105 @@ export function ShortcutRecorder(props: ShortcutProps) {
         {listening && invalid ? t('settings.shortcutInvalid') : ''}
       </span>
     </span>
+  );
+}
+
+interface ThemePickerProps {
+  labelledBy: string;
+  value: ThemePreference;
+  onChange: (value: ThemePreference) => void;
+}
+
+const THEME_OPTIONS: { value: ThemePreference; label: StringKey; help: StringKey }[] = [
+  { value: 'light', label: 'theme.light', help: 'theme.lightHelp' },
+  { value: 'dark', label: 'theme.dark', help: 'theme.darkHelp' },
+  { value: 'system', label: 'theme.system', help: 'theme.systemHelp' },
+];
+
+/** A miniature Laqta window in fixed colours, so each card shows its own theme in any theme. */
+function ThemeArt({ variant }: { variant: 'light' | 'dark' }) {
+  return (
+    <span className={styles.themeArt} data-variant={variant}>
+      <span className={styles.artBar}>
+        <span className={styles.artDot} />
+        <span className={styles.artDot} />
+        <span className={styles.artDot} />
+      </span>
+      <span className={styles.artBody}>
+        <span className={styles.artSide}>
+          <span className={styles.artNavActive} />
+          <span className={styles.artNav} />
+          <span className={styles.artNav} />
+        </span>
+        <span className={styles.artMain}>
+          <span className={styles.artTitle} />
+          <span className={styles.artLine} />
+          <span className={styles.artLineShort} />
+          <span className={styles.artButton} />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Spec section 9, appearance: three preview cards as one radio group. Arrow keys move and
+ * select (native radio behaviour); the whole card is the hit area.
+ */
+export function ThemePicker(props: ThemePickerProps) {
+  const { t } = useI18n();
+  return (
+    <div className={styles.themePicker} role="radiogroup" aria-labelledby={props.labelledBy}>
+      {THEME_OPTIONS.map((option) => {
+        const id = `theme-${option.value}`;
+        const helpId = `${id}-help`;
+        return (
+          <span key={option.value} className={styles.themeOption}>
+            <input
+              id={id}
+              type="radio"
+              name="theme"
+              value={option.value}
+              checked={props.value === option.value}
+              aria-describedby={helpId}
+              onChange={() => props.onChange(option.value)}
+            />
+            <label htmlFor={id} className={styles.themeCard}>
+              <span className={styles.themePreview} aria-hidden="true">
+                {option.value === 'system' ? (
+                  <>
+                    <span className={styles.systemHalf} data-half="light">
+                      <ThemeArt variant="light" />
+                    </span>
+                    <span className={styles.systemHalf} data-half="dark">
+                      <ThemeArt variant="dark" />
+                    </span>
+                  </>
+                ) : (
+                  <ThemeArt variant={option.value} />
+                )}
+                <span className={styles.themeCheck}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M5 12.5l4.5 4.5L19 7.5"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span className={styles.themeText}>
+                <span className={styles.themeName}>{t(option.label)}</span>
+                <span id={helpId} className={styles.themeHelp}>
+                  {t(option.help)}
+                </span>
+              </span>
+            </label>
+          </span>
+        );
+      })}
+    </div>
   );
 }

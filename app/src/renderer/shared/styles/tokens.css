@@ -1,23 +1,53 @@
-/* Spec section 9: colour and spacing tokens, defined once. */
+/*
+ * Spec section 9: colour and spacing tokens, defined once. Components use these tokens and
+ * never literal UI colours, so the dark set below restyles every window (Settings › Appearance;
+ * main sets nativeTheme.themeSource, which drives prefers-color-scheme).
+ */
 :root {
+  color-scheme: light;
+
   --ink: #14171f;
   --muted: #5b6372;
+  --faint: #8a91a0;
   --accent: #2f5bea;
   --accent-ink: #1d3fb8;
+  --accent-hover: #1d3fb8;
   --accent-soft: #e6ecfd;
+  --accent-soft-strong: #d8e2fc;
+  --accent-border: #c6d3fb;
+  --on-accent: #ffffff;
   --danger: #c2362b;
   --danger-ink: #9e2a21;
+  --danger-text: #c2362b;
+  --danger-strong-text: #7a1d16;
   --danger-soft: #fdecea;
+  --danger-border: #f0c2bd;
   --success: #14683d;
+  --success-fill: #14683d;
+  --success-dot: #1f9d55;
   --success-soft: #e5f4ec;
+  --success-border: #b9e0c9;
   --warning-text: #6b4600;
   --warning-soft: #fdf4e3;
   --warning-border: #e8c27a;
+  --warning-hover: rgba(107, 70, 0, 0.08);
   --control-border: #7a8396;
   --hairline: #dde1e8;
   --surface: #ffffff;
   --surface-muted: #f3f4f7;
+  --surface-translucent: rgba(255, 255, 255, 0.92);
+  --hover-tint: rgba(20, 23, 31, 0.05);
+  --disabled-bg: #d5d9e2;
+  --disabled-ink: #414856;
+  --switch-off: #b8bec9;
+  --knob: #ffffff;
+  --inverse-bg: #14171f;
+  --inverse-ink: #ffffff;
+  --canvas-bg: #f7f8fa;
+  --canvas-dot: #d9dde5;
   --annotation: #d6362b;
+  /* Shadows and scrims are tinted with this colour (used as rgba(var(--shadow-rgb), a)). */
+  --shadow-rgb: 20, 23, 31;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -38,5 +68,58 @@
     -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Noto Sans Arabic', 'Geeza Pro',
     'Segoe UI Arabic', Tahoma, sans-serif;
   --font-size: 15px;
-  --shadow: 0 12px 40px rgba(20, 23, 31, 0.18);
+  --shadow: 0 12px 40px rgba(var(--shadow-rgb), 0.18);
+}
+
+/*
+ * Dark set: cool neutrals that keep the ink hue. Every text pair meets 4.5:1 (ink 13.9,
+ * muted 7.1, white on accent 5.1, danger text 6.6, success 7.5, warning 10.2); borders and
+ * icons meet 3:1. Shadows get deeper because a dark surface hides a light one.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --ink: #e8eaf0;
+    --muted: #a3aab8;
+    --faint: #7d8596;
+    --accent: #3d63e6;
+    --accent-ink: #b4c5ff;
+    --accent-hover: #3358d4;
+    --accent-soft: #22305c;
+    --accent-soft-strong: #2c3d73;
+    --accent-border: #3a4f8f;
+    --on-accent: #ffffff;
+    --danger: #d63d33;
+    --danger-ink: #b8322a;
+    --danger-text: #ff7b72;
+    --danger-strong-text: #ffa198;
+    --danger-soft: #3a1e1f;
+    --danger-border: #6e2c29;
+    --success: #4cc38a;
+    --success-fill: #1f8f57;
+    --success-dot: #3fbf78;
+    --success-soft: #14302a;
+    --success-border: #24563d;
+    --warning-text: #f2c46d;
+    --warning-soft: #33290f;
+    --warning-border: #6b5522;
+    --warning-hover: rgba(242, 196, 109, 0.12);
+    --control-border: #6b7487;
+    --hairline: #2e333f;
+    --surface: #1b1e26;
+    --surface-muted: #13151b;
+    --surface-translucent: rgba(27, 30, 38, 0.92);
+    --hover-tint: rgba(255, 255, 255, 0.06);
+    --disabled-bg: #2c313c;
+    --disabled-ink: #9aa2b1;
+    --switch-off: #4a5162;
+    --knob: #ffffff;
+    --inverse-bg: #e8eaf0;
+    --inverse-ink: #14171f;
+    --canvas-bg: #101217;
+    --canvas-dot: #262b35;
+    --shadow-rgb: 0, 0, 0;
+    --shadow: 0 12px 40px rgba(var(--shadow-rgb), 0.5);
+  }
 }

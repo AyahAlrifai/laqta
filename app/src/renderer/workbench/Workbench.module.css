@@ -99,24 +99,13 @@
 .step[data-state='current'] .stepNumber {
   border-color: var(--accent);
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .step[data-state='done'] .stepNumber {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-ink);
-}
-
-.close {
-  min-width: 44px;
-  padding: 0;
-  border-radius: 50%;
-  color: var(--muted);
-}
-
-.close:hover:not(:disabled) {
-  color: var(--ink);
 }
 
 /* ---------------------------------------------------------------- body and footer */
