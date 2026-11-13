@@ -183,3 +183,29 @@ export function PriorityIcon({ priority }: { priority: string | null }) {
     </svg>
   );
 }
+
+export function CopyIcon() {
+  return (
+    <svg {...iconBase}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
+/** Opens outside Laqta (Jira in the browser). Mirrors in RTL. */
+export function ExternalIcon() {
+  return (
+    <svg {...iconBase} className="flip">
+      <path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </svg>
+  );
+}
+
+export function RetryIcon() {
+  return (
+    <svg {...iconBase}>
+      <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+    </svg>
+  );
+}

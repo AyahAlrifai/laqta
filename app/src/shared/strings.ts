@@ -443,6 +443,8 @@ const en = {
   'drafting.title': 'Writing the draft',
   // capture overlay (T-081)
   'capture.cancel': 'Cancel',
+  // result toast (T-085)
+  'result.nextBug': 'Next bug? Press',
 } as const;
 
 export type StringKey = keyof typeof en;
@@ -860,6 +862,8 @@ const ar: Dictionary = {
   'drafting.title': 'كتابة المسودة',
   // capture overlay (T-081)
   'capture.cancel': 'إلغاء',
+  // result toast (T-085)
+  'result.nextBug': 'خطأ آخر؟ اضغط',
 };
 
 export type UiLanguage = 'en' | 'ar';

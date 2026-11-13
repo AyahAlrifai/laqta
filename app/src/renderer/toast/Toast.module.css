@@ -1,5 +1,5 @@
-/* The window takes the card's height (preferredSizeMode in main), so the page must not
-   stretch to the window: base.css gives html, body and #root 100%. */
+/* Result toast (board 4, T-085). The window takes the card's height (preferredSizeMode in
+   main), so the page must not stretch to the window: base.css gives html, body and #root 100%. */
 :global(html),
 :global(body),
 :global(#root) {
@@ -8,27 +8,139 @@
 
 .card {
   position: relative;
-  padding: var(--space-5) var(--space-6);
-  border-top: 4px solid var(--success);
+  overflow: hidden;
+  padding: var(--space-5) var(--space-5) var(--space-5) var(--space-5);
+  background: var(--surface);
 }
 
-.failure {
-  border-top-color: var(--danger);
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    animation: toast-in var(--dur-slow) var(--ease) both;
+  }
 }
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.body {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* ---------------------------------------------------------------- result mark */
+
+.mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.markOk {
+  background: var(--success-soft);
+  color: var(--success);
+  box-shadow: 0 0 0 1px var(--success-border);
+}
+
+.markWarn {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  box-shadow: 0 0 0 1px var(--warning-border);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .markPath {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: draw var(--dur-slow) var(--ease) 160ms forwards;
+  }
+
+  .mark {
+    animation: mark-in var(--dur-slow) var(--ease) both;
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes mark-in {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- text */
 
 .title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--text-xl);
-  margin: 0 var(--space-8) var(--space-3) 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  margin: 6px var(--space-8) 0 0;
+}
+
+[dir='rtl'] .title {
+  margin: 6px 0 0 var(--space-8);
+}
+
+.text {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-base);
 }
 
 .actions {
   display: flex;
-  gap: var(--space-3);
+  flex-wrap: wrap;
+  gap: var(--space-2);
   align-items: center;
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.copied {
+  color: var(--success);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.keys {
+  display: inline-flex;
+  gap: 3px;
 }
 
 .close {
@@ -37,8 +149,48 @@
   inset-inline-end: var(--space-2);
   min-width: 44px;
   padding: 0;
+  color: var(--muted);
 }
 
-.copied {
-  color: var(--success);
+.close:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- auto-close timer */
+
+.timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--success-dot);
+  transform-origin: left;
+  opacity: 0.7;
+}
+
+[dir='rtl'] .timer {
+  transform-origin: right;
+}
+
+.partial .timer {
+  background: var(--warning-icon);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .timer {
+    animation: countdown var(--toast-ms) linear forwards;
+  }
+}
+
+/* Hover or focus holds the toast open; the bar shows it is waiting. */
+.timerPaused {
+  animation: none;
+  opacity: 0.25;
+}
+
+@keyframes countdown {
+  to {
+    transform: scaleX(0);
+  }
 }
