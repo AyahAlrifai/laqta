@@ -1,5 +1,5 @@
 import { useI18n } from '../shared/i18n';
-import { ErrorIcon } from '../shared/icons';
+import { StateArt } from '../shared/icons';
 import styles from './Review.module.css';
 
 interface Props {
@@ -14,7 +14,7 @@ export default function OfflineCard({ onTryAgain, onKeep, message }: Props) {
   return (
     <div className={styles.errorCard} role="alert">
       <div className={styles.errorHead}>
-        <ErrorIcon />
+        <StateArt kind="offline" />
         <h2>{t('offline.title')}</h2>
       </div>
       <p>{t('offline.body')}</p>

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-The code for every ticket from T-001 to T-073 is written. Lint, typecheck, unit and integration tests, the Playwright E2E suite and the gateway tests all pass. What is **not** done needs people or infrastructure:
+The code for every ticket from T-001 to T-073 is written, and so is the M8 UI overhaul (T-080 to T-090) except T-087 (native window materials), which needs a run on real Windows 11 and macOS machines to check. Lint, typecheck, unit and integration tests, the Playwright E2E suite and the gateway tests all pass. What is **not** done needs people or infrastructure:
 
 - The spikes have not run (T-002 Jira sandbox, T-003 Anthropic key, T-004 Windows/macOS test machines). Their scripts and result templates are in `tools/spike/`, `tools/eval/` and `docs/spike-*.md`. Until they run, section 14 assumptions are unverified, even though the code follows the spec.
 - Signing, notarization and the update feed (T-053) need the certificates, Apple ID and runners (section 14, item 13).
@@ -16,6 +16,7 @@ Contract additions made during the build are in spec sections 2.1, 3.1, 4.1, 8.1
 - `doc/Dev Spec (AI-ready).md`: **the binding build spec.** Read it before any work. Section numbers below (§N) refer to it.
 - `doc/Product plan.md`: PM plan with the reasons behind the decisions, the risks and the open questions. It is background reading, not a contract.
 - `doc/Laqta — UI Design (v0.1).html` and the `-png/` folder: the five design boards (1280×800) that are the visual source of truth for the UI (§9). Online copy: https://claude.ai/artifact/3QSPxbpnD3FJJz3JXshHHo
+- `doc/Laqta — UI (v0.2, as built)-png/`: screenshots of the M8 redesign (light, dark, Arabic). Where they differ from v0.1, they win (§9).
 
 Laqta is an Electron tray app for Windows and macOS. It turns a screenshot plus one sentence into a reviewed Jira bug (Data Center, or Cloud since §8.2) with the screenshot attached. The AI writes a JSON draft, the user reviews it, and only the app's Jira client writes to Jira.
 

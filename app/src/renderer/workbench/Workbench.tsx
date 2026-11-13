@@ -4,6 +4,7 @@ import ReviewStep from '../review/ReviewStep';
 import { laqta } from '../shared/api';
 import Dialog from '../shared/Dialog';
 import { useI18n } from '../shared/i18n';
+import DraftingStep from './DraftingStep';
 import { useWorkbench } from './store';
 import styles from './Workbench.module.css';
 
@@ -84,6 +85,8 @@ export default function Workbench() {
     <>
       {reviewing && s.draft !== null ? (
         <ReviewStep imageUrl={imageUrl} onDiscard={discard} />
+      ) : state === 'drafting' ? (
+        <DraftingStep />
       ) : (
         <EditorStep base={base} onImageReplaced={setImage} onDiscard={discard} />
       )}

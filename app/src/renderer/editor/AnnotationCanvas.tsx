@@ -14,11 +14,31 @@ import {
   type Shape,
 } from './model';
 import { drawScene } from './render';
-import { TrashIcon } from './toolIcons';
+import { MinusIcon, PlusZoomIcon, TrashIcon } from './toolIcons';
 import styles from './Editor.module.css';
 
 interface Props {
   base: ImageBitmap;
+}
+
+/** Zoom steps for the + and − buttons and Ctrl+scroll (T-082). */
+const ZOOMS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 4;
+/** Fit may enlarge a small capture, but not so far that its pixels turn to mush. */
+const MAX_FIT = 2;
+/** Breathing room around the image inside the stage, in CSS pixels. */
+const STAGE_PAD = 24;
+
+export function nextZoom(current: number, direction: 1 | -1): number {
+  if (direction === 1) return ZOOMS.find((z) => z > current + 0.001) ?? MAX_ZOOM;
+  return [...ZOOMS].reverse().find((z) => z < current - 0.001) ?? MIN_ZOOM;
+}
+
+export function fitZoom(boxW: number, boxH: number, imageW: number, imageH: number): number {
+  const w = (boxW - STAGE_PAD * 2) / imageW;
+  const h = (boxH - STAGE_PAD * 2) / imageH;
+  return Math.max(0.05, Math.min(MAX_FIT, w, h));
 }
 
 type Drag =
@@ -75,6 +95,37 @@ export default function AnnotationCanvas({ base }: Props) {
   const [preview, setPreview] = useState<Shape | null>(null);
   const [liveShapes, setLiveShapes] = useState<Shape[] | null>(null);
   const [view, setView] = useState<View | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState<number | 'fit'>('fit');
+  const [avail, setAvail] = useState<{ w: number; h: number } | null>(null);
+
+  // The space the image may use; Fit follows it as the window is resized.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => setAvail({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const fit = avail ? fitZoom(avail.w, avail.h, base.width, base.height) : 1;
+  const shown = zoom === 'fit' ? fit : zoom;
+
+  // Ctrl+scroll (pinch on a trackpad) zooms. React's wheel listener is passive, so this one
+  // is added by hand to be allowed to stop the page from scrolling.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      setZoom((z) => nextZoom(z === 'fit' ? fit : z, event.deltaY < 0 ? 1 : -1));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [fit]);
 
   // The label being edited is hidden on the canvas; the input stands in for it.
   const shapes = (liveShapes ?? history.present).filter(
@@ -93,7 +144,7 @@ export default function AnnotationCanvas({ base }: Props) {
       ctx.save();
       ctx.setLineDash([8 * scale, 6 * scale]);
       ctx.lineWidth = 2 * scale;
-      ctx.strokeStyle = '#2F5BEA';
+      ctx.strokeStyle = '#3B5BFF';
       ctx.strokeRect(b.x - 6 * scale, b.y - 6 * scale, b.w + 12 * scale, b.h + 12 * scale);
       ctx.restore();
     }
@@ -247,9 +298,10 @@ export default function AnnotationCanvas({ base }: Props) {
   if (view && selected) {
     const b = bbox(selected, scale);
     const pad = 6 * scale;
+    // Just outside the top-end corner, so the button never hides the corner it belongs to.
     deleteAt = {
-      left: view.left + (b.x + b.w + pad) * k,
-      top: Math.max(view.top + (b.y - pad) * k, 0),
+      left: view.left + (b.x + b.w + pad) * k + 14,
+      top: Math.max(view.top + (b.y - pad) * k - 14, 14),
     };
   }
   const draftColor =
@@ -258,78 +310,116 @@ export default function AnnotationCanvas({ base }: Props) {
       : (history.present.find((s) => s.id === textDraft.id)?.color ?? colors.text);
 
   const c = counts(history.present);
+  const percent = Math.round(shown * 100);
   return (
-    <div className={styles.canvasBox}>
-      <canvas
-        ref={canvas}
-        className={`${styles.canvas} ${tool === 'select' ? styles.selectCursor : ''} ${
-          tool === 'text' ? styles.textCursor : ''
-        }`}
-        width={base.width}
-        height={base.height}
-        role="img"
-        tabIndex={0}
-        aria-label={f('editor.canvasLabel', {
-          width: base.width,
-          height: base.height,
-          boxes: c.boxes,
-          arrows: c.arrows,
-          texts: c.texts,
-          blurs: c.blurs,
-        })}
-        aria-describedby="editor-shortcuts"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onDoubleClick={onDoubleClick}
-      />
-      {view && textDraft !== null && (
-        <input
-          ref={textInput}
-          className={styles.textEditor}
-          aria-label={t('editor.textPrompt')}
-          placeholder={t('editor.textPlaceholder')}
-          dir="auto"
-          maxLength={MAX_LABEL_CHARS}
-          value={textDraft.text}
-          style={{
-            left: view.left + textDraft.x * k,
-            top: view.top + textDraft.y * k,
-            fontSize: Math.max(11, TEXT_SIZE * scale * k),
-            padding: `${String(6 * scale * k)}px ${String(8 * scale * k)}px`,
-            background: draftColor,
-            color: textOn(draftColor),
-          }}
-          onChange={(e) => set({ textDraft: { ...textDraft, text: e.target.value } })}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              commitTextDraft();
-              canvas.current?.focus();
-            } else if (e.key === 'Escape') {
-              e.preventDefault();
-              e.stopPropagation();
-              set({ textDraft: null });
-              canvas.current?.focus();
-            }
-          }}
-          onBlur={commitTextDraft}
+    <>
+      <div ref={box} className={styles.canvasBox}>
+        <canvas
+          ref={canvas}
+          className={`${styles.canvas} ${tool === 'select' ? styles.selectCursor : ''} ${
+            tool === 'text' ? styles.textCursor : ''
+          }`}
+          width={base.width}
+          height={base.height}
+          style={{ width: base.width * shown, height: base.height * shown }}
+          role="img"
+          tabIndex={0}
+          aria-label={f('editor.canvasLabel', {
+            width: base.width,
+            height: base.height,
+            boxes: c.boxes,
+            arrows: c.arrows,
+            texts: c.texts,
+            blurs: c.blurs,
+          })}
+          aria-describedby="editor-shortcuts"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onDoubleClick={onDoubleClick}
         />
-      )}
-      {deleteAt !== null && (
+        {view && textDraft !== null && (
+          <input
+            ref={textInput}
+            className={styles.textEditor}
+            aria-label={t('editor.textPrompt')}
+            placeholder={t('editor.textPlaceholder')}
+            dir="auto"
+            maxLength={MAX_LABEL_CHARS}
+            value={textDraft.text}
+            style={{
+              left: view.left + textDraft.x * k,
+              top: view.top + textDraft.y * k,
+              fontSize: Math.max(11, TEXT_SIZE * scale * k),
+              padding: `${String(6 * scale * k)}px ${String(8 * scale * k)}px`,
+              background: draftColor,
+              color: textOn(draftColor),
+            }}
+            onChange={(e) => set({ textDraft: { ...textDraft, text: e.target.value } })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commitTextDraft();
+                canvas.current?.focus();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                set({ textDraft: null });
+                canvas.current?.focus();
+              }
+            }}
+            onBlur={commitTextDraft}
+          />
+        )}
+        {deleteAt !== null && (
+          <button
+            type="button"
+            className={styles.shapeDelete}
+            style={{ left: deleteAt.left, top: deleteAt.top }}
+            aria-label={t('editor.deleteShape')}
+            title={`${t('editor.deleteShape')} (Delete)`}
+            aria-keyshortcuts="Delete"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={removeSelected}
+          >
+            <TrashIcon />
+          </button>
+        )}
+      </div>
+      <div className={styles.zoomBar} role="group" aria-label={t('editor.zoomControls')}>
         <button
           type="button"
-          className={styles.shapeDelete}
-          style={{ left: deleteAt.left, top: deleteAt.top }}
-          aria-label={t('editor.deleteShape')}
-          title={`${t('editor.deleteShape')} (Delete)`}
-          aria-keyshortcuts="Delete"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={removeSelected}
+          className={styles.zoomButton}
+          aria-label={t('editor.zoomOut')}
+          title={t('editor.zoomOut')}
+          disabled={shown <= MIN_ZOOM + 0.001}
+          onClick={() => setZoom(nextZoom(shown, -1))}
         >
-          <TrashIcon />
+          <MinusIcon />
         </button>
-      )}
-    </div>
+        <output className={styles.zoomLevel} aria-live="polite">
+          {f('editor.zoomLevel', { percent })}
+        </output>
+        <button
+          type="button"
+          className={styles.zoomButton}
+          aria-label={t('editor.zoomIn')}
+          title={t('editor.zoomIn')}
+          disabled={shown >= MAX_ZOOM - 0.001}
+          onClick={() => setZoom(nextZoom(shown, 1))}
+        >
+          <PlusZoomIcon />
+        </button>
+        <button
+          type="button"
+          className={styles.zoomFit}
+          aria-pressed={zoom === 'fit'}
+          title={t('editor.zoomFitLabel')}
+          onClick={() => setZoom('fit')}
+        >
+          {t('editor.zoomFit')}
+        </button>
+      </div>
+    </>
   );
 }

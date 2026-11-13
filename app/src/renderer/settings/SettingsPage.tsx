@@ -4,11 +4,22 @@ import type { StringKey } from '../../shared/strings';
 import type { PermissionStatus, Settings, SettingsView } from '../../shared/types';
 import { laqta, LaqtaIpcError } from '../shared/api';
 import Banner from '../shared/Banner';
-import { AppMark, ErrorIcon, SuccessIcon } from '../shared/icons';
+import { AppMark, CheckSmallIcon, ErrorIcon, SuccessIcon } from '../shared/icons';
 import { useI18n } from '../shared/i18n';
 import Select from '../shared/Select';
-import { Row, Segmented, ShortcutRecorder, SwitchRow } from './controls';
-import { CaptureIcon, GlobeIcon, LinkIcon, LockIcon, ShieldIcon, SparkIcon } from './navIcons';
+import { playCue, type CueName } from '../shared/sounds';
+import { acceleratorKeycaps } from './accelerator';
+import { Row, Segmented, ShortcutRecorder, SwitchRow, ThemePicker } from './controls';
+import {
+  CaptureIcon,
+  ContrastIcon,
+  GlobeIcon,
+  LinkIcon,
+  LockIcon,
+  PlayIcon,
+  ShieldIcon,
+  SparkIcon,
+} from './navIcons';
 import {
   connectionKeyOf,
   isLatestRequest,
@@ -26,12 +37,18 @@ import styles from './Settings.module.css';
 /** A successful test is kept in `tested` (tagged with its details), not here. */
 type TestState = { kind: 'idle' } | { kind: 'testing' } | { kind: 'error'; message: string };
 
-type Section = 'jira' | 'ai' | 'capture' | 'language' | 'privacy' | 'permissions';
+type Section = 'jira' | 'ai' | 'capture' | 'appearance' | 'language' | 'privacy' | 'permissions';
 
 const SECTIONS: { id: Section; nav: StringKey; title: StringKey; icon: () => ReactNode }[] = [
   { id: 'jira', nav: 'settings.nav.jira', title: 'settings.connect', icon: LinkIcon },
   { id: 'ai', nav: 'settings.nav.ai', title: 'settings.aiTitle', icon: SparkIcon },
   { id: 'capture', nav: 'settings.nav.capture', title: 'settings.nav.capture', icon: CaptureIcon },
+  {
+    id: 'appearance',
+    nav: 'settings.nav.appearance',
+    title: 'settings.nav.appearance',
+    icon: ContrastIcon,
+  },
   {
     id: 'language',
     nav: 'settings.nav.language',
@@ -42,10 +59,18 @@ const SECTIONS: { id: Section; nav: StringKey; title: StringKey; icon: () => Rea
   { id: 'permissions', nav: 'settings.nav.permissions', title: 'perm.title', icon: LockIcon },
 ];
 
+/** Each cue can be heard here, even with sounds off, so the choice is an informed one. */
+const SOUND_ROWS: { cue: CueName; label: StringKey }[] = [
+  { cue: 'draftReady', label: 'settings.soundDraftReady' },
+  { cue: 'bugCreated', label: 'settings.soundBugCreated' },
+  { cue: 'needsAction', label: 'settings.soundNeedsAction' },
+];
+
 const INTRO: Record<Section, StringKey> = {
   jira: 'settings.jiraIntro',
   ai: 'settings.aiIntro',
   capture: 'settings.captureIntro',
+  appearance: 'settings.appearanceIntro',
   language: 'settings.languageIntro',
   privacy: 'settings.privacyIntro',
   permissions: 'perm.body',
@@ -69,6 +94,9 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [section, setSection] = useState<Section>('jira');
+  // Set when a save connects Jira for the first time: the welcome panel turns into "ready".
+  const [justConnected, setJustConnected] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
   const tabRefs = useRef(new Map<Section, HTMLButtonElement>());
   // Request counters drop answers that arrive after a newer request (Major 2 in QA).
   const savedRequest = useRef(0);
@@ -110,7 +138,9 @@ export default function SettingsPage() {
       if (isLatestRequest(request, savedRequest.current)) retrySettled();
     };
     void laqta.jiraListProjects().then(
-      (list) => settle({ ok: true, list }),
+      (list) => {
+        settle({ ok: true, list });
+      },
       () => settle({ ok: false }),
     );
   }
@@ -188,7 +218,7 @@ export default function SettingsPage() {
       : test.kind === 'error'
         ? { tone: 'error', title: t('settings.statusFailed'), detail: test.message }
         : configured && !connectionChanged
-          ? { tone: 'ok', title: t('settings.statusSaved'), detail: view.settings.jiraBaseUrl }
+          ? { tone: 'ok', title: t('settings.statusConnected'), detail: view.settings.jiraBaseUrl }
           : {
               tone: 'neutral',
               title: t('settings.statusNotConnected'),
@@ -248,6 +278,9 @@ export default function SettingsPage() {
       setView(result);
       setForm(result.settings);
       setMessage({ kind: 'ok', text: t('settings.saved') });
+      if (!configured && result.hasToken && result.settings.jiraBaseUrl !== '') {
+        setJustConnected(true);
+      }
       if (result.hotkeyConflicts.length > 0) setSection('capture');
       loadSavedProjects(result);
       if (result.settings.uiLanguage !== view.settings.uiLanguage) window.location.reload();
@@ -258,6 +291,41 @@ export default function SettingsPage() {
       });
     }
   }
+
+  /**
+   * Appearance, sounds and language save as soon as they change (T-086, decided with the
+   * product owner). Only the changed values go on top of the saved settings, so unsaved Jira,
+   * AI or capture edits are neither saved nor lost.
+   */
+  async function autoSave(patch: Partial<Settings>) {
+    if (view === null) return;
+    setForm((prev) => (prev === null ? prev : { ...prev, ...patch }));
+    setAutoSaved(false);
+    try {
+      const result = await laqta.settingsSet({ settings: { ...view.settings, ...patch } });
+      setView(result);
+      setAutoSaved(true);
+      if (result.settings.uiLanguage !== view.settings.uiLanguage) window.location.reload();
+    } catch (error) {
+      setMessage({
+        kind: 'error',
+        text: error instanceof LaqtaIpcError ? error.error.userMessage : t('error.UNKNOWN'),
+      });
+    }
+  }
+
+  // Setup checklist (T-086): shown in the sidebar until every item is done.
+  const setupItems: { id: Section; label: StringKey; done: boolean }[] = [
+    { id: 'jira', label: 'setup.jira', done: configured },
+    { id: 'jira', label: 'setup.project', done: view.settings.defaultProjectKey !== '' },
+    { id: 'ai', label: 'setup.ai', done: !aiAttention },
+    ...(showPermissions
+      ? [{ id: 'permissions' as const, label: 'setup.screen' as const, done: !screenMissing }]
+      : []),
+  ];
+  const setupDone = setupItems.filter((i) => i.done).length;
+  const hotkeyKeys = acceleratorKeycaps(view.settings.hotkeyArea, mac);
+  const showWelcome = !configured || justConnected;
 
   /** Vertical tabs: arrows, Home and End move between sections (WAI-ARIA tabs pattern). */
   function onTabKey(e: KeyboardEvent<HTMLButtonElement>) {
@@ -279,11 +347,19 @@ export default function SettingsPage() {
     tabRefs.current.get(next)?.focus();
   }
 
-  const attention = (id: Section) =>
-    (id === 'jira' && jiraAttention) ||
-    (id === 'ai' && aiAttention) ||
-    (id === 'permissions' && screenMissing) ||
-    (id === 'capture' && conflicts.length > 0);
+  /** What a section's dot means, said in words (T-086): not set up yet, or needs a fix. */
+  const attention = (id: Section): StringKey | null =>
+    id === 'jira' && !configured
+      ? 'settings.needsSetup'
+      : id === 'jira' && jiraAttention
+        ? 'settings.needsAttention'
+        : id === 'ai' && aiAttention
+          ? 'settings.needsSetup'
+          : id === 'permissions' && screenMissing
+            ? 'settings.needsSetup'
+            : id === 'capture' && conflicts.length > 0
+              ? 'settings.needsAttention'
+              : null;
 
   return (
     <div className={styles.shell}>
@@ -298,6 +374,41 @@ export default function SettingsPage() {
           </span>
         </div>
         <h1 className="visually-hidden">{t('settings.title')}</h1>
+        {setupDone < setupItems.length && (
+          <nav className={styles.setup} aria-labelledby="setup-title">
+            <div className={styles.setupHead}>
+              <span id="setup-title" className={styles.setupTitle}>
+                {t('setup.title')}
+              </span>
+              <span className={styles.setupCount}>
+                {f('setup.progress', { done: setupDone, total: setupItems.length })}
+              </span>
+            </div>
+            <progress
+              className={styles.setupBar}
+              max={setupItems.length}
+              value={setupDone}
+              aria-labelledby="setup-title"
+            />
+            <ul className={styles.setupList}>
+              {setupItems.map((item) => (
+                <li key={item.label} data-done={item.done}>
+                  <button
+                    type="button"
+                    className={styles.setupItem}
+                    onClick={() => setSection(item.id)}
+                  >
+                    <span className={styles.setupCheck} aria-hidden="true">
+                      {item.done && <CheckSmallIcon />}
+                    </span>
+                    <span>{t(item.label)}</span>
+                    {item.done && <span className="visually-hidden">{t('setup.itemDone')}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
         <div
           className={styles.tabs}
           role="tablist"
@@ -326,11 +437,18 @@ export default function SettingsPage() {
               >
                 <Icon />
                 <span className={styles.tabLabel}>{t(s.nav)}</span>
-                {attention(s.id) && (
-                  <span className={styles.dot} title={t('settings.needsAttention')}>
-                    <span className="visually-hidden">{t('settings.needsAttention')}</span>
-                  </span>
-                )}
+                {(() => {
+                  const why = attention(s.id);
+                  return why === null ? null : (
+                    <span
+                      className={styles.dot}
+                      data-kind={why === 'settings.needsSetup' ? 'setup' : 'fix'}
+                      title={t(why)}
+                    >
+                      <span className="visually-hidden">{t(why)}</span>
+                    </span>
+                  );
+                })()}
               </button>
             );
           })}
@@ -354,6 +472,59 @@ export default function SettingsPage() {
             <p className={styles.intro}>{t(INTRO[current.id])}</p>
           </header>
 
+          {current.id === 'jira' && showWelcome && (
+            <section
+              className={`${styles.welcome} ${justConnected ? styles.welcomeReady : ''}`}
+              aria-labelledby="welcome-title"
+            >
+              <span className={styles.welcomeMark} aria-hidden="true">
+                <AppMark size={44} />
+              </span>
+              <div className={styles.welcomeBody}>
+                <h3 id="welcome-title" className={styles.welcomeTitle}>
+                  {justConnected ? t('welcome.readyTitle') : t('welcome.title')}
+                </h3>
+                {justConnected ? (
+                  <>
+                    <p className={styles.welcomeText}>{t('welcome.readyBody')}</p>
+                    <p className={styles.welcomeKeys}>
+                      <span aria-hidden="true">
+                        {hotkeyKeys.map((k) => (
+                          <kbd key={k}>{k}</kbd>
+                        ))}
+                      </span>
+                      <span className="visually-hidden">{hotkeyKeys.join(' ')}</span>
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => void laqta.windowClose()}
+                    >
+                      {t('welcome.close')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.welcomeText}>{t('welcome.body')}</p>
+                    <ol className={styles.welcomeSteps}>
+                      <li data-current="true">{t('welcome.step1')}</li>
+                      <li>
+                        {t('welcome.step2')}{' '}
+                        <span className={styles.inlineKeys} aria-hidden="true">
+                          {hotkeyKeys.map((k) => (
+                            <kbd key={k}>{k}</kbd>
+                          ))}
+                        </span>
+                        <span className="visually-hidden">{hotkeyKeys.join(' ')}</span>
+                      </li>
+                      <li>{t('welcome.step3')}</li>
+                    </ol>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
           {current.id === 'jira' && (
             <>
               {!view.encryptionAvailable && (
@@ -361,37 +532,6 @@ export default function SettingsPage() {
                   {t('settings.noEncryption')}
                 </Banner>
               )}
-
-              <div className={styles.statusCard} data-tone={status.tone} aria-live="polite">
-                <span className={styles.statusIcon} aria-hidden="true">
-                  {status.tone === 'ok' ? (
-                    <SuccessIcon />
-                  ) : status.tone === 'error' ? (
-                    <ErrorIcon />
-                  ) : (
-                    <LinkIcon />
-                  )}
-                </span>
-                <span className={styles.statusText}>
-                  <strong>{status.title}</strong>
-                  <span dir="auto">{status.detail}</span>
-                </span>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => void runTest()}
-                  disabled={!urlUsable || emailMissing || test.kind === 'testing'}
-                >
-                  {test.kind === 'testing' ? (
-                    <>
-                      <span className={styles.spinner} aria-hidden="true" />
-                      {t('settings.testing')}
-                    </>
-                  ) : (
-                    t('settings.testConnection')
-                  )}
-                </button>
-              </div>
 
               <section className={styles.group}>
                 <Row labelId="deployment-label" label={t('settings.deployment')}>
@@ -488,6 +628,36 @@ export default function SettingsPage() {
                     )}
                     {cloud ? t('settings.tokenHelpCloud') : t('settings.tokenHelp')}
                   </p>
+                </div>
+                <div className={styles.testBar} data-tone={status.tone}>
+                  <span className={styles.statusIcon} aria-hidden="true">
+                    {status.tone === 'ok' ? (
+                      <CheckSmallIcon />
+                    ) : status.tone === 'error' ? (
+                      <ErrorIcon />
+                    ) : (
+                      <LinkIcon />
+                    )}
+                  </span>
+                  <span className={styles.statusText} aria-live="polite">
+                    <strong>{status.title}</strong>
+                    <span dir="auto">{status.detail}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => void runTest()}
+                    disabled={!urlUsable || emailMissing || test.kind === 'testing'}
+                  >
+                    {test.kind === 'testing' ? (
+                      <>
+                        <span className={styles.spinner} aria-hidden="true" />
+                        {t('settings.testing')}
+                      </>
+                    ) : (
+                      t('settings.testConnection')
+                    )}
+                  </button>
                 </div>
               </section>
 
@@ -677,6 +847,60 @@ export default function SettingsPage() {
             </>
           )}
 
+          {current.id === 'appearance' && (
+            <section className={styles.themeGroup}>
+              <span id="theme-label" className={styles.themeLabel}>
+                {t('settings.theme')}
+              </span>
+              <ThemePicker
+                labelledBy="theme-label"
+                value={form.theme}
+                onChange={(theme) => {
+                  // Every window follows at once, and the choice is saved right away.
+                  void laqta.themePreview({ theme }).catch(() => undefined);
+                  void autoSave({ theme });
+                }}
+              />
+              <p className={styles.themeNote}>
+                {t('settings.autoSaveNote')}{' '}
+                {autoSaved && (
+                  <span className={styles.autoSaved} role="status">
+                    <CheckSmallIcon />
+                    {t('settings.autoSaved')}
+                  </span>
+                )}
+              </p>
+            </section>
+          )}
+
+          {current.id === 'appearance' && (
+            <section className={styles.group} aria-labelledby="sounds-title">
+              <h3 id="sounds-title" className={styles.groupTitle}>
+                {t('settings.sounds')}
+              </h3>
+              <SwitchRow
+                id="sounds-enabled"
+                label={t('settings.soundsEnabled')}
+                help={t('settings.soundsHelp')}
+                checked={form.soundsEnabled}
+                onChange={(v) => void autoSave({ soundsEnabled: v })}
+              />
+              {SOUND_ROWS.map(({ cue, label }) => (
+                <Row key={cue} label={t(label)}>
+                  <button
+                    type="button"
+                    className={`btn ${styles.playButton}`}
+                    aria-label={f('settings.soundPlayLabel', { name: t(label) })}
+                    onClick={() => playCue(cue)}
+                  >
+                    <PlayIcon />
+                    {t('settings.soundPlay')}
+                  </button>
+                </Row>
+              ))}
+            </section>
+          )}
+
           {current.id === 'language' && (
             <section className={styles.group}>
               <Row labelId="ui-language-label" label={t('settings.uiLanguage')}>
@@ -688,7 +912,7 @@ export default function SettingsPage() {
                     { value: 'en', label: t('lang.nativeEn'), lang: 'en' },
                     { value: 'ar', label: t('lang.nativeAr'), lang: 'ar' },
                   ]}
-                  onChange={(v) => set({ uiLanguage: v })}
+                  onChange={(v) => void autoSave({ uiLanguage: v })}
                 />
               </Row>
               <Row labelId="bug-language-label" label={t('settings.bugLanguage')}>
@@ -700,9 +924,18 @@ export default function SettingsPage() {
                     { value: 'en', label: t('lang.nativeEn'), lang: 'en' },
                     { value: 'ar', label: t('lang.nativeAr'), lang: 'ar' },
                   ]}
-                  onChange={(v) => set({ bugLanguage: v })}
+                  onChange={(v) => void autoSave({ bugLanguage: v })}
                 />
               </Row>
+              <p className={styles.groupFoot}>
+                {t('settings.autoSaveNote')}{' '}
+                {autoSaved && (
+                  <span className={styles.autoSaved} role="status">
+                    <CheckSmallIcon />
+                    {t('settings.autoSaved')}
+                  </span>
+                )}
+              </p>
             </section>
           )}
 
@@ -801,7 +1034,7 @@ export default function SettingsPage() {
             onClick={() => void save()}
             disabled={!urlValid || (configured && !dirty)}
           >
-            {configured ? t('settings.save') : t('settings.saveContinue')}
+            {t('settings.save')}
           </button>
         </footer>
       </div>

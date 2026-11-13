@@ -14,7 +14,7 @@ export function WarningIcon() {
 export function ErrorIcon() {
   return (
     <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28">
-      <circle cx="14" cy="14" r="14" fill="#C2362B" />
+      <circle cx="14" cy="14" r="14" style={{ fill: 'var(--danger)' }} />
       <path d="M14 7v9M14 20v1" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
@@ -23,7 +23,7 @@ export function ErrorIcon() {
 export function SuccessIcon() {
   return (
     <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28">
-      <circle cx="14" cy="14" r="14" fill="#14683D" />
+      <circle cx="14" cy="14" r="14" style={{ fill: 'var(--success-fill)' }} />
       <path
         d="m8 14.5 4 4 8-9"
         stroke="#fff"
@@ -47,10 +47,10 @@ export function CloseIcon() {
 export function MicIcon() {
   return (
     <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <rect x="9" y="3" width="6" height="11" rx="3" fill="#2F5BEA" />
+      <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
       <path
         d="M5 11a7 7 0 0 0 14 0M12 18v3"
-        stroke="#2F5BEA"
+        stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -80,8 +80,8 @@ export function AppMark({ size = 28 }: { size?: number }) {
     <svg aria-hidden="true" width={size} height={size} viewBox="0 0 36 36">
       <defs>
         <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#4a72f0" />
-          <stop offset="1" stopColor="#1d3fb8" />
+          <stop offset="0" stopColor="#5b78ff" />
+          <stop offset="1" stopColor="#2a45e0" />
         </linearGradient>
       </defs>
       <rect width="36" height="36" rx="9" fill={`url(#${gradient})`} />
@@ -93,21 +93,22 @@ export function AppMark({ size = 28 }: { size?: number }) {
   );
 }
 
-const line = {
+/** One icon language (T-080): 24 px grid, 1.75 stroke, round caps and joins. */
+export const iconBase = {
   'aria-hidden': true,
   width: 18,
   height: 18,
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
-  strokeWidth: 2,
+  strokeWidth: 1.75,
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
 } as const;
 
 export function SparkleIcon() {
   return (
-    <svg {...line}>
+    <svg {...iconBase}>
       <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" />
     </svg>
   );
@@ -115,7 +116,7 @@ export function SparkleIcon() {
 
 export function LockSmallIcon() {
   return (
-    <svg {...line} width={16} height={16}>
+    <svg {...iconBase} width={16} height={16}>
       <rect x="5" y="11" width="14" height="10" rx="2" />
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </svg>
@@ -124,7 +125,7 @@ export function LockSmallIcon() {
 
 export function ShieldSmallIcon() {
   return (
-    <svg {...line} width={16} height={16}>
+    <svg {...iconBase} width={16} height={16}>
       <path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" />
     </svg>
   );
@@ -132,7 +133,7 @@ export function ShieldSmallIcon() {
 
 export function PencilIcon() {
   return (
-    <svg {...line} width={16} height={16}>
+    <svg {...iconBase} width={16} height={16}>
       <path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" />
     </svg>
   );
@@ -140,7 +141,7 @@ export function PencilIcon() {
 
 export function PlusIcon() {
   return (
-    <svg {...line} width={14} height={14} strokeWidth={2.4}>
+    <svg {...iconBase} width={14} height={14} strokeWidth={2.4}>
       <path d="M12 5v14M5 12h14" />
     </svg>
   );
@@ -148,8 +149,103 @@ export function PlusIcon() {
 
 export function CheckSmallIcon() {
   return (
-    <svg {...line} width={14} height={14} strokeWidth={2.6}>
+    <svg {...iconBase} width={14} height={14} strokeWidth={2.6}>
       <path d="m5 12.5 4.5 4.5L19 7" />
+    </svg>
+  );
+}
+
+/** A magnifier over the screenshot thumbnail: it opens the full-size view. */
+export function ZoomImageIcon() {
+  return (
+    <svg {...iconBase} width={16} height={16}>
+      <circle cx="11" cy="11" r="6" />
+      <path d="m20 20-4.5-4.5M11 8.5v5M8.5 11h5" />
+    </svg>
+  );
+}
+
+const PRIORITY_LOOK: Record<string, { path: string; color: string }> = {
+  Highest: { path: 'M6 13l6-6 6 6M6 19l6-6 6 6', color: 'var(--danger-text)' },
+  High: { path: 'M6 15l6-6 6 6', color: 'var(--danger-text)' },
+  Medium: { path: 'M6 10h12M6 15h12', color: 'var(--warning-icon)' },
+  Low: { path: 'M6 9l6 6 6-6', color: 'var(--accent)' },
+  Lowest: { path: 'M6 5l6 6 6-6M6 11l6 6 6-6', color: 'var(--accent)' },
+};
+
+/** Jira-style priority mark, so the value is recognised at a glance; the text stays next to it. */
+export function PriorityIcon({ priority }: { priority: string | null }) {
+  const look = priority === null ? undefined : PRIORITY_LOOK[priority];
+  if (look === undefined) return null;
+  return (
+    <svg {...iconBase} width={16} height={16} strokeWidth={2.25} style={{ color: look.color }}>
+      <path d={look.path} />
+    </svg>
+  );
+}
+
+export function CopyIcon() {
+  return (
+    <svg {...iconBase}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
+/** Opens outside Laqta (Jira in the browser). Mirrors in RTL. */
+export function ExternalIcon() {
+  return (
+    <svg {...iconBase} className="flip">
+      <path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </svg>
+  );
+}
+
+export function RetryIcon() {
+  return (
+    <svg {...iconBase}>
+      <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+    </svg>
+  );
+}
+
+export function KeyboardIcon() {
+  return (
+    <svg {...iconBase}>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M7.5 14h9" />
+    </svg>
+  );
+}
+
+/**
+ * Empty and error states (T-089): the viewfinder from the logo around a symbol for what
+ * happened. Decorative; the heading next to it says it in words.
+ */
+export function StateArt({ kind }: { kind: 'offline' | 'error' }) {
+  return (
+    <svg aria-hidden="true" width="72" height="72" viewBox="0 0 72 72" fill="none">
+      <rect x="8" y="8" width="56" height="56" rx="16" style={{ fill: 'var(--surface-sunken)' }} />
+      <g
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ stroke: 'var(--accent)' }}
+      >
+        <path d="M18 28v-6a4 4 0 0 1 4-4h6M44 18h6a4 4 0 0 1 4 4v6M54 44v6a4 4 0 0 1-4 4h-6M28 54h-6a4 4 0 0 1-4-4v-6" />
+      </g>
+      {kind === 'offline' ? (
+        <g strokeWidth="2.5" strokeLinecap="round" style={{ stroke: 'var(--danger-text)' }}>
+          <path d="M27 33a13 13 0 0 1 18 0M31 38a7 7 0 0 1 10 0" />
+          <circle cx="36" cy="43" r="1.6" style={{ fill: 'var(--danger-text)' }} />
+          <path d="M26 26l20 20" />
+        </g>
+      ) : (
+        <g strokeWidth="2.6" strokeLinecap="round" style={{ stroke: 'var(--danger-text)' }}>
+          <path d="M36 28v9M36 43v.5" />
+        </g>
+      )}
     </svg>
   );
 }

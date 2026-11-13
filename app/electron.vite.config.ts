@@ -48,6 +48,8 @@ export default defineConfig({
     root: resolve(__dirname, 'src/renderer'),
     plugins: [react(), cspPlugin()],
     build: {
+      // Fonts must stay files: the CSP's default-src 'self' blocks data: font URIs.
+      assetsInlineLimit: (file: string) => (/\.(woff2?|ttf)$/.test(file) ? false : undefined),
       rollupOptions: {
         input: Object.fromEntries(
           pages.map((p) => [p, resolve(__dirname, `src/renderer/${p}/index.html`)]),

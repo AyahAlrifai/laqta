@@ -1,10 +1,12 @@
 import { join } from 'node:path';
-import { BrowserWindow, session, shell, type Rectangle } from 'electron';
+import { BrowserWindow, nativeTheme, session, shell, type Rectangle } from 'electron';
+import type { ThemePreference } from '../shared/types';
 import { log } from './log';
 import {
   HARDENED_WEB_PREFERENCES,
   isAppUrl,
   permissionDecision,
+  windowBackground,
   type WindowKind,
 } from './window-policy';
 
@@ -27,6 +29,28 @@ export function isOwnRendererUrl(url: string): boolean {
 let voiceEnabled = false;
 export function setVoicePermission(enabled: boolean): void {
   voiceEnabled = enabled;
+}
+
+/**
+ * Spec section 9, appearance. Renderers see `themeSource` as `prefers-color-scheme`, so
+ * this one switch restyles every open window without a reload.
+ */
+export function applyTheme(theme: ThemePreference): void {
+  if (nativeTheme.themeSource !== theme) nativeTheme.themeSource = theme;
+}
+
+/** Called once at start-up: keeps window backgrounds in step with the theme and the OS. */
+export function followNativeTheme(): void {
+  nativeTheme.on('updated', () => {
+    const dark = nativeTheme.shouldUseDarkColors;
+    for (const win of BrowserWindow.getAllWindows()) {
+      // A window that is closing (Settings restores the theme from its closed event) is skipped.
+      if (win.isDestroyed() || win.webContents.isDestroyed()) continue;
+      const kind = kinds.get(win.webContents.id);
+      if (kind !== undefined && kind !== 'overlay')
+        win.setBackgroundColor(windowBackground(kind, dark));
+    }
+  });
 }
 
 /** Called once at start-up: applies to every renderer in the default session. */
@@ -86,7 +110,7 @@ export function createAppWindow(opts: WindowOptions): BrowserWindow {
     alwaysOnTop: overlay || toast,
     fullscreenable: false,
     enableLargerThanScreen: overlay,
-    backgroundColor: overlay ? '#00000000' : '#FFFFFF',
+    backgroundColor: windowBackground(opts.kind, nativeTheme.shouldUseDarkColors),
     autoHideMenuBar: true,
     webPreferences: {
       ...HARDENED_WEB_PREFERENCES,

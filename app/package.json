@@ -36,6 +36,8 @@
     "vitest": "5.1.0"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "5.2.8",
+    "@fontsource/ibm-plex-sans-arabic": "5.2.9",
     "@laqta/gateway-contract": "workspace:*",
     "electron-updater": "6.8.11",
     "get-windows": "9.3.0",

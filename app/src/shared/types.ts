@@ -102,7 +102,13 @@ export interface Settings {
   confirmNoBlur: boolean;
   /** Spec section 7: the company gateway, or the user's own Claude Code CLI. */
   aiProvider: 'gateway' | 'claude-code';
+  /** Spec section 9, appearance: follow the OS, or force light or dark. Default 'system'. */
+  theme: ThemePreference;
+  /** Spec section 9, sounds: a chime when the draft is ready and when the bug is created. */
+  soundsEnabled: boolean;
 }
+
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 export type AppErrorCode =
   | 'AUTH_INVALID'

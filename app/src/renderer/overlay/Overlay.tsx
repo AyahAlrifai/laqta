@@ -48,6 +48,8 @@ export default function Overlay() {
   const [mode, setMode] = useState<CaptureMode>('area');
   const [rect, setRect] = useState<Rect | null>(null);
   const drag = useRef<Drag | null>(null);
+  // Where the pointer is while drawing or resizing, for the magnifier loupe (T-081).
+  const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const done = useRef(false);
   const bar = useRef<HTMLDivElement>(null);
@@ -151,12 +153,14 @@ export default function Overlay() {
     root.current?.setPointerCapture(event.pointerId);
     if (handle !== undefined && rect) {
       drag.current = { kind: 'handle', handle };
+      setLoupe(p);
     } else if (target.dataset.selection === 'true' && rect) {
       drag.current = { kind: 'move', dx: p.x - rect.x, dy: p.y - rect.y };
     } else {
       drag.current = { kind: 'new', x: p.x, y: p.y };
       setMode('area');
       setRect(null);
+      setLoupe(p);
     }
   };
 
@@ -164,6 +168,7 @@ export default function Overlay() {
     const d = drag.current;
     if (!d) return;
     const p = point(event);
+    if (d.kind !== 'move') setLoupe(p);
     if (d.kind === 'new') setRect(normalize(d.x, d.y, p.x, p.y, bounds));
     else if (d.kind === 'move' && rect)
       setRect(nudge(rect, p.x - d.dx - rect.x, p.y - d.dy - rect.y, bounds));
@@ -177,6 +182,7 @@ export default function Overlay() {
     root.current?.releasePointerCapture(event.pointerId);
     if (drag.current?.kind === 'new' && rect && (rect.width < 4 || rect.height < 4)) setRect(null);
     drag.current = null;
+    setLoupe(null);
   };
 
   if (!frame || imageUrl === null) return null;
@@ -294,6 +300,7 @@ export default function Overlay() {
                 key={h}
                 className={styles.handle}
                 data-handle={h}
+                data-corner={h.length === 2 ? 'true' : undefined}
                 style={{ left: hp.x - 6, top: hp.y - 6 }}
               />
             );
@@ -310,6 +317,10 @@ export default function Overlay() {
         </>
       ) : (
         <div className={styles.shade} style={{ inset: 0 }} />
+      )}
+
+      {loupe !== null && (
+        <Loupe imageUrl={imageUrl} at={loupe} bounds={bounds} scaleFactor={frame.scaleFactor} />
       )}
 
       <div id="capture-status" className={styles.statusPill} role="status">
@@ -357,9 +368,16 @@ export default function Overlay() {
           })}
         </div>
         <span className={styles.divider} aria-hidden="true" />
-        <button type="button" className={`${styles.barBtn} ${styles.muted}`} onClick={cancel}>
+        <button
+          type="button"
+          className={`${styles.barBtn} ${styles.muted}`}
+          onClick={cancel}
+          title={t('capture.escToCancel')}
+          aria-keyshortcuts="Escape"
+        >
           <CancelIcon />
-          {t('capture.escToCancel')}
+          {t('capture.cancel')}
+          <kbd aria-hidden="true">Esc</kbd>
         </button>
         <button
           type="button"
@@ -369,8 +387,54 @@ export default function Overlay() {
         >
           <ContinueIcon />
           {t('capture.continue')}
+          <kbd aria-hidden="true">↵</kbd>
         </button>
       </div>
+    </div>
+  );
+}
+
+const LOUPE_SIZE = 132;
+const LOUPE_ZOOM = 4;
+const LOUPE_GAP = 28;
+
+/**
+ * Magnifier next to the pointer while drawing or resizing (T-081): the frozen frame at four
+ * times its size with a crosshair, so a crop can be placed on the exact pixel. Decorative: the
+ * live region already announces the selection size.
+ */
+function Loupe({
+  imageUrl,
+  at,
+  bounds,
+  scaleFactor,
+}: {
+  imageUrl: string;
+  at: { x: number; y: number };
+  bounds: { width: number; height: number };
+  scaleFactor: number;
+}) {
+  const half = LOUPE_SIZE / 2;
+  // Below and to the right of the pointer, flipped near the screen's edges.
+  const left =
+    at.x + LOUPE_GAP + LOUPE_SIZE > bounds.width ? at.x - LOUPE_GAP - LOUPE_SIZE : at.x + LOUPE_GAP;
+  const top =
+    at.y + LOUPE_GAP + LOUPE_SIZE + 28 > bounds.height
+      ? at.y - LOUPE_GAP - LOUPE_SIZE - 28
+      : at.y + LOUPE_GAP;
+  return (
+    <div className={styles.loupe} style={{ left, top }} aria-hidden="true">
+      <div
+        className={styles.loupeLens}
+        style={{
+          backgroundImage: `url("${imageUrl}")`,
+          backgroundSize: `${String(bounds.width * LOUPE_ZOOM)}px ${String(bounds.height * LOUPE_ZOOM)}px`,
+          backgroundPosition: `${String(half - at.x * LOUPE_ZOOM)}px ${String(half - at.y * LOUPE_ZOOM)}px`,
+        }}
+      />
+      <span className={styles.loupeCoords}>
+        {Math.round(at.x * scaleFactor)}, {Math.round(at.y * scaleFactor)}
+      </span>
     </div>
   );
 }

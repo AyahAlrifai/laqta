@@ -15,6 +15,15 @@ export const HARDENED_WEB_PREFERENCES = {
   spellcheck: false,
 } as const;
 
+/**
+ * Background painted before the page loads, so a window never flashes white in dark mode.
+ * Matches `--surface` in renderer/shared/styles/tokens.css for each theme.
+ */
+export function windowBackground(kind: WindowKind, dark: boolean): string {
+  if (kind === 'overlay') return '#00000000';
+  return dark ? '#1B1E26' : '#FFFFFF';
+}
+
 export const CONTENT_SECURITY_POLICY =
   "default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; connect-src 'none'";
 

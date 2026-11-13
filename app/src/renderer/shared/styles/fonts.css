@@ -1,0 +1,11 @@
+/*
+ * Bundled typefaces (T-080). Renderers may not load remote content (spec section 10), so the
+ * faces ship inside the app; the CSP's default-src 'self' covers them. Both are OFL-licensed.
+ * Inter is a variable face (one file per script subset); Plex Arabic needs one file per weight,
+ * so only the weights the UI uses are included, and only the Arabic subset.
+ */
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-600.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';

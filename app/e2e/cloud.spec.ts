@@ -49,6 +49,8 @@ test('Jira Cloud: draft, pick assignee by accountId, create, attach', async () =
     await overlay.mouse.down();
     await overlay.mouse.move(400, 300, { steps: 4 });
     await overlay.mouse.up();
+    // As in the golden test: Enter only completes once the selection exists.
+    await expect(overlay.getByText(/\d+ × \d+/)).toBeVisible();
     await overlay.getByRole('application').focus();
     await overlay.keyboard.press('Enter').catch(() => undefined);
 

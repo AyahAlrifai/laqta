@@ -35,6 +35,7 @@ export const IPC = {
   appCopyText: 'app:copyText',
   appOpenSettings: 'app:openSettings',
   appRelaunch: 'app:relaunch',
+  themePreview: 'theme:preview',
   permissionsGet: 'permissions:get',
   permissionsOpenSystemSettings: 'permissions:openSystemSettings',
   permissionsRequestMicrophone: 'permissions:requestMicrophone',

@@ -4,6 +4,7 @@ import {
   HARDENED_WEB_PREFERENCES,
   isAppUrl,
   permissionDecision,
+  windowBackground,
 } from './window-policy';
 
 describe('window hardening (spec section 10)', () => {
@@ -53,5 +54,18 @@ describe('window hardening (spec section 10)', () => {
     expect(isAppUrl('http://localhost:5174/overlay/index.html', 'http://localhost:5173', dir)).toBe(
       false,
     );
+  });
+});
+
+describe('window background (spec section 9, appearance)', () => {
+  it('matches the surface token of the active theme, so windows never flash', () => {
+    expect(windowBackground('settings', false)).toBe('#FFFFFF');
+    expect(windowBackground('workbench', true)).toBe('#1B1E26');
+    expect(windowBackground('toast', true)).toBe('#1B1E26');
+  });
+
+  it('keeps the overlay transparent in both themes', () => {
+    expect(windowBackground('overlay', false)).toBe('#00000000');
+    expect(windowBackground('overlay', true)).toBe('#00000000');
   });
 });

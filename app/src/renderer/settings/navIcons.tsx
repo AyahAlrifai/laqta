@@ -1,16 +1,8 @@
 // Decorative icons for the Settings sidebar. The tab text carries the meaning.
 
-const common = {
-  'aria-hidden': true,
-  width: 18,
-  height: 18,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-} as const;
+import { iconBase } from '../shared/icons';
+
+const common = { ...iconBase, width: 18, height: 18 } as const;
 
 export function LinkIcon() {
   return (
@@ -61,6 +53,23 @@ export function LockIcon() {
     <svg {...common}>
       <rect x="5" y="11" width="14" height="10" rx="2" />
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+export function ContrastIcon() {
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function PlayIcon() {
+  return (
+    <svg {...common} width={14} height={14}>
+      <path d="M7 4.5v15l12-7.5z" fill="currentColor" />
     </svg>
   );
 }

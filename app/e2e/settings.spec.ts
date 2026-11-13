@@ -52,6 +52,8 @@ async function launchSettings(): Promise<Page> {
   app = await electron.launch({
     args: [join(__dirname, '..', 'out', 'main', 'index.js')],
     env: { ...env, LAQTA_E2E: '1', LAQTA_E2E_USER_DATA: userData },
+    // No colour-scheme emulation: the appearance tests need nativeTheme to reach the page.
+    colorScheme: null,
   });
   for (let i = 0; i < 200; i++) {
     const page = app.windows().find((w) => w.url().includes('/settings/'));
@@ -80,7 +82,7 @@ async function connect(page: Page, url = jiraUrl): Promise<void> {
 async function connectAndSave(page: Page, projectKey: string): Promise<void> {
   await connect(page);
   await pick(projectField(page), projectKey);
-  await page.getByRole('button', { name: en('settings.saveContinue'), exact: true }).click();
+  await page.getByRole('button', { name: en('settings.save'), exact: true }).click();
   await expect(page.getByText(en('settings.saved'), { exact: true })).toBeVisible();
 }
 
@@ -109,7 +111,7 @@ test('test connection lists the projects; the saved choice survives a reload', a
   await expect(options).toBeHidden();
 
   await pick(select, 'REQ');
-  await page.getByRole('button', { name: en('settings.saveContinue'), exact: true }).click();
+  await page.getByRole('button', { name: en('settings.save'), exact: true }).click();
   await expect(page.getByText(en('settings.saved'), { exact: true })).toBeVisible();
   const stored = JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')) as {
     jiraBaseUrl: string;
@@ -172,4 +174,84 @@ test('Arabic UI: the connect-first message is in Arabic and the page is RTL', as
   await expect(
     page.getByText(t('ar', 'settings.projectConnectFirst'), { exact: true }),
   ).toBeVisible();
+});
+
+/** Set LAQTA_SHOTS=<dir> to save a screenshot for a visual check. */
+async function shot(page: Page, name: string): Promise<void> {
+  const dir = process.env.LAQTA_SHOTS;
+  if (dir !== undefined) await page.screenshot({ path: join(dir, `${name}.png`) });
+}
+
+// String expressions: the e2e tsconfig has no DOM types.
+const prefersDark = (page: Page) =>
+  page.evaluate<boolean>("matchMedia('(prefers-color-scheme: dark)').matches");
+const bodyBackground = (page: Page) =>
+  page.evaluate<string>('getComputedStyle(document.body).backgroundColor');
+
+test('appearance: picking a theme applies it at once and saves it (T-086)', async () => {
+  const page = await launchSettings();
+  await connect(page);
+  await page.getByRole('tab', { name: en('settings.nav.appearance'), exact: true }).click();
+  const group = page.getByRole('radiogroup', { name: en('settings.theme'), exact: true });
+  await expect(group.getByRole('radio', { name: en('theme.system') })).toBeChecked();
+
+  await group.getByRole('radio', { name: en('theme.dark') }).check();
+  await expect.poll(() => prefersDark(page)).toBe(true);
+  await expect.poll(() => bodyBackground(page)).toBe('rgb(26, 29, 37)');
+  await shot(page, 'appearance-dark');
+
+  await group.getByRole('radio', { name: en('theme.light') }).check();
+  await expect.poll(() => prefersDark(page)).toBe(false);
+  await expect.poll(() => bodyBackground(page)).toBe('rgb(255, 255, 255)');
+  await shot(page, 'appearance-light');
+
+  await group.getByRole('radio', { name: en('theme.dark') }).check();
+  // Appearance saves on change: no Save click.
+  await expect(
+    page.getByRole('status').filter({ hasText: en('settings.autoSaved') }),
+  ).toBeVisible();
+  const storedTheme = () =>
+    (JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')) as { theme: string }).theme;
+  await expect.poll(storedTheme).toBe('dark');
+  await page.reload();
+  await expect.poll(() => prefersDark(page)).toBe(true);
+});
+
+test('appearance: a picked theme stays after Settings closes, without Save (T-086)', async () => {
+  writeFileSync(join(userData, 'settings.json'), JSON.stringify({ theme: 'light' }));
+  const page = await launchSettings();
+  await page.getByRole('tab', { name: en('settings.nav.appearance'), exact: true }).click();
+  await page.getByRole('radio', { name: en('theme.dark') }).check();
+  await expect.poll(() => prefersDark(page)).toBe(true);
+  const electronApp = app;
+  if (electronApp === null) throw new Error('no app');
+  // Closed from main on a timer: a Playwright call still pending when a page closes is
+  // cancelled, so the close must not happen inside the call that triggers it.
+  const closed = page.waitForEvent('close');
+  await electronApp.evaluate(({ BrowserWindow }) => {
+    setTimeout(() => BrowserWindow.getAllWindows()[0]?.close(), 100);
+  });
+  await closed;
+  // The choice was saved when it was picked, so closing keeps it.
+  await expect
+    .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
+    .toBe('dark');
+});
+
+test('jira: Test connection sits below the form, and Save keeps its label', async () => {
+  const page = await launchSettings();
+  const save = page.getByRole('button', { name: en('settings.save'), exact: true });
+  await expect(save).toBeVisible();
+  // Test connection comes after the token field in reading order (and on screen).
+  const token = page.getByLabel(en('settings.token'), { exact: true });
+  const testButton = page.getByRole('button', { name: en('settings.testConnection') });
+  const tokenBox = await token.boundingBox();
+  const testBox = await testButton.boundingBox();
+  expect(tokenBox !== null && testBox !== null && testBox.y > tokenBox.y).toBe(true);
+
+  await connectAndSave(page, 'PROJ');
+  await expect(save).toBeVisible();
+  // Save may jump to Capture when another app holds the shortcuts; come back for the shot.
+  await page.getByRole('tab', { name: en('settings.nav.jira') }).click();
+  await shot(page, 'jira-connected');
 });

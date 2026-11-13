@@ -8,6 +8,8 @@ interface DialogProps {
   onCancel: () => void;
   /** 'alertdialog' for confirmations that need an answer. */
   role?: 'dialog' | 'alertdialog';
+  /** 'wide' for content that needs room, such as the full-size screenshot (T-084). */
+  size?: 'default' | 'wide';
 }
 
 const FOCUSABLE =
@@ -23,6 +25,7 @@ export default function Dialog({
   actions,
   onCancel,
   role = 'dialog',
+  size = 'default',
 }: DialogProps) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -60,7 +63,7 @@ export default function Dialog({
     <div className={styles.backdrop}>
       <div
         ref={ref}
-        className={styles.dialog}
+        className={`${styles.dialog} ${size === 'wide' ? styles.wide : ''}`}
         role={role}
         aria-modal="true"
         aria-labelledby={titleId}

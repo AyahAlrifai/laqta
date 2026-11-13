@@ -42,6 +42,16 @@ describe('settings store', () => {
     expect(migrateSettings({ ...older, confirmNoBlur: false }).confirmNoBlur).toBe(false);
   });
 
+  it('follows the system theme for settings files written before the field existed', () => {
+    const older: Partial<typeof DEFAULT_SETTINGS> = { ...DEFAULT_SETTINGS };
+    delete older.theme;
+    expect(DEFAULT_SETTINGS.theme).toBe('system');
+    expect(migrateSettings(older).theme).toBe('system');
+    expect(migrateSettings({ ...older, theme: 'sepia' }).theme).toBe('system');
+    expect(migrateSettings({ ...older, theme: 'dark' }).theme).toBe('dark');
+    expect(migrateSettings({ ...older, theme: 'light' }).theme).toBe('light');
+  });
+
   it('saves and reloads', () => {
     const d = dir();
     new SettingsStore(d).set({
