@@ -188,7 +188,7 @@ const prefersDark = (page: Page) =>
 const bodyBackground = (page: Page) =>
   page.evaluate<string>('getComputedStyle(document.body).backgroundColor');
 
-test('appearance: picking a theme previews it at once, and Save keeps it', async () => {
+test('appearance: picking a theme applies it at once and saves it (T-086)', async () => {
   const page = await launchSettings();
   await connect(page);
   await page.getByRole('tab', { name: en('settings.nav.appearance'), exact: true }).click();
@@ -197,7 +197,7 @@ test('appearance: picking a theme previews it at once, and Save keeps it', async
 
   await group.getByRole('radio', { name: en('theme.dark') }).check();
   await expect.poll(() => prefersDark(page)).toBe(true);
-  await expect.poll(() => bodyBackground(page)).toBe('rgb(27, 30, 38)');
+  await expect.poll(() => bodyBackground(page)).toBe('rgb(26, 29, 37)');
   await shot(page, 'appearance-dark');
 
   await group.getByRole('radio', { name: en('theme.light') }).check();
@@ -206,17 +206,18 @@ test('appearance: picking a theme previews it at once, and Save keeps it', async
   await shot(page, 'appearance-light');
 
   await group.getByRole('radio', { name: en('theme.dark') }).check();
-  await page.getByRole('button', { name: en('settings.save'), exact: true }).click();
-  await expect(page.getByText(en('settings.saved'), { exact: true })).toBeVisible();
-  const stored = JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')) as {
-    theme: string;
-  };
-  expect(stored.theme).toBe('dark');
+  // Appearance saves on change: no Save click.
+  await expect(
+    page.getByRole('status').filter({ hasText: en('settings.autoSaved') }),
+  ).toBeVisible();
+  const storedTheme = () =>
+    (JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')) as { theme: string }).theme;
+  await expect.poll(storedTheme).toBe('dark');
   await page.reload();
   await expect.poll(() => prefersDark(page)).toBe(true);
 });
 
-test('appearance: closing Settings without saving drops the preview', async () => {
+test('appearance: a picked theme stays after Settings closes, without Save (T-086)', async () => {
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({ theme: 'light' }));
   const page = await launchSettings();
   await page.getByRole('tab', { name: en('settings.nav.appearance'), exact: true }).click();
@@ -231,10 +232,10 @@ test('appearance: closing Settings without saving drops the preview', async () =
     setTimeout(() => BrowserWindow.getAllWindows()[0]?.close(), 100);
   });
   await closed;
-  // The app restores the saved theme on the tick after the window is gone.
+  // The choice was saved when it was picked, so closing keeps it.
   await expect
     .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
-    .toBe('light');
+    .toBe('dark');
 });
 
 test('jira: Test connection sits below the form, and Save keeps its label', async () => {

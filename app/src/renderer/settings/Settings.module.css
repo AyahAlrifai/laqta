@@ -74,7 +74,7 @@
   font-weight: 500;
   text-align: start;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition: background-color var(--dur-fast) ease;
 }
 
 .tab svg {
@@ -263,8 +263,8 @@
 .field :global(.select) {
   background: var(--surface);
   transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
 }
 
 .field :global(.input):hover:not(:disabled),
@@ -705,8 +705,8 @@
   background: var(--surface);
   cursor: pointer;
   transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
 }
 
 .themeOption input:hover + .themeCard {
@@ -908,4 +908,301 @@
   min-width: 96px;
   padding: 0 var(--space-4);
   gap: 6px;
+}
+
+/* ---------------------------------------------------------------- T-086: status dots */
+
+/* Not set up yet reads calmer (accent) than something that needs a fix (danger). */
+.dot[data-kind='setup'] {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.dot[data-kind='fix'] {
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.autoSaved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success);
+  font-weight: 600;
+}
+
+.autoSaved svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .autoSaved {
+    animation: fade-up var(--dur) var(--ease) both;
+  }
+}
+
+/* ---------------------------------------------------------------- T-086: setup checklist */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--elev-1);
+}
+
+.setupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.setupTitle {
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+
+.setupCount {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.setupBar {
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.setupBar::-webkit-progress-bar {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-pill);
+}
+
+.setupBar::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  transition: width var(--dur-slow) var(--ease);
+}
+
+.setupList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.setupItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  text-align: start;
+  cursor: pointer;
+  position: relative;
+}
+
+/* 36 px rows, 44 px hit area. */
+.setupItem::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.setupItem:hover {
+  background: var(--hover-tint);
+}
+
+.setupList li[data-done='true'] .setupItem {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--hairline-strong);
+}
+
+.setupCheck {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--hairline-strong);
+  display: grid;
+  place-items: center;
+}
+
+.setupCheck svg {
+  width: 10px;
+  height: 10px;
+}
+
+.setupList li[data-done='true'] .setupCheck {
+  border-color: var(--success-dot);
+  background: var(--success-dot);
+  color: var(--on-accent);
+}
+
+/* ---------------------------------------------------------------- T-088: welcome panel */
+
+.welcome {
+  position: relative;
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--accent-border);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--accent-soft) 0%, transparent 60%), var(--surface);
+  box-shadow: var(--elev-2);
+  overflow: hidden;
+}
+
+.welcomeReady {
+  border-color: var(--success-border);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--success-soft) 0%, transparent 60%), var(--surface);
+}
+
+/* The viewfinder corners from the logo frame the panel, faintly. */
+.welcome::before,
+.welcome::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 0 solid var(--accent-border);
+  pointer-events: none;
+}
+
+.welcome::before {
+  top: 10px;
+  inset-inline-end: 10px;
+  border-top-width: 3px;
+  border-inline-end-width: 3px;
+  border-start-end-radius: 6px;
+}
+
+.welcome::after {
+  bottom: 10px;
+  inset-inline-end: 10px;
+  border-bottom-width: 3px;
+  border-inline-end-width: 3px;
+  border-end-end-radius: 6px;
+}
+
+.welcomeMark {
+  flex: none;
+}
+
+.welcomeMark svg {
+  border-radius: 11px;
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.35);
+}
+
+.welcomeBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.welcomeTitle {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.welcomeText {
+  margin: 0;
+  color: var(--muted);
+}
+
+.welcomeSteps {
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: welcome;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.welcomeSteps li {
+  counter-increment: welcome;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.welcomeSteps li::before {
+  content: counter(welcome);
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--hairline-strong);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.welcomeSteps li[data-current='true'] {
+  font-weight: 600;
+}
+
+.welcomeSteps li[data-current='true']::before {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.inlineKeys,
+.welcomeKeys span {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.welcomeKeys {
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.welcomeKeys kbd {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: var(--text-md);
+  border-radius: var(--radius-sm);
+  border-bottom-width: 3px;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .welcome {
+    animation: fade-up var(--dur-slow) var(--ease) both;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }

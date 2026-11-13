@@ -445,6 +445,27 @@ const en = {
   'capture.cancel': 'Cancel',
   // result toast (T-085)
   'result.nextBug': 'Next bug? Press',
+  // settings status, setup checklist, auto-save and welcome (T-086, T-088)
+  'settings.needsSetup': 'Needs setup',
+  'settings.autoSaved': 'Saved',
+  'settings.autoSaveNote': 'Changes here are saved right away.',
+  'setup.title': 'Set up Laqta',
+  'setup.progress': '{done} of {total} done',
+  'setup.jira': 'Connect Jira',
+  'setup.project': 'Choose a default project',
+  'setup.ai': 'Choose how drafts are written',
+  'setup.screen': 'Allow screen capture',
+  'setup.itemDone': '(done)',
+  'welcome.title': 'Welcome to Laqta',
+  'welcome.body':
+    'Turn a screenshot and one sentence into a reviewed Jira bug. Three steps to start:',
+  'welcome.step1': 'Connect Jira below, press Test connection, then Save.',
+  'welcome.step2': 'In any app, press the capture shortcut:',
+  'welcome.step3': 'Describe what is wrong, check the draft, and create the bug.',
+  'welcome.readyTitle': 'You are ready',
+  'welcome.readyBody':
+    'Laqta waits in the tray. Press the shortcut in any app to report your first bug:',
+  'welcome.close': 'Close Settings',
 } as const;
 
 export type StringKey = keyof typeof en;
@@ -864,6 +885,25 @@ const ar: Dictionary = {
   'capture.cancel': 'إلغاء',
   // result toast (T-085)
   'result.nextBug': 'خطأ آخر؟ اضغط',
+  // settings status, setup checklist, auto-save and welcome (T-086, T-088)
+  'settings.needsSetup': 'يحتاج إلى إعداد',
+  'settings.autoSaved': 'حُفظ',
+  'settings.autoSaveNote': 'تُحفظ التغييرات هنا فوراً.',
+  'setup.title': 'إعداد لقطة',
+  'setup.progress': '{done} من {total}',
+  'setup.jira': 'اربط Jira',
+  'setup.project': 'اختر مشروعاً افتراضياً',
+  'setup.ai': 'اختر طريقة كتابة المسودات',
+  'setup.screen': 'اسمح بالتقاط الشاشة',
+  'setup.itemDone': '(تم)',
+  'welcome.title': 'مرحباً بك في لقطة',
+  'welcome.body': 'حوّل لقطة شاشة وجملة واحدة إلى خطأ في Jira بعد مراجعتك. ثلاث خطوات للبدء:',
+  'welcome.step1': 'اربط Jira في الأسفل، واضغط اختبار الاتصال، ثم حفظ.',
+  'welcome.step2': 'في أي تطبيق، اضغط اختصار الالتقاط:',
+  'welcome.step3': 'صف المشكلة وراجع المسودة وأنشئ الخطأ.',
+  'welcome.readyTitle': 'كل شيء جاهز',
+  'welcome.readyBody': 'تنتظر لقطة في شريط النظام. اضغط الاختصار في أي تطبيق للإبلاغ عن أول خطأ:',
+  'welcome.close': 'أغلق الإعدادات',
 };
 
 export type UiLanguage = 'en' | 'ar';
