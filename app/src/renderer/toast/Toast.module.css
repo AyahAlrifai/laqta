@@ -6,6 +6,12 @@
   height: auto;
 }
 
+/* The window follows the card a frame later; never show a scrollbar in between. */
+:global(html),
+:global(body) {
+  overflow: hidden;
+}
+
 .card {
   position: relative;
   overflow: hidden;

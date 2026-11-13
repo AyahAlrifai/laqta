@@ -10,6 +10,7 @@ import {
 } from '@playwright/test';
 import { MockJira } from '../test/mock-jira';
 import { pick } from './pick';
+import { t, type StringKey } from '../src/shared/strings';
 
 // Spec section 12, end to end: golden path, partial failure and unknown-result verify, with
 // the fake draft provider (LAQTA_E2E=1) and the mock Jira server.
@@ -149,14 +150,17 @@ test('golden path: capture, annotate, redact, draft, review, pick assignee, crea
   expect(sent.slice(2)).toEqual(['billing', 'checkout', 'slow']);
   expect(issue?.attachments).toHaveLength(1);
   expect(String(issue?.fields.description)).toContain('h3. Environment');
-  // The window fits the card: only the card's own padding is left under the buttons.
+  // The window fits the card (T-085 added the shortcut line under the buttons): no empty
+  // space under the card, and nothing cut off.
   await expect
     .poll(async () => {
-      const box = await toast.getByRole('button', { name: 'Open in Jira' }).boundingBox();
+      const bottom = await toast.evaluate<number>(
+        "document.getElementById('root').getBoundingClientRect().bottom",
+      );
       const inner = await toast.evaluate<number>('window.innerHeight');
-      return inner - (box ? box.y + box.height : 0);
+      return Math.abs(inner - bottom);
     })
-    .toBeLessThanOrEqual(32);
+    .toBeLessThanOrEqual(4);
   // Left alone, the result closes itself.
   await toast.waitForEvent('close', { timeout: 15_000 });
 });
@@ -260,4 +264,32 @@ test('sounds: the draft-ready cue plays when step 1 finishes, and not once turne
   expect(await wb.evaluate<string[]>('window.__cues')).toEqual(['running']);
   await wb.getByRole('button', { name: 'Cancel', exact: true }).click();
   await wb.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
+});
+
+test('Arabic UI: the workbench mirrors and every step reads in Arabic (T-090)', async () => {
+  const ar = (key: StringKey) => t('ar', key);
+  const wb = await captureToEditor(true);
+  // The UI language is read when a window boots, so switch it and reload the workbench.
+  await wb.evaluate(`window.laqta.settingsGet().then((r) =>
+    window.laqta.settingsSet({ settings: { ...r.value.settings, uiLanguage: 'ar' } }))`);
+  await wb.reload();
+  await expect.poll(() => wb.evaluate<string>('document.documentElement.dir')).toBe('rtl');
+
+  await wb.getByLabel(ar('editor.whatIsWrong')).fill('المجموع يظهر مرتين، assign Sara');
+  await pick(wb.getByRole('combobox', { name: ar('editor.project') }), 'PROJ');
+  await shot(wb, 'ar-2-editor');
+  await wb.getByRole('button', { name: ar('editor.generate') }).click();
+  const confirm = wb.getByRole('alertdialog');
+  // The reload dropped the unflattened blur, so the no-blur confirm may ask first.
+  if (await confirm.isVisible().catch(() => false)) {
+    await confirm.getByRole('button', { name: ar('confirm.noBlurSend') }).click();
+  }
+  await expect(wb.getByRole('heading', { name: ar('review.title') })).toBeVisible();
+  await shot(wb, 'ar-3-review');
+
+  await wb.getByRole('button', { name: ar('review.cancel'), exact: true }).click();
+  await wb
+    .getByRole('alertdialog')
+    .getByRole('button', { name: ar('confirm.discard') })
+    .click();
 });
