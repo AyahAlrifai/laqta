@@ -6,7 +6,7 @@
   --row-control-width: 264px;
   display: grid;
   /* A preferences window, so denser than the workbench; controls keep 44 px (spec section 9). */
-  font-size: 14px;
+  font-size: var(--text-base);
   grid-template-columns: 216px 1fr;
   height: 100%;
   background: var(--surface-muted);
@@ -33,7 +33,7 @@
 
 .brand svg {
   flex: none;
-  box-shadow: 0 2px 6px rgba(29, 63, 184, 0.3);
+  box-shadow: 0 2px 6px rgba(var(--accent-rgb), 0.3);
   border-radius: 9px;
 }
 
@@ -45,13 +45,13 @@
 
 .brandName {
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--text-lg);
   line-height: 1.2;
 }
 
 .brandVersion {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .tabs {
@@ -116,7 +116,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -163,7 +163,7 @@
 
 .title {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -171,7 +171,7 @@
 .intro {
   margin: 2px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 /* A group is an inset card of rows and fields, like a native preferences pane. */
@@ -186,7 +186,7 @@
 .groupTitle {
   margin: 0;
   padding: var(--space-4) 0 var(--space-1);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -197,7 +197,7 @@
   margin: 0;
   padding: var(--space-3) 0 var(--space-4);
   border-top: 1px solid var(--hairline);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -234,7 +234,7 @@
 
 .rowHelp {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .rowControl {
@@ -256,7 +256,7 @@
 .fieldHelp {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .field :global(.input),
@@ -279,7 +279,7 @@
 .note {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 /* ---------------------------------------------------------------- connection status */
@@ -339,12 +339,12 @@
 }
 
 .statusText strong {
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 .statusText span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
 }
 
@@ -524,7 +524,7 @@
 .listening {
   border-color: var(--accent);
   background: var(--accent-soft);
-  box-shadow: 0 0 0 3px rgba(47, 91, 234, 0.18);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 
 .listening:hover {
@@ -549,14 +549,14 @@
   border-bottom-width: 2px;
   background: var(--surface-muted);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--ink);
 }
 
 .shortcutHint {
   min-height: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--danger-text);
 }
 
@@ -596,7 +596,7 @@
 
 .footerMessage {
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 .footerOk,
@@ -670,7 +670,7 @@
 .themeNote {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .themePicker {
@@ -892,7 +892,7 @@
 
 .themeHelp {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,53 +1,70 @@
 /*
- * Spec section 9: colour and spacing tokens, defined once. Components use these tokens and
- * never literal UI colours, so the dark set below restyles every window (Settings › Appearance;
- * main sets nativeTheme.themeSource, which drives prefers-color-scheme).
+ * Spec section 9: colour, type, spacing, elevation and motion tokens, defined once (T-080).
+ * Components use these tokens and never literal UI colours, sizes or shadows, so the dark set
+ * below restyles every window (Settings › Appearance; main sets nativeTheme.themeSource,
+ * which drives prefers-color-scheme).
  */
 :root {
   color-scheme: light;
 
-  --ink: #14171f;
-  --muted: #5b6372;
-  --faint: #8a91a0;
-  --accent: #2f5bea;
-  --accent-ink: #1d3fb8;
-  --accent-hover: #1d3fb8;
-  --accent-soft: #e6ecfd;
-  --accent-soft-strong: #d8e2fc;
-  --accent-border: #c6d3fb;
+  /* Neutrals lean slightly towards the brand blue so greys read as chosen, not default. */
+  --ink: #12151d;
+  --muted: #586174;
+  --faint: #8a91a1;
+  --accent: #3b5bff;
+  /* RGB triplet of the accent for glows: rgba(var(--accent-rgb), a). */
+  --accent-rgb: 59, 91, 255;
+  --accent-ink: #2440d0;
+  --accent-hover: #2d4bf0;
+  --accent-soft: #eaeeff;
+  --accent-soft-strong: #dbe2ff;
+  --accent-border: #c5d0ff;
   --on-accent: #ffffff;
   --danger: #c2362b;
   --danger-ink: #9e2a21;
   --danger-text: #c2362b;
   --danger-strong-text: #7a1d16;
-  --danger-soft: #fdecea;
+  --danger-soft: #fdeeec;
   --danger-border: #f0c2bd;
   --success: #14683d;
   --success-fill: #14683d;
   --success-dot: #1f9d55;
-  --success-soft: #e5f4ec;
+  --success-soft: #e7f5ed;
   --success-border: #b9e0c9;
   --warning-text: #6b4600;
-  --warning-soft: #fdf4e3;
+  --warning-icon: #b07a10;
+  --warning-soft: #fdf5e6;
   --warning-border: #e8c27a;
   --warning-hover: rgba(107, 70, 0, 0.08);
   --control-border: #7a8396;
-  --hairline: #dde1e8;
+  --hairline: #e0e3eb;
+  --hairline-strong: #cdd2dd;
   --surface: #ffffff;
-  --surface-muted: #f3f4f7;
+  --surface-muted: #f4f5f9;
+  --surface-sunken: #eceef4;
+  --surface-raised: #ffffff;
   --surface-translucent: rgba(255, 255, 255, 0.92);
-  --hover-tint: rgba(20, 23, 31, 0.05);
+  --hover-tint: rgba(18, 21, 29, 0.05);
+  --press-tint: rgba(18, 21, 29, 0.09);
   --disabled-bg: #d5d9e2;
   --disabled-ink: #414856;
   --switch-off: #b8bec9;
   --knob: #ffffff;
-  --inverse-bg: #14171f;
+  --inverse-bg: #12151d;
   --inverse-ink: #ffffff;
-  --canvas-bg: #f7f8fa;
-  --canvas-dot: #d9dde5;
+  /* The capture overlay toolbar is dark glass in both themes: it sits on a screenshot. */
+  --glass-bg: rgba(18, 21, 29, 0.82);
+  --glass-ink: #f2f4f8;
+  --glass-muted: #b4bac7;
+  --glass-hover: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --canvas-bg: #f4f5f9;
+  --canvas-dot: #e1e4eb;
+  --skeleton: #e6e9f0;
+  --skeleton-shine: #f4f6fa;
   --annotation: #d6362b;
   /* Shadows and scrims are tinted with this colour (used as rgba(var(--shadow-rgb), a)). */
-  --shadow-rgb: 20, 23, 31;
+  --shadow-rgb: 18, 21, 29;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -56,70 +73,119 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  --space-10: 40px;
 
   --radius-sm: 6px;
   --radius: 10px;
-  --radius-lg: 16px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
   --control-height: 44px;
   --focus-ring: 3px solid var(--accent);
   --focus-offset: 2px;
 
+  /* Bundled faces (shared/styles/fonts.css): Inter for Latin, IBM Plex Sans Arabic for Arabic.
+     System faces stay as fallbacks so text never disappears while a face loads. */
   --font:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Noto Sans Arabic', 'Geeza Pro',
-    'Segoe UI Arabic', Tahoma, sans-serif;
-  --font-size: 15px;
-  --shadow: 0 12px 40px rgba(var(--shadow-rgb), 0.18);
+    'Inter Variable', 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    system-ui, 'Noto Sans Arabic', 'Geeza Pro', 'Segoe UI Arabic', Tahoma, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Type scale. Headings use tighter tracking; small labels use a little extra. */
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --font-size: var(--text-md);
+  --tracking-tight: -0.015em;
+  --tracking-label: 0.06em;
+
+  /* Elevation: 1 = resting card, 2 = raised panel, 3 = floating (popovers, toasts). */
+  --elev-1: 0 1px 2px rgba(var(--shadow-rgb), 0.06);
+  --elev-2: 0 1px 2px rgba(var(--shadow-rgb), 0.05), 0 6px 18px rgba(var(--shadow-rgb), 0.07);
+  --elev-3: 0 2px 6px rgba(var(--shadow-rgb), 0.08), 0 16px 40px rgba(var(--shadow-rgb), 0.16);
+  --glow-accent: 0 0 0 3px rgba(var(--accent-rgb), 0.22);
+  --shadow: var(--elev-3);
+
+  /* Motion. Components animate only inside prefers-reduced-motion: no-preference. */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 /*
- * Dark set: cool neutrals that keep the ink hue. Every text pair meets 4.5:1 (ink 13.9,
- * muted 7.1, white on accent 5.1, danger text 6.6, success 7.5, warning 10.2); borders and
- * icons meet 3:1. Shadows get deeper because a dark surface hides a light one.
+ * Dark set: three surface levels (sunken base, surface, raised) with clear steps, cool
+ * neutrals that keep the ink hue. Every text pair meets 4.5:1 (ink 14.2, muted 7.3, white on
+ * accent 5.0, danger text 6.6, success 7.5, warning 10.2); borders and icons meet 3:1.
+ * Shadows get deeper because a dark surface hides a light one.
  */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --ink: #e8eaf0;
-    --muted: #a3aab8;
+    --ink: #eaecf2;
+    --muted: #a5acbb;
     --faint: #7d8596;
-    --accent: #3d63e6;
-    --accent-ink: #b4c5ff;
-    --accent-hover: #3358d4;
-    --accent-soft: #22305c;
-    --accent-soft-strong: #2c3d73;
-    --accent-border: #3a4f8f;
+    --accent: #4361f5;
+    --accent-rgb: 67, 97, 245;
+    --accent-ink: #b7c4ff;
+    --accent-hover: #3653e6;
+    --accent-soft: #1f2853;
+    --accent-soft-strong: #29356b;
+    --accent-border: #3a4c94;
     --on-accent: #ffffff;
     --danger: #d63d33;
     --danger-ink: #b8322a;
     --danger-text: #ff7b72;
     --danger-strong-text: #ffa198;
-    --danger-soft: #3a1e1f;
+    --danger-soft: #2e191b;
     --danger-border: #6e2c29;
     --success: #4cc38a;
     --success-fill: #1f8f57;
     --success-dot: #3fbf78;
-    --success-soft: #14302a;
+    --success-soft: #122822;
     --success-border: #24563d;
     --warning-text: #f2c46d;
-    --warning-soft: #33290f;
+    --warning-icon: #e0a93f;
+    --warning-soft: #2b2310;
     --warning-border: #6b5522;
     --warning-hover: rgba(242, 196, 109, 0.12);
     --control-border: #6b7487;
-    --hairline: #2e333f;
-    --surface: #1b1e26;
-    --surface-muted: #13151b;
-    --surface-translucent: rgba(27, 30, 38, 0.92);
+    --hairline: #2b303c;
+    --hairline-strong: #3a404e;
+    --surface: #1a1d25;
+    --surface-muted: #121419;
+    --surface-sunken: #0e1014;
+    --surface-raised: #232732;
+    --surface-translucent: rgba(26, 29, 37, 0.92);
     --hover-tint: rgba(255, 255, 255, 0.06);
+    --press-tint: rgba(255, 255, 255, 0.1);
     --disabled-bg: #2c313c;
     --disabled-ink: #9aa2b1;
     --switch-off: #4a5162;
     --knob: #ffffff;
-    --inverse-bg: #e8eaf0;
-    --inverse-ink: #14171f;
-    --canvas-bg: #101217;
-    --canvas-dot: #262b35;
+    --inverse-bg: #eaecf2;
+    --inverse-ink: #12151d;
+    --glass-bg: rgba(14, 16, 20, 0.86);
+    --glass-ink: #f2f4f8;
+    --glass-muted: #b4bac7;
+    --glass-hover: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --canvas-bg: #0e1014;
+    --canvas-dot: #1f232c;
+    --skeleton: #252a35;
+    --skeleton-shine: #2f3542;
     --shadow-rgb: 0, 0, 0;
-    --shadow: 0 12px 40px rgba(var(--shadow-rgb), 0.5);
+    --elev-1: 0 1px 2px rgba(var(--shadow-rgb), 0.3);
+    --elev-2: 0 1px 2px rgba(var(--shadow-rgb), 0.3), 0 8px 24px rgba(var(--shadow-rgb), 0.35);
+    --elev-3: 0 2px 6px rgba(var(--shadow-rgb), 0.4), 0 18px 44px rgba(var(--shadow-rgb), 0.55);
+    --glow-accent: 0 0 0 3px rgba(var(--accent-rgb), 0.35);
   }
 }

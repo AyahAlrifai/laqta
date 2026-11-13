@@ -1,16 +1,8 @@
 // Decorative icons for the Settings sidebar. The tab text carries the meaning.
 
-const common = {
-  'aria-hidden': true,
-  width: 18,
-  height: 18,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-} as const;
+import { iconBase } from '../shared/icons';
+
+const common = { ...iconBase, width: 18, height: 18 } as const;
 
 export function LinkIcon() {
   return (

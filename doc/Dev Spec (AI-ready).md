@@ -501,7 +501,7 @@ The visual source of truth is the [Laqta UI Design canvas](https://claude.ai/art
 
 **Shared rules**
 
-- Colour tokens and spacing are defined once in `shared/styles/tokens.css` using the values in the design: ink `#14171F`, muted `#5B6372`, accent `#2F5BEA`, danger `#C2362B`, success `#14683D`, warning text `#6B4600`, control border `#7A8396`.
+- Colour, type, spacing, elevation and motion tokens are defined once in `shared/styles/tokens.css`. Since T-080 the values are: ink `#12151D`, muted `#586174`, accent `#3B5BFF` (dark `#4361F5`), danger `#C2362B`, success `#14683D`, warning text `#6B4600`, control border `#7A8396`. Type is bundled Inter (Latin) and IBM Plex Sans Arabic (Arabic), on the scale `--text-2xs` to `--text-3xl`; renderers never load fonts from the network. Animations use the motion tokens and run only under `prefers-reduced-motion: no-preference`.
 - Appearance (added at the product owner's request): `Settings.theme` is Light, Dark or System (the default, which follows the OS). Main sets Electron's `nativeTheme.themeSource`, so every renderer sees it as `prefers-color-scheme` and `tokens.css` swaps to the dark token set in one place; components use tokens, never literal UI colours. Settings › Appearance shows three preview cards; picking one previews it live through `theme:preview`, and Save keeps it. Annotation colours and the redacted image are content and do not change with the theme. Dark tokens meet the same 4.5:1 text contrast.
 - All text meets 4.5:1 contrast; every control is at least 44 px high; focus ring is a 3 px outline in the accent colour with a 2 px offset.
 - Information is never shown by colour alone: warnings and errors carry an icon and a text lead-in.
@@ -691,6 +691,24 @@ When finished: list the files you changed, show the test output, and list anythi
 | T-071 | Employee authentication, per-user rate limits and monthly cost caps | T-070 | Over-limit requests return a clear code; decision D-AUTH from section 14 is recorded |
 | T-072 | `GatewayProvider` and removal of the direct provider from release builds | T-070 | The release check for the API key string passes |
 | T-073 | `POST /v1/transcribe` and the production speech service | T-061, T-070 | WER at or above the agreed threshold on the clip set |
+
+**M8, UI overhaul (added at the product owner's request, from the UI/UX review "Laqta UI overhaul")**
+
+Change IDs in brackets refer to that review. Behaviour contracts (§3, §4, §8) and the invariants do not change; these tickets change layout, styling and copy only, except where noted.
+
+| ID | Ticket | Needs | Acceptance criteria |
+| --- | --- | --- | --- |
+| T-080 | Design foundation: brand accent, bundled fonts, type scale, elevation and motion tokens, dark surfaces, one icon set [F-02 to F-07] | T-051 | Every module uses tokens for type, shadow and motion; contrast tests pass in both themes; fonts load from the bundle |
+| T-081 | Capture overlay: dark toolbar with key hints, corner-bracket selection, magnifier loupe [C-01 to C-03] | T-080 | Same keyboard behaviour as board 1; loupe hidden with reduced motion off-screen; E2E capture passes |
+| T-082 | Describe step: no scrolling at the default size, fit and zoom, contextual tool options, fewer hint chips, redaction status pill, mic in the text box [E-01 to E-07] | T-080 | Project and language are in the footer; the zero-redaction confirm still runs; Ctrl+Enter generates |
+| T-083 | Drafting skeleton in the Review layout [D-01] | T-082 | No fake progress stages; Cancel works |
+| T-084 | Review step: bug shown as a document, Jira fields as a side panel, questions next to their field, reason next to a disabled Create, attachment card, type and priority icons, compact duplicate row [R-01 to R-07] | T-082 | Every field stays a labelled control; Create rules unchanged; ambiguous assignee still forces a pick |
+| T-085 | Result toast: slide-in, check mark, key chip, thumbnail, auto-close bar, Report another, unified partial and failure layout [T-01 to T-03] | T-080 | Polite live region kept; retry still uploads only the image |
+| T-086 | Settings: one status language, lighter banners, setup checklist, auto-save for Appearance, Sounds and Language, app version [S-01 to S-04, N-02] | T-080 | Jira, AI and Capture keep explicit Save; Appearance, Sounds and Language save on change |
+| T-087 | Native window materials: Mica on Windows 11, vibrancy on macOS, solid fallback [X-01] | T-080 | `windows.ts` security settings unchanged; window-policy tests pass |
+| T-088 | Welcome panel inside Settings on first run: Connect Jira, Try the hotkey, Done [N-01] | T-086 | No new window or IPC channel; shows only while Jira is not configured |
+| T-089 | Polish: shortcuts sheet, microinteractions, empty and error illustrations, copy pass, window size check [X-03 to X-07] | T-084, T-085 | All motion respects reduced motion; every string in `strings.ts` in both languages |
+| T-090 | Arabic and RTL pass on the new screens, design boards v0.2 [X-02, F-01] | T-089 | Arabic E2E screenshots for every step; boards updated |
 
 ## 14. Spike checklist: assumptions to verify
 

@@ -80,7 +80,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -111,7 +111,7 @@
   background: var(--accent);
   color: var(--on-accent);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(29, 63, 184, 0.35);
+  box-shadow: 0 1px 3px rgba(var(--accent-rgb), 0.35);
 }
 
 .tool[aria-pressed='true'] svg {
@@ -182,7 +182,7 @@
 
 .toolHint {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -196,7 +196,7 @@
 
 .subLabel {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--muted);
   white-space: nowrap;
@@ -383,7 +383,7 @@
 .caption {
   color: var(--muted);
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   padding: 0 var(--space-1);
 }
 
@@ -402,7 +402,7 @@
 
 .cardTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 700;
 }
 
@@ -421,7 +421,7 @@
   position: absolute;
   inset-inline-end: var(--space-3);
   bottom: var(--space-2);
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--muted);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
@@ -450,7 +450,7 @@
   background: var(--surface-muted);
   color: var(--ink);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--text-sm);
   cursor: pointer;
   transition:
     background-color 120ms ease,
@@ -490,7 +490,7 @@
 
 .chipsHint {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -502,7 +502,7 @@
 
 .fieldLabel {
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 .field :global(.select) {
@@ -533,7 +533,7 @@
 .hint {
   color: var(--muted);
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   flex: 1;
   min-width: 160px;
 }
@@ -547,7 +547,7 @@
   margin: 0;
   padding: 0 var(--space-1);
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .privacy svg,
@@ -563,7 +563,7 @@
   color: var(--warning-text);
   margin: 0;
   flex: 1;
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 /* ---------------------------------------------------------------- no-blur dialog */
@@ -588,5 +588,5 @@
 .subtools .segment label {
   min-height: 30px;
   min-width: 72px;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }

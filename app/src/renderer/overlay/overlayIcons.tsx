@@ -1,16 +1,8 @@
 // Decorative mode-bar icons. Every button also carries its text label.
 
-const common = {
-  'aria-hidden': true,
-  width: 16,
-  height: 16,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-} as const;
+import { iconBase } from '../shared/icons';
+
+const common = { ...iconBase, width: 16, height: 16 } as const;
 
 /** Area: a dashed selection with corner marks. */
 export function AreaIcon() {
