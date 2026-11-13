@@ -145,7 +145,11 @@ export default function Toast() {
       >
         <CloseIcon />
       </button>
-      <div className={styles.body} role={ok ? 'status' : 'alert'} aria-live={ok ? 'polite' : undefined}>
+      <div
+        className={styles.body}
+        role={ok ? 'status' : 'alert'}
+        aria-live={ok ? 'polite' : undefined}
+      >
         <ResultMark kind={data.kind} />
         <div className={styles.content}>
           <h1 className={styles.title}>
