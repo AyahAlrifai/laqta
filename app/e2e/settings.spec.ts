@@ -95,6 +95,29 @@ test('first run: the project select is disabled until Jira is connected', async 
   expect(mock.calls).toEqual([]);
 });
 
+test('first run: the welcome card keeps its full height in a short window', async () => {
+  const page = await launchSettings();
+  const welcome = page.getByRole('region', { name: en('welcome.title'), exact: true });
+  await expect(welcome).toBeVisible();
+  // A short window, like a small laptop screen: the panel scrolls, the card must not shrink.
+  const electronApp = app;
+  if (electronApp === null) throw new Error('no app');
+  await electronApp.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows().find((b) =>
+      b.webContents.getURL().includes('/settings/'),
+    );
+    w?.setMinimumSize(400, 200);
+    w?.setContentSize(848, 340);
+  });
+  // How many pixels of the card's content are cut off (0 when it has its full height).
+  const clipped = (): Promise<number> =>
+    welcome.evaluate((el: { scrollHeight: number; clientHeight: number }) => {
+      return el.scrollHeight - el.clientHeight;
+    });
+  await expect.poll(clipped).toBeLessThanOrEqual(1);
+  await expect(page.getByRole('listitem').filter({ hasText: en('welcome.step3') })).toBeVisible();
+});
+
 test('test connection lists the projects; the saved choice survives a reload', async () => {
   const page = await launchSettings();
   await connect(page);
