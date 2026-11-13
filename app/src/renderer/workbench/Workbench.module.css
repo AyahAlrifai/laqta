@@ -236,3 +236,59 @@
   color: var(--muted);
   font-size: var(--text-sm);
 }
+
+/* ---------------------------------------------------------------- shortcuts (T-089) */
+
+.headerIcon {
+  min-width: var(--control-height);
+  padding: 0;
+  color: var(--muted);
+}
+
+.headerIcon:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--hover-tint);
+}
+
+.shortcuts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shortcutRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 44px;
+  border-top: 1px solid var(--hairline);
+}
+
+.shortcutRow:first-child {
+  border-top: 0;
+}
+
+.shortcutRow dt {
+  min-width: 0;
+}
+
+.shortcutRow dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.combo {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.combo kbd {
+  min-width: 24px;
+  height: 24px;
+  font-size: var(--text-xs);
+  color: var(--ink);
+}

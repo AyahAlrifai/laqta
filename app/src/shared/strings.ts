@@ -61,10 +61,8 @@ const en = {
   'editor.textPlaceholder': 'Type a label',
   'editor.canvasLabel':
     'Screenshot, {width} by {height} pixels. {boxes} boxes, {arrows} arrows, {texts} text labels, {blurs} blurred areas.',
-  'editor.captured':
-    'Captured {width} × {height} · {app} · {os}. Blur anything sensitive before you continue.',
-  'editor.capturedNoApp':
-    'Captured {width} × {height} · {os}. Blur anything sensitive before you continue.',
+  'editor.captured': 'Captured {width} × {height} · {app} · {os}',
+  'editor.capturedNoApp': 'Captured {width} × {height} · {os}',
   'editor.whatIsWrong': 'What is wrong?',
   'editor.promptPlaceholder':
     'Describe the problem in Arabic or English. Name the assignee if you know them.',
@@ -466,6 +464,18 @@ const en = {
   'welcome.readyBody':
     'Laqta waits in the tray. Press the shortcut in any app to report your first bug:',
   'welcome.close': 'Close Settings',
+  // polish: shortcuts sheet and illustrations (T-089)
+  'shortcuts.title': 'Keyboard shortcuts',
+  'shortcuts.open': 'Keyboard shortcuts',
+  'shortcuts.tools': 'Pick a tool: Select, Box, Arrow, Text, Blur',
+  'shortcuts.undo': 'Undo',
+  'shortcuts.redo': 'Redo',
+  'shortcuts.delete': 'Delete the selected shape',
+  'shortcuts.move': 'Move the selected shape',
+  'shortcuts.generate': 'Generate the draft',
+  'shortcuts.zoom': 'Zoom the image',
+  'shortcuts.scroll': 'scroll',
+  'shortcuts.help': 'Show this list',
 } as const;
 
 export type StringKey = keyof typeof en;
@@ -524,9 +534,8 @@ const ar: Dictionary = {
   'editor.textPlaceholder': 'اكتب التسمية',
   'editor.canvasLabel':
     'لقطة شاشة {width} في {height} بكسل. {boxes} مربعات، {arrows} أسهم، {texts} تسميات، {blurs} مناطق مخفية.',
-  'editor.captured':
-    'تم التقاط {width} × {height} · {app} · {os}. أخفِ أي بيانات حساسة قبل المتابعة.',
-  'editor.capturedNoApp': 'تم التقاط {width} × {height} · {os}. أخفِ أي بيانات حساسة قبل المتابعة.',
+  'editor.captured': 'تم التقاط {width} × {height} · {app} · {os}',
+  'editor.capturedNoApp': 'تم التقاط {width} × {height} · {os}',
   'editor.whatIsWrong': 'ما المشكلة؟',
   'editor.promptPlaceholder': 'صف المشكلة بالعربية أو الإنجليزية. اذكر اسم المسؤول إن كنت تعرفه.',
   'editor.speak': 'تحدث',
@@ -904,6 +913,18 @@ const ar: Dictionary = {
   'welcome.readyTitle': 'كل شيء جاهز',
   'welcome.readyBody': 'تنتظر لقطة في شريط النظام. اضغط الاختصار في أي تطبيق للإبلاغ عن أول خطأ:',
   'welcome.close': 'أغلق الإعدادات',
+  // polish: shortcuts sheet and illustrations (T-089)
+  'shortcuts.title': 'اختصارات لوحة المفاتيح',
+  'shortcuts.open': 'اختصارات لوحة المفاتيح',
+  'shortcuts.tools': 'اختر أداة: تحديد، مربع، سهم، نص، إخفاء',
+  'shortcuts.undo': 'تراجع',
+  'shortcuts.redo': 'إعادة',
+  'shortcuts.delete': 'احذف الشكل المحدد',
+  'shortcuts.move': 'حرّك الشكل المحدد',
+  'shortcuts.generate': 'اكتب المسودة',
+  'shortcuts.zoom': 'كبّر الصورة أو صغّرها',
+  'shortcuts.scroll': 'التمرير',
+  'shortcuts.help': 'اعرض هذه القائمة',
 };
 
 export type UiLanguage = 'en' | 'ar';

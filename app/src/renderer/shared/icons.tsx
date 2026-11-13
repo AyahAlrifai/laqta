@@ -209,3 +209,43 @@ export function RetryIcon() {
     </svg>
   );
 }
+
+export function KeyboardIcon() {
+  return (
+    <svg {...iconBase}>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M7.5 14h9" />
+    </svg>
+  );
+}
+
+/**
+ * Empty and error states (T-089): the viewfinder from the logo around a symbol for what
+ * happened. Decorative; the heading next to it says it in words.
+ */
+export function StateArt({ kind }: { kind: 'offline' | 'error' }) {
+  return (
+    <svg aria-hidden="true" width="72" height="72" viewBox="0 0 72 72" fill="none">
+      <rect x="8" y="8" width="56" height="56" rx="16" style={{ fill: 'var(--surface-sunken)' }} />
+      <g
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ stroke: 'var(--accent)' }}
+      >
+        <path d="M18 28v-6a4 4 0 0 1 4-4h6M44 18h6a4 4 0 0 1 4 4v6M54 44v6a4 4 0 0 1-4 4h-6M28 54h-6a4 4 0 0 1-4-4v-6" />
+      </g>
+      {kind === 'offline' ? (
+        <g strokeWidth="2.5" strokeLinecap="round" style={{ stroke: 'var(--danger-text)' }}>
+          <path d="M27 33a13 13 0 0 1 18 0M31 38a7 7 0 0 1 10 0" />
+          <circle cx="36" cy="43" r="1.6" style={{ fill: 'var(--danger-text)' }} />
+          <path d="M26 26l20 20" />
+        </g>
+      ) : (
+        <g strokeWidth="2.6" strokeLinecap="round" style={{ stroke: 'var(--danger-text)' }}>
+          <path d="M36 28v9M36 43v.5" />
+        </g>
+      )}
+    </svg>
+  );
+}

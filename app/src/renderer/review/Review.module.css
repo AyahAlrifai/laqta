@@ -589,17 +589,27 @@
   min-width: 200px;
 }
 
+/* Jira unreachable (board 5, card 3): an illustrated card, not a red strip. */
 .errorCard {
-  border-top: 4px solid var(--danger);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--danger-border);
+  background: var(--surface);
+  box-shadow: var(--elev-2);
+}
+
+.errorCard p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .errorHead {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .errorHead h2 {
