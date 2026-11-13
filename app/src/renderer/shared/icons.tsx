@@ -72,10 +72,14 @@ export function BackArrowIcon() {
   );
 }
 
-/** The app mark: the tray viewfinder on the accent tile, as in the app icon. */
+/**
+ * The app mark, as in the app icon: the viewfinder framing a bug (screenshot to bug). Same
+ * paths as tools/icon/generate.cjs; below 24 px the legs drop out so it stays crisp.
+ */
 export function AppMark({ size = 28 }: { size?: number }) {
   // Unique per instance: two marks on one page must not share a gradient id.
   const gradient = `laqta-mark-${useId().replace(/:/g, '')}`;
+  const small = size < 24;
   return (
     <svg aria-hidden="true" width={size} height={size} viewBox="0 0 36 36">
       <defs>
@@ -85,10 +89,29 @@ export function AppMark({ size = 28 }: { size?: number }) {
         </linearGradient>
       </defs>
       <rect width="36" height="36" rx="9" fill={`url(#${gradient})`} />
-      <g fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10 14v-3a1 1 0 0 1 1-1h3M22 10h3a1 1 0 0 1 1 1v3M26 22v3a1 1 0 0 1-1 1h-3M14 26h-3a1 1 0 0 1-1-1v-3" />
-      </g>
-      <circle cx="18" cy="18" r="2.8" fill="#fff" />
+      <path
+        d="M8 13v-3a2 2 0 0 1 2-2h3M23 8h3a2 2 0 0 1 2 2v3M28 23v3a2 2 0 0 1-2 2h-3M13 28h-3a2 2 0 0 1-2-2v-3"
+        fill="none"
+        stroke="#fff"
+        strokeWidth={small ? 3 : 2.2}
+        strokeLinecap="round"
+      />
+      {small ? (
+        <ellipse cx="18" cy="18.5" rx="5.2" ry="6" fill="#fff" />
+      ) : (
+        <>
+          <path
+            d="M16.6 11.7l-1.3-1.7M19.4 11.7l1.3-1.7M12.9 17.6h-2.3M23.1 17.6h2.3M12.7 21.2h-2.5M23.3 21.2h2.5M13.4 24.4l-2 1.6M22.6 24.4l2 1.6"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          <circle cx="18" cy="13.7" r="2.5" fill="#fff" />
+          <ellipse cx="18" cy="20.4" rx="5.2" ry="6" fill="#fff" />
+          <path d="M18 16.2v9.6" stroke="#2a45e0" strokeWidth="1.2" strokeLinecap="round" />
+        </>
+      )}
     </svg>
   );
 }
