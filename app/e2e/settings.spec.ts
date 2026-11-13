@@ -95,6 +95,82 @@ test('first run: the project select is disabled until Jira is connected', async 
   expect(mock.calls).toEqual([]);
 });
 
+test('first run: the welcome card keeps its full height in a short window', async () => {
+  const page = await launchSettings();
+  const welcome = page.getByRole('region', { name: en('welcome.title'), exact: true });
+  await expect(welcome).toBeVisible();
+  // A short window, like a small laptop screen: the panel scrolls, the card must not shrink.
+  const electronApp = app;
+  if (electronApp === null) throw new Error('no app');
+  await electronApp.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows().find((b) =>
+      b.webContents.getURL().includes('/settings/'),
+    );
+    w?.setMinimumSize(400, 200);
+    w?.setContentSize(848, 340);
+  });
+  // How many pixels of the card's content are cut off (0 when it has its full height).
+  const clipped = (): Promise<number> =>
+    welcome.evaluate((el: { scrollHeight: number; clientHeight: number }) => {
+      return el.scrollHeight - el.clientHeight;
+    });
+  await expect.poll(clipped).toBeLessThanOrEqual(1);
+  await expect(page.getByRole('listitem').filter({ hasText: en('welcome.step3') })).toBeVisible();
+});
+
+// Measures every segmented control on the current tab with each option selected in turn
+// (only the radio's checked state, no change event, so nothing is saved): each label stays
+// inside its own segment, segments never overlap and the control stays inside its card.
+const SEGMENTED_PROBLEMS = `(() => {
+  const problems = [];
+  const inside = (a, b) => a.left >= b.left - 0.5 && a.right <= b.right + 0.5;
+  for (const group of document.querySelectorAll('[role=radiogroup]')) {
+    const radios = [...group.querySelectorAll('input[type=radio]')];
+    const was = radios.map((r) => r.checked);
+    const card = (group.closest('section') ?? document.body).getBoundingClientRect();
+    for (const radio of radios) {
+      radio.checked = true;
+      const segments = [...group.children];
+      segments.forEach((seg, i) => {
+        const label = seg.querySelector('label');
+        const s = seg.getBoundingClientRect();
+        if (label && !inside(label.getBoundingClientRect(), s)) {
+          problems.push('label spills: ' + label.textContent + ' (' + radio.value + ' on)');
+        }
+        const next = segments[i + 1]?.getBoundingClientRect();
+        if (next && Math.min(s.right, next.right) - Math.max(s.left, next.left) > 0.5) {
+          problems.push('overlap: ' + group.textContent + ' (' + radio.value + ' on)');
+        }
+      });
+      if (!inside(group.getBoundingClientRect(), card)) {
+        problems.push('outside its card: ' + group.textContent);
+      }
+    }
+    radios.forEach((r, i) => (r.checked = was[i]));
+  }
+  return problems;
+})()`;
+
+for (const lang of ['en', 'ar'] as const) {
+  test(`segmented controls fit their labels on every tab (${lang})`, async () => {
+    if (lang === 'ar')
+      writeFileSync(join(userData, 'settings.json'), JSON.stringify({ uiLanguage: 'ar' }));
+    const page = await launchSettings();
+    const tabs = page.getByRole('tab');
+    await expect(tabs.first()).toBeVisible();
+    const problems: string[] = [];
+    let groups = 0;
+    for (let i = 0; i < (await tabs.count()); i++) {
+      await tabs.nth(i).click();
+      await expect(tabs.nth(i)).toHaveAttribute('aria-selected', 'true');
+      groups += await page.getByRole('radiogroup').count();
+      problems.push(...(await page.evaluate<string[]>(SEGMENTED_PROBLEMS)));
+    }
+    expect(groups).toBeGreaterThan(0);
+    expect(problems).toEqual([]);
+  });
+}
+
 test('test connection lists the projects; the saved choice survives a reload', async () => {
   const page = await launchSettings();
   await connect(page);
